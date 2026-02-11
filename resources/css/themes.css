@@ -1,0 +1,75 @@
+/* Cyberpunk Theme */
+:root[data-theme="cyberpunk"] {
+    --color-bg-deep: #050014;
+    --color-bg-dark: #120129;
+    --color-bg-medium: #1a023b;
+    --color-bg-light: #2d0b59;
+    --color-bg-elevated: #240a45;
+
+    --color-primary: #ff00ff;
+    --color-primary-dim: rgba(255, 0, 255, 0.2);
+    --color-primary-glow: rgba(255, 0, 255, 0.6);
+    --color-secondary: #00ffff;
+    --color-secondary-dim: rgba(0, 255, 255, 0.2);
+
+    --color-success: #00ff9d;
+    --color-warning: #ffbd00;
+    --color-danger: #ff0055;
+
+    --color-border: rgba(255, 0, 255, 0.3);
+    --color-border-focus: rgba(0, 255, 255, 0.6);
+
+    --shadow-glow-primary: 0 0 25px var(--color-primary-glow);
+}
+
+/* Hacker Theme */
+:root[data-theme="hacker"] {
+    --color-bg-deep: #000000;
+    --color-bg-dark: #020802;
+    --color-bg-medium: #051105;
+    --color-bg-light: #0a1f0a;
+    --color-bg-elevated: #081608;
+
+    --color-primary: #00ff00;
+    --color-primary-dim: rgba(0, 255, 0, 0.2);
+    --color-primary-glow: rgba(0, 255, 0, 0.6);
+    --color-secondary: #00cc00;
+
+    --color-success: #00ff00;
+    --color-warning: #ffff00;
+    --color-danger: #ff3333;
+
+    --color-text-primary: #00ff00;
+    --color-text-secondary: #00cc00;
+    --color-text-muted: #008800;
+
+    --color-border: rgba(0, 255, 0, 0.4);
+
+    --font-family-ui: 'Courier New', 'Consolas', monospace;
+    --radius-sm: 0;
+    --radius-md: 0;
+    --radius-lg: 0;
+    --radius-xl: 0;
+}
+
+/* Light Theme (Clean) */
+:root[data-theme="light"] {
+    --color-bg-deep: #f6f8fa;
+    --color-bg-dark: #ffffff;
+    --color-bg-medium: #f0f2f5;
+    --color-bg-light: #eaeef2;
+    --color-bg-elevated: #ffffff;
+
+    --color-primary: #0969da;
+    --color-primary-dim: rgba(9, 105, 218, 0.1);
+    --color-primary-glow: rgba(9, 105, 218, 0.2);
+    --color-secondary: #8250df;
+
+    --color-text-primary: #24292f;
+    --color-text-secondary: #57606a;
+    --color-text-muted: #8c959f;
+    --color-text-inverse: #ffffff;
+
+    --color-border: #d0d7de;
+    --shadow-lg: 0 8px 24px rgba(140, 149, 159, 0.2);
+}
