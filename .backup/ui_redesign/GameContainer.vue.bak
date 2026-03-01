@@ -1,0 +1,340 @@
+<template>
+    <div class="app-layout">
+        <main class="game-container">
+            <!-- Top HUD Bar -->
+            <TopBar 
+                @openFinance="showFinanceOverlay = true" 
+                @openSettings="showSettingsOverlay = true" 
+                @openRoadmap="showRoadmapOverlay = true" 
+                @openLeaderboard="showLeaderboardOverlay = true"
+                @openMarketing="showMarketingOverlay = true"
+                @openSpecialization="showSpecializationOverlay = true"
+                @openAchievements="showAchievementOverlay = true"
+                @openPerformance="showPerformanceOverlay = true"
+                @openProfile="showProfileOverlay = true"
+            />
+
+            <!-- Global Crisis Alert -->
+            <GlobalCrisisOverlay />
+
+            <!-- World News Ticker -->
+            <WorldNewsTicker />
+
+            <!-- Left Panel - Room Selection & Info -->
+            <LeftPanel 
+                @openResearch="showResearchOverlay = true" 
+                @openUpgrades="showRoomUpgradesOverlay = true"
+                @openSpecialization="showSpecializationOverlay = true"
+                @openSandbox="showSandboxOverlay = true"
+                @selectRegion="handleRegionSelect"
+            />
+
+            <!-- Main Game World (Canvas) -->
+            <GameWorld @open-server-details="(id) => { detailServerId = id; showServerDetailOverlay = true; }" />
+
+            <!-- Right Panel - Server Shop & Details -->
+            <RightPanel 
+                @openDetails="(id) => { detailServerId = id; showServerDetailOverlay = true; }" 
+                @openAssembly="showAssemblyOverlay = true"
+            />
+
+            <!-- Bottom HUD - Quick Actions -->
+            <BottomHud 
+                @openEmployees="showEmployeesOverlay = true" 
+                @openStats="showStatsOverlay = true" 
+                @openAutomation="showAutomationOverlay = true" 
+                @openMarket="showMarketOverlay = true"
+                @openCustomers="showCustomersOverlay = true"
+                @openUpgrades="showRoomUpgradesOverlay = true"
+                @openEnergy="showEnergyOverlay = true"
+                @openLogs="showActivityLogOverlay = true"
+                @openIncidents="showIncidentHistoryOverlay = true"
+                @openCompliance="showComplianceOverlay = true"
+            />
+        </main>
+
+        <!-- Overlays (Outside Grid) -->
+        <EventOverlay v-if="gameStore.hasCriticalEvent" />
+        <ResearchOverlay v-if="showResearchOverlay" @close="showResearchOverlay = false" />
+        <FinanceOverlay v-if="showFinanceOverlay" @close="showFinanceOverlay = false" />
+        <SettingsOverlay v-if="showSettingsOverlay" @close="showSettingsOverlay = false" />
+        <EmployeesOverlay v-if="showEmployeesOverlay" @close="showEmployeesOverlay = false" />
+        <StatsOverlay v-if="showStatsOverlay" @close="showStatsOverlay = false" />
+        <AutomationOverlay v-if="showAutomationOverlay" @close="showAutomationOverlay = false" />
+        <DecisionOverlay v-if="hasPendingDecisions" />
+        <CustomersOverlay v-if="showCustomersOverlay" @close="showCustomersOverlay = false" />
+        <RoomUpgradesOverlay v-if="showRoomUpgradesOverlay" @close="showRoomUpgradesOverlay = false" />
+        <ActivityLogOverlay v-if="showActivityLogOverlay" @close="showActivityLogOverlay = false" />
+        <IncidentHistoryOverlay v-if="showIncidentHistoryOverlay" @close="showIncidentHistoryOverlay = false" />
+        <AchievementOverlay v-if="showAchievementOverlay" @close="showAchievementOverlay = false" />
+        <EnergyOverlay v-if="showEnergyOverlay" @close="showEnergyOverlay = false" />
+        <RoadmapOverlay v-if="showRoadmapOverlay" @close="showRoadmapOverlay = false" />
+        <LeaderboardOverlay v-if="showLeaderboardOverlay" @close="showLeaderboardOverlay = false" />
+        <MarketingOverlay v-if="showMarketingOverlay" @close="showMarketingOverlay = false" />
+        <SpecializationOverlay v-if="showSpecializationOverlay" @close="showSpecializationOverlay = false" />
+        <SandboxOverlay v-if="showSandboxOverlay" @close="showSandboxOverlay = false" />
+        <ServerDetailOverlay 
+            v-if="showServerDetailOverlay" 
+            :serverId="detailServerId" 
+            @close="showServerDetailOverlay = false" 
+        />
+        <RegionSelectOverlay 
+            v-if="showRegionSelect" 
+            :roomType="pendingRoomPurchase" 
+            :roomCost="getRoomCost(pendingRoomPurchase)"
+            @close="showRegionSelect = false" 
+        />
+        <AssemblyOverlay v-if="showAssemblyOverlay" @close="showAssemblyOverlay = false" />
+        <MarketOverlay v-if="showMarketOverlay" @close="showMarketOverlay = false" />
+        <PerformanceDashboardOverlay 
+            v-if="showPerformanceOverlay" 
+            @close="showPerformanceOverlay = false" 
+            @openCompliance="showComplianceOverlay = true"
+        />
+        <ProfileOverlay v-if="showProfileOverlay" @close="showProfileOverlay = false" />
+        <ComplianceOverlay v-if="showComplianceOverlay" @close="showComplianceOverlay = false" />
+        <!-- Guide Overlay (Always on top, non-blocking) -->
+        <TutorialOverlay v-if="player && !player.tutorial_completed" />
+
+        <LoginSummaryOverlay 
+            v-if="showLoginSummary && loginSummary" 
+            :summary="loginSummary" 
+            @close="showLoginSummary = false" 
+        />
+
+        <Tooltip 
+            :visible="tooltipStore.visible" 
+            :title="tooltipStore.title" 
+            :content="tooltipStore.content" 
+            :hint="tooltipStore.hint" 
+            :x="tooltipStore.x" 
+            :y="tooltipStore.y" 
+        />
+    </div>
+</template>
+
+<script setup>
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
+import { useGameStore } from '../../stores/game';
+import api from '../../utils/api';
+import TopBar from '../HUD/TopBar.vue';
+import GlobalCrisisOverlay from '../Overlay/GlobalCrisisOverlay.vue';
+import WorldNewsTicker from '../HUD/WorldNewsTicker.vue';
+import LeftPanel from '../HUD/LeftPanel.vue';
+import RightPanel from '../HUD/RightPanel.vue';
+import BottomHud from '../HUD/BottomHud.vue';
+import GameWorld from './GameWorld.vue';
+import EventOverlay from '../Overlay/EventOverlay.vue';
+import ResearchOverlay from '../Overlay/ResearchOverlay.vue';
+import FinanceOverlay from '../Overlay/FinanceOverlay.vue';
+import SettingsOverlay from '../Overlay/SettingsOverlay.vue';
+import EmployeesOverlay from '../Overlay/EmployeesOverlay.vue';
+import StatsOverlay from '../Overlay/StatsOverlay.vue';
+import AutomationOverlay from '../Overlay/AutomationOverlay.vue';
+import DecisionOverlay from '../Overlay/DecisionOverlay.vue';
+import CustomersOverlay from '../Overlay/CustomersOverlay.vue';
+import RoomUpgradesOverlay from '../Overlay/RoomUpgradesOverlay.vue';
+import ActivityLogOverlay from '../Overlay/ActivityLogOverlay.vue';
+import ServerDetailOverlay from '../Overlay/ServerDetailOverlay.vue';
+import EnergyOverlay from '../Overlay/EnergyOverlay.vue';
+import RoadmapOverlay from '../Overlay/RoadmapOverlay.vue';
+import LeaderboardOverlay from '../Overlay/LeaderboardOverlay.vue';
+import MarketingOverlay from '../Overlay/MarketingOverlay.vue';
+import SpecializationOverlay from '../Overlay/SpecializationOverlay.vue';
+import SandboxOverlay from '../Overlay/SandboxOverlay.vue';
+import RegionSelectOverlay from '../Overlay/RegionSelectOverlay.vue';
+import AssemblyOverlay from '../Overlay/AssemblyOverlay.vue';
+import MarketOverlay from '../Overlay/MarketOverlay.vue';
+import IncidentHistoryOverlay from '../Overlay/IncidentHistoryOverlay.vue';
+import AchievementOverlay from '../Overlay/AchievementOverlay.vue';
+import PerformanceDashboardOverlay from '../Overlay/PerformanceDashboardOverlay.vue';
+import LoginSummaryOverlay from '../Overlay/LoginSummaryOverlay.vue';
+import TutorialOverlay from '../Overlay/TutorialOverlay.vue';
+import ProfileOverlay from '../Overlay/ProfileOverlay.vue';
+import ComplianceOverlay from '../Overlay/ComplianceOverlay.vue';
+import Tooltip from '../UI/Tooltip.vue';
+import SoundManager from '../../services/SoundManager';
+import { useToastStore } from '../../stores/toast';
+import { useTooltipStore } from '../../stores/tooltip';
+
+const gameStore = useGameStore();
+const tooltipStore = useTooltipStore();
+
+const hasActiveEvent = computed(() => gameStore.activeEventCount > 0);
+const hasPendingDecisions = computed(() => (gameStore.player?.economy?.pendingDecisions || []).length > 0);
+const showResearchOverlay = ref(false);
+const showFinanceOverlay = ref(false);
+const showSettingsOverlay = ref(false);
+const showEmployeesOverlay = ref(false);
+const showStatsOverlay = ref(false);
+const showAutomationOverlay = ref(false);
+const showCustomersOverlay = ref(false);
+const showRoomUpgradesOverlay = ref(false);
+const showActivityLogOverlay = ref(false);
+const showServerDetailOverlay = ref(false);
+const showEnergyOverlay = ref(false);
+const showRoadmapOverlay = ref(false);
+const showLeaderboardOverlay = ref(false);
+const showMarketingOverlay = ref(false);
+const showSpecializationOverlay = ref(false);
+const showSandboxOverlay = ref(false);
+const showRegionSelect = ref(false);
+const showAssemblyOverlay = ref(false);
+const showMarketOverlay = ref(false);
+const showIncidentHistoryOverlay = ref(false);
+const showAchievementOverlay = ref(false);
+const showPerformanceOverlay = ref(false);
+const showProfileOverlay = ref(false);
+const showComplianceOverlay = ref(false);
+const showLoginSummary = ref(false);
+const loginSummary = ref(null);
+const pendingRoomPurchase = ref('garage');
+const detailServerId = ref(null);
+
+const handleRegionSelect = (key) => {
+    pendingRoomPurchase.value = key;
+    showRegionSelect.value = true;
+};
+
+const getRoomCost = (type) => {
+    const costs = {
+        garage: 25000,
+        small_hall: 150000,
+        data_center: 1000000
+    };
+    return costs[type] || 0;
+};
+
+const handleKeyDown = (e) => {
+    // 1. Close overlays on Escape
+    if (e.key === 'Escape') {
+        showResearchOverlay.value = false;
+        showFinanceOverlay.value = false;
+        showSettingsOverlay.value = false;
+        showEmployeesOverlay.value = false;
+        showStatsOverlay.value = false;
+        showAutomationOverlay.value = false;
+        showCustomersOverlay.value = false;
+        showRoomUpgradesOverlay.value = false;
+        showServerDetailOverlay.value = false;
+        showEnergyOverlay.value = false;
+        showRoadmapOverlay.value = false;
+        showLeaderboardOverlay.value = false;
+        showMarketingOverlay.value = false;
+        showSpecializationOverlay.value = false;
+        showSandboxOverlay.value = false;
+        showRegionSelect.value = false;
+        showAssemblyOverlay.value = false;
+        showMarketOverlay.value = false;
+        showIncidentHistoryOverlay.value = false;
+        showAchievementOverlay.value = false;
+        showPerformanceOverlay.value = false;
+        showProfileOverlay.value = false;
+        showComplianceOverlay.value = false;
+        return;
+    }
+
+    // Don't trigger shortcuts if user is typing in an input
+    if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+    // 2. Room switching (1-4)
+    if (['1', '2', '3', '4'].includes(e.key)) {
+        const roomIds = Object.keys(gameStore.rooms);
+        const index = parseInt(e.key) - 1;
+        if (roomIds[index]) {
+            gameStore.selectRoom(roomIds[index]);
+            SoundManager.playClick();
+        }
+    }
+
+    // 3. Hotkeys for Overlays
+    switch (e.key.toLowerCase()) {
+        case 'e': 
+            if (gameStore.events.active.length > 0) {
+                // EventOverlay is auto-shown if critical, but maybe we want to toggle something?
+                // For now, toggle settings or something else? 
+                // Let's use 'e' for Employees as per BottomHud order
+                showEmployeesOverlay.value = !showEmployeesOverlay.value;
+            }
+            break;
+        case 'r': showResearchOverlay.value = !showResearchOverlay.value; break;
+        case 'f': showFinanceOverlay.value = !showFinanceOverlay.value; break;
+        case 's': showSettingsOverlay.value = !showSettingsOverlay.value; break;
+        case 'c': showCustomersOverlay.value = !showCustomersOverlay.value; break;
+        case 'a': showAutomationOverlay.value = !showAutomationOverlay.value; break;
+        case 't': showStatsOverlay.value = !showStatsOverlay.value; break; // t for Stats
+        case 'm': showMarketOverlay.value = !showMarketOverlay.value; break; // m for Market
+        case 'i': showIncidentHistoryOverlay.value = !showIncidentHistoryOverlay.value; break; // i for Incidents
+        case 'h': showAchievementOverlay.value = !showAchievementOverlay.value; break; // h for Hall of Records
+        case 'p': showPerformanceOverlay.value = !showPerformanceOverlay.value; break; // p for Performance
+        case 'k': showComplianceOverlay.value = !showComplianceOverlay.value; break; // k for Compliance
+    }
+};
+
+onMounted(async () => {
+    // Connect WebSocket for real-time updates (with fallback polling)
+    gameStore.connectWebSocket();
+    SoundManager.startAmbience();
+    window.addEventListener('keydown', handleKeyDown);
+
+    // Fetch Offline Summary
+    try {
+        const response = await api.get('/game/summary');
+        if (response.success && response.data) {
+            loginSummary.value = response.data;
+            showLoginSummary.value = true;
+        }
+    } catch (e) {
+        console.error("Failed to load activity summary", e);
+    }
+
+    // Watch for new events to play sound
+    watch(() => gameStore.events.active.length, (newLen, oldLen) => {
+        if (newLen > (oldLen || 0)) {
+            SoundManager.playAlert();
+        }
+    });
+
+    // Watch for research completion to play sound and toast
+    watch(() => [...gameStore.research.projects], (newProj, oldProj) => {
+        if (!oldProj || oldProj.length === 0) return;
+        newProj.forEach(p => {
+            const old = oldProj.find(op => op.id === p.id);
+            if (p.status === 'completed' && old && old.status === 'researching') {
+                useToastStore().success(`Research Complete: ${p.name}`);
+                SoundManager.playNotification();
+            }
+        });
+    }, { deep: true });
+});
+
+onUnmounted(() => {
+    gameStore.stopPolling();
+    window.removeEventListener('keydown', handleKeyDown);
+});
+</script>
+
+<style scoped>
+.app-layout {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+    background: var(--color-bg-deep);
+    pointer-events: none; /* Let clicks pass through backdrop layer */
+}
+
+.game-container {
+    pointer-events: auto; /* Re-enable clicks for the actual game */
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-rows: 60px 30px 1fr 70px;
+    grid-template-columns: 280px 1fr 320px;
+    grid-template-areas:
+        "top-bar top-bar top-bar"
+        "news-ticker news-ticker news-ticker"
+        "left-panel game-world right-panel"
+        "bottom-hud bottom-hud bottom-hud";
+}
+</style>

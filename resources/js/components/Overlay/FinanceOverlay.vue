@@ -1,278 +1,537 @@
 <template>
     <div class="overlay-backdrop" @click.self="$emit('close')">
-        <div class="finance-overlay">
-            <div class="overlay-header">
-                <h2>Financial History</h2>
+        <div class="ledger-modal glass-panel animation-slide-up">
+            <div class="modal-header">
+                <div class="header-title">
+                    <span class="icon">📊</span>
+                    <h2>Financial Ledger <small>Capital Management</small></h2>
+                </div>
+                <div class="header-tabs">
+                    <button class="tab-btn" :class="{ active: activeTab === 'ledger' }" @click="activeTab = 'ledger'">Ledger</button>
+                    <button class="tab-btn" :class="{ active: activeTab === 'stocks' }" @click="activeTab = 'stocks'">Insider Trading</button>
+                </div>
                 <button class="close-btn" @click="$emit('close')">&times;</button>
             </div>
 
-            <div class="history-content">
-                <div v-if="loading" class="loading-state">
-                    Loading transactions...
-                </div>
-                
-                <div v-else-if="transactions.length === 0" class="empty-state">
-                    No transactions found.
+            <div v-if="activeTab === 'stocks'" class="stocks-container">
+                <div class="market-overview">
+                    <div class="stock-ticker shadow-glow">
+                        <div class="ticker-info">
+                            <span class="symbol">$PONY</span>
+                            <span class="name">CodePony Inc.</span>
+                        </div>
+                        <div class="ticker-price">
+                            <span class="price">${{ stockMarket.stockPrice.toFixed(2) }}</span>
+                            <span class="trend" :class="stockMarket.stockPrice >= 10 ? 'up' : 'down'">
+                                <span class="arrow">{{ stockMarket.stockPrice >= 10 ? '▲' : '▼' }}</span>
+                                {{ Math.abs(((stockMarket.stockPrice - 10) / 10) * 100).toFixed(1) }}%
+                            </span>
+                        </div>
+                        <div v-if="stockMarket.isFrozen" class="freeze-alert">
+                            <span class="alert-icon">⚖️</span>
+                            <span class="alert-text">ASSETS FROZEN BY SEC (until {{ formatTime(stockMarket.freezeEndsAt) }})</span>
+                        </div>
+                    </div>
+
+                    <div class="trading-box glass-panel--accent">
+                        <h3>Short-Sell Initiative</h3>
+                        <p class="hint">Borrow shares and sell them immediately. Profit if the price drops (e.g. during an outage). Careful: 30% Audit Risk.</p>
+                        
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label>Shares to Short</label>
+                                <input type="number" v-model="orderShares" min="10" step="10">
+                            </div>
+                            <div class="order-preview">
+                                <div class="preview-item">
+                                    <span class="label">Est. Collateral (40%)</span>
+                                    <span class="value">${{ formatMoney(orderShares * stockMarket.stockPrice * 0.4) }}</span>
+                                </div>
+                            </div>
+                            <button class="btn-order shadow-danger" :disabled="stockMarket.isFrozen || orderShares < 10 || loading" @click="handleShort">
+                                EXECUTE SHORT
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                <div v-else class="table-container">
-                    <table class="tx-table">
-                        <thead>
-                            <tr>
-                                <th>Time</th>
-                                <th>Category</th>
-                                <th>Description</th>
-                                <th class="text-right">Amount</th>
-                                <th class="text-right">Balance</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="tx in transactions" :key="tx.id" class="tx-row">
-                                <td class="col-time">{{ formatDate(tx.created_at) }}</td>
-                                <td class="col-cat">
-                                    <span class="badge" :class="getCategoryClass(tx.category)">
-                                        {{ formatCategory(tx.category) }}
-                                    </span>
-                                </td>
-                                <td class="col-desc">{{ tx.description }}</td>
-                                <td class="col-amount text-right" :class="tx.amount >= 0 ? 'text-success' : 'text-danger'">
-                                    {{ tx.amount >= 0 ? '+' : '-' }} ${{ formatMoney(Math.abs(tx.amount)) }}
-                                </td>
-                                <td class="col-balance text-right font-mono text-muted">
-                                    ${{ formatMoney(tx.balance_after) }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="positions-list">
+                    <div class="section-title">Active Short Positions</div>
+                    <div class="positions-grid">
+                        <div v-for="pos in stockMarket.shortPositions" :key="pos.id" class="position-card shadow-glow--dim">
+                            <div class="pos-main">
+                                <div class="pos-info">
+                                    <span class="shares">{{ pos.shares }} Shares</span>
+                                    <span class="entry">Entry: ${{ pos.entry_price.toFixed(2) }}</span>
+                                </div>
+                                <div class="pos-profit" :class="calculateProfit(pos) >= 0 ? 'up' : 'down'">
+                                    <span class="val">{{ calculateProfit(pos) >= 0 ? '+' : '' }}${{ formatMoney(calculateProfit(pos)) }}</span>
+                                    <span class="label">P/L REAL-TIME</span>
+                                </div>
+                            </div>
+                            <button class="btn-close-pos" :disabled="stockMarket.isFrozen || loading" @click="handleClose(pos.id)">
+                                CLOSE & REPAY
+                            </button>
+                        </div>
+                        <div v-if="stockMarket.shortPositions.length === 0" class="no-positions">
+                            No active short positions.
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="overlay-footer">
-                <button class="btn-nav" :disabled="page <= 1 || loading" @click="changePage(page - 1)">
-                    &larr; Newer
-                </button>
-                <span class="page-info">Page {{ page }}</span>
-                <button class="btn-nav" :disabled="!hasMore || loading" @click="changePage(page + 1)">
-                    Older &rarr;
-                </button>
-            </div>
+            <template v-else>
+                <div class="modal-summary">
+                    <div class="summary-card income">
+                        <span class="label">Total Income (Last Period)</span>
+                        <span class="value">+${{ formatMoney(summary.totalIncome) }}</span>
+                    </div>
+                    <div class="summary-card expenses">
+                        <span class="label">Total Expenses (Last Period)</span>
+                        <span class="value">-${{ formatMoney(summary.totalExpenses) }}</span>
+                    </div>
+                    <div class="summary-card net" :class="{ positive: summary.netProfit >= 0, negative: summary.netProfit < 0 }">
+                        <span class="label">Net Performance</span>
+                        <span class="value">{{ summary.netProfit >= 0 ? '+' : '' }}${{ formatMoney(summary.netProfit) }}</span>
+                    </div>
+                </div>
+
+                <div class="modal-controls">
+                    <div class="filter-group">
+                        <div class="filter-select">
+                            <label>Category</label>
+                            <select v-model="filters.category" @change="fetchTransactions(1)">
+                                <option value="">All Categories</option>
+                                <option v-for="cat in categories" :key="cat" :value="cat">{{ formatLabel(cat) }}</option>
+                            </select>
+                        </div>
+                        <div class="filter-select">
+                            <label>Type</label>
+                            <select v-model="filters.type" @change="fetchTransactions(1)">
+                                <option value="">All Types</option>
+                                <option value="income">Income</option>
+                                <option value="expense">Expense</option>
+                            </select>
+                        </div>
+                        <div class="filter-select">
+                            <label>Time Range</label>
+                            <select v-model="filters.hours" @change="fetchTransactions(1)">
+                                <option :value="1">Last 1 Hour</option>
+                                <option :value="6">Last 6 Hours</option>
+                                <option :value="24">Last 24 Hours</option>
+                                <option :value="168">Last 7 Days</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn-refresh" @click="fetchTransactions(1)" :disabled="loading">
+                        {{ loading ? 'Updating...' : 'Refresh Ledger' }}
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="ledger-table-header">
+                        <span class="col-time">Timestamp</span>
+                        <span class="col-cat">Category</span>
+                        <span class="col-desc">Description</span>
+                        <span class="col-amount">Amount</span>
+                    </div>
+                    
+                    <div class="ledger-list" v-if="!loading">
+                        <div v-for="tx in transactions" :key="tx.id" class="ledger-row" :class="tx.type">
+                            <span class="col-time">{{ formatTime(tx.created_at) }}</span>
+                            <span class="col-cat">
+                                <span class="cat-badge" :style="{ '--cat-color': getCategoryColor(tx.category) }">
+                                    {{ tx.category }}
+                                </span>
+                            </span>
+                            <span class="col-desc">{{ tx.description }}</span>
+                            <span class="col-amount" :class="tx.type">
+                                {{ tx.type === 'income' ? '+' : '-' }}${{ Math.abs(tx.amount).toLocaleString() }}
+                            </span>
+                        </div>
+
+                        <div v-if="transactions.length === 0" class="no-data">
+                            No transactions found for the selected filters.
+                        </div>
+                    </div>
+
+                    <div v-else class="loading-state">
+                        <div class="loader"></div>
+                        <span>Decrypting financial data...</span>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <div class="pagination">
+                        <button :disabled="page <= 1" @click="fetchTransactions(page - 1)">PREV</button>
+                        <span>Page {{ page }} of {{ lastPage }}</span>
+                        <button :disabled="page >= lastPage" @click="fetchTransactions(page + 1)">NEXT</button>
+                    </div>
+                    <div class="total-count">
+                        {{ totalItems }} TRANSACTIONS LOGGED
+                    </div>
+                </div>
+            </template>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useGameStore } from '../../stores/game';
+import { ref, reactive, onMounted } from 'vue';
+import { useEconomyStore } from '../../stores/economy';
 
 const emit = defineEmits(['close']);
-const gameStore = useGameStore();
+const economyStore = useEconomyStore();
 
+const activeTab = ref('ledger');
+const orderShares = ref(100);
+const stockMarket = computed(() => economyStore.stockMarket);
+
+const loading = ref(true);
 const transactions = ref([]);
 const page = ref(1);
-const hasMore = ref(false);
-const loading = ref(true);
+const lastPage = ref(1);
+const totalItems = ref(0);
 
-onMounted(() => {
-    loadPage(1);
+const summary = reactive({
+    totalIncome: 0,
+    totalExpenses: 0,
+    netProfit: 0
 });
 
-async function loadPage(newPage) {
+const filters = reactive({
+    category: '',
+    type: '',
+    hours: 24
+});
+
+const categories = ['income', 'hardware', 'infrastructure', 'maintenance', 'real_estate', 'sla_penalty', 'marketing', 'research', 'employees', 'utility', 'energy'];
+
+const fetchTransactions = async (newPage = 1) => {
     loading.value = true;
-    const data = await gameStore.loadTransactions(newPage);
-    if (data) {
-        transactions.value = data.data;
-        page.value = data.current_page;
-        hasMore.value = data.next_page_url !== null;
+    try {
+        const res = await economyStore.loadTransactions(newPage, filters);
+        if (res) {
+            transactions.value = res.transactions.data;
+            page.value = res.transactions.current_page;
+            lastPage.value = res.transactions.last_page;
+            totalItems.value = res.transactions.total;
+            
+            summary.totalIncome = res.summary.totalIncome;
+            summary.totalExpenses = res.summary.totalExpenses;
+            summary.netProfit = res.summary.netProfit;
+        }
+    } catch (e) {
+        console.error("Failed to fetch ledger", e);
+    } finally {
+        loading.value = false;
     }
-    loading.value = false;
-}
+};
 
-function changePage(newPage) {
-    loadPage(newPage);
-}
+onMounted(() => {
+    fetchTransactions();
+    economyStore.loadStockMarketData();
+});
 
-function formatDate(dateStr) {
-    const date = new Date(dateStr);
-    return date.toLocaleString(undefined, { 
-        month: 'short', 
-        day: 'numeric', 
-        hour: '2-digit', 
-        minute: '2-digit' 
-    });
-}
+const handleShort = async () => {
+    if (loading.value) return;
+    loading.value = true;
+    try {
+        await economyStore.shortOwnStock(orderShares.value);
+    } finally {
+        loading.value = false;
+    }
+};
 
-function formatMoney(value) {
-    return Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+const handleClose = async (posId) => {
+    if (loading.value) return;
+    loading.value = true;
+    try {
+        await economyStore.closeShortPosition(posId);
+    } finally {
+        loading.value = false;
+    }
+};
 
-function formatCategory(cat) {
-    return cat.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-}
+const calculateProfit = (pos) => {
+    return (pos.entry_price - stockMarket.value.stockPrice) * pos.shares;
+};
 
-function getCategoryClass(cat) {
+const formatTime = (dateStr) => {
+    const d = new Date(dateStr);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + d.toLocaleDateString([], { day: '2-digit', month: 'short' });
+};
+
+const formatMoney = (val) => {
+    return Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+const formatLabel = (str) => {
+    return str.replace(/_/g, ' ').toUpperCase();
+};
+
+const getCategoryColor = (cat) => {
     const map = {
-        'income': 'badge-success',
-        'expense': 'badge-danger',
-        'hardware': 'badge-warning',
-        'infrastructure': 'badge-info',
-        'maintenance': 'badge-secondary',
-        'event_mitigation': 'badge-danger',
-        'research': 'badge-primary',
-        'real_estate': 'badge-info'
+        income: '#4ade80',
+        hardware: '#60a5fa',
+        infrastructure: '#f472b6',
+        maintenance: '#fbbf24',
+        real_estate: '#a78bfa',
+        sla_penalty: '#f87171',
+        marketing: '#2dd4bf',
+        research: '#818cf8',
+        employees: '#fb923c',
+        utility: '#94a3b8',
+        energy: '#f97316'
     };
-    return map[cat] || 'badge-secondary';
-}
+    return map[cat] || '#ffffff';
+};
 </script>
 
 <style scoped>
-.overlay-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(4px);
-    z-index: 2000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.finance-overlay {
-    width: 800px;
+.ledger-modal {
+    width: 900px;
     max-width: 95vw;
     height: 80vh;
-    background: #0d1117;
-    border: 1px solid #30363d;
-    box-shadow: 0 0 50px rgba(0,0,0,0.5);
-    border-radius: 8px;
+    background: var(--v3-bg-base);
+    border: var(--v3-border-heavy);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    border-radius: var(--v3-radius);
+    box-shadow: 0 50px 100px rgba(0,0,0,0.6);
 }
 
-.overlay-header {
-    padding: 15px 20px;
-    border-bottom: 1px solid #30363d;
-    background: #161b22;
+.modal-header {
+    padding: 24px 32px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-radius: 8px 8px 0 0;
+    border-bottom: var(--v3-border-soft);
 }
 
-.overlay-header h2 {
-    margin: 0;
-    color: #e6edf3;
-    font-size: 1.2rem;
+.header-title h2 {
+    margin: 0; font-size: 0.85rem; font-weight: 900; letter-spacing: 0.1em;
+    color: #fff; text-transform: uppercase;
 }
 
-.close-btn {
-    background: none;
-    border: none;
-    color: #8b949e;
-    font-size: 1.5rem;
-    cursor: pointer;
-    line-height: 1;
+.header-title small {
+    display: block; font-size: 0.6rem; color: var(--v3-text-ghost);
+    margin-top: 4px; letter-spacing: 0.05em;
 }
-.close-btn:hover { color: #fff; }
 
-.history-content {
-    flex: 1;
-    overflow: hidden;
+.modal-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--v3-border-soft);
+    border-bottom: var(--v3-border-soft);
+}
+
+.summary-card {
+    background: var(--v3-bg-base);
+    padding: 20px 32px;
     display: flex;
     flex-direction: column;
+    gap: 4px;
 }
 
-.table-container {
-    flex: 1;
-    overflow-y: auto;
+.summary-card .label {
+    font-size: 0.55rem; font-weight: 900; color: var(--v3-text-ghost);
+    text-transform: uppercase; letter-spacing: 0.1em;
 }
 
-.tx-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
+.summary-card .value {
+    font-size: 1.25rem; font-weight: 900; font-family: var(--font-family-mono);
 }
 
-.tx-table th {
-    text-align: left;
-    padding: 12px 15px;
-    background: #161b22;
-    color: #8b949e;
-    font-weight: 600;
-    position: sticky;
-    top: 0;
-    border-bottom: 1px solid #30363d;
-}
+.summary-card.income .value { color: var(--v3-success); }
+.summary-card.expenses .value { color: var(--v3-danger); }
+.summary-card.positive .value { color: var(--v3-success); }
+.summary-card.negative .value { color: var(--v3-danger); }
 
-.tx-table td {
-    padding: 10px 15px;
-    border-bottom: 1px solid #21262d;
-    color: #c9d1d9;
-}
-
-.tx-row:hover {
-    background: rgba(56, 139, 253, 0.05);
-}
-
-.text-right { text-align: right; }
-.text-success { color: #2ea043; }
-.text-danger { color: #f85149; }
-.text-muted { color: #8b949e; }
-.font-mono { font-family: monospace; }
-
-.badge {
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    background: #21262d;
-    color: #c9d1d9;
-    border: 1px solid #30363d;
-}
-
-.badge-success { background: rgba(46, 160, 67, 0.15); color: #3fb950; border-color: rgba(46, 160, 67, 0.4); }
-.badge-danger { background: rgba(248, 81, 73, 0.15); color: #f85149; border-color: rgba(248, 81, 73, 0.4); }
-.badge-warning { background: rgba(210, 153, 34, 0.15); color: #e3b341; border-color: rgba(210, 153, 34, 0.4); }
-.badge-info { background: rgba(56, 139, 253, 0.15); color: #58a6ff; border-color: rgba(56, 139, 253, 0.4); }
-.badge-primary { background: rgba(163, 113, 247, 0.15); color: #d2a8ff; border-color: rgba(163, 113, 247, 0.4); }
-
-.overlay-footer {
-    padding: 15px;
-    border-top: 1px solid #30363d;
-    background: #161b22;
+.modal-controls {
+    padding: 16px 32px;
+    background: rgba(0,0,0,0.1);
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: var(--v3-border-soft);
+}
+
+.filter-group { display: flex; gap: 24px; }
+.filter-select { display: flex; flex-direction: column; gap: 6px; }
+.filter-select label { font-size: 0.5rem; font-weight: 900; color: var(--v3-text-ghost); text-transform: uppercase; }
+
+.filter-select select {
+    background: #000; color: #fff; border: 1px solid #333; padding: 6px 12px;
+    font-size: 0.65rem; font-weight: 800; border-radius: 2px;
+}
+
+.btn-refresh {
+    background: transparent; color: var(--v3-text-secondary); border: 1px solid #333;
+    padding: 8px 20px; font-size: 0.6rem; font-weight: 900; text-transform: uppercase;
+    cursor: pointer; transition: all 0.2s;
+}
+
+.btn-refresh:hover { border-color: var(--v3-accent); color: #fff; }
+
+.modal-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.ledger-table-header {
+    display: grid;
+    grid-template-columns: 140px 140px 1fr 140px;
+    padding: 12px 32px;
+    background: rgba(255,255,255,0.02);
+    border-bottom: var(--v3-border-soft);
+    font-size: 0.55rem; font-weight: 900; color: var(--v3-text-ghost);
+    text-transform: uppercase; letter-spacing: 0.1em;
+}
+
+.ledger-list { flex: 1; overflow-y: auto; }
+
+.ledger-row {
+    display: grid;
+    grid-template-columns: 140px 140px 1fr 140px;
+    padding: 12px 32px;
+    border-bottom: var(--v3-border-soft);
     align-items: center;
-    gap: 20px;
-    border-radius: 0 0 8px 8px;
+    transition: background 0.1s;
 }
 
-.btn-nav {
-    padding: 5px 15px;
-    background: #21262d;
-    border: 1px solid #30363d;
-    color: #c9d1d9;
-    border-radius: 4px;
-    cursor: pointer;
-}
-.btn-nav:hover:not(:disabled) {
-    background: #30363d;
-    color: #fff;
-}
-.btn-nav:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-.page-info {
-    color: #8b949e;
-    font-size: 0.9rem;
+.ledger-row:hover { background: rgba(255,255,255,0.015); }
+
+.col-time { font-family: var(--font-family-mono); font-size: 0.6rem; color: var(--v3-text-ghost); }
+.col-cat .cat-badge {
+    font-size: 0.5rem; font-weight: 900; text-transform: uppercase;
+    padding: 2px 6px; border: 1px solid var(--cat-color); color: var(--cat-color);
+    border-radius: 2px;
 }
 
-.loading-state, .empty-state {
-    padding: 40px;
-    text-align: center;
-    color: #8b949e;
+.col-desc { font-size: 0.72rem; color: var(--v3-text-secondary); }
+.col-amount { font-size: 0.75rem; font-weight: 900; text-align: right; font-family: var(--font-family-mono); }
+.col-amount.income { color: var(--v3-success); }
+.col-amount.expense { color: var(--v3-danger); }
+
+.modal-footer {
+    padding: 16px 32px;
+    border-top: var(--v3-border-soft);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0,0,0,0.1);
 }
+
+.pagination { display: flex; align-items: center; gap: 16px; font-size: 0.6rem; font-weight: 800; color: var(--v3-text-ghost); }
+.pagination button {
+    background: #000; border: 1px solid #333; color: #fff;
+    padding: 4px 12px; font-size: 0.55rem; font-weight: 900; cursor: pointer;
+}
+.pagination button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.total-count { font-size: 0.55rem; font-weight: 900; color: var(--v3-text-ghost); letter-spacing: 0.1em; }
+
+.loading-state {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; color: var(--v3-text-ghost); font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+}
+
+.loader {
+    width: 24px; height: 24px; border: 2px solid #333; border-top-color: var(--v3-accent);
+    border-radius: 50%; animation: v3-spin 1s linear infinite;
+}
+
+@keyframes v3-spin { to { transform: rotate(360deg); } }
+
+.no-data { padding: 60px; text-align: center; color: var(--v3-text-ghost); font-size: 0.7rem; letter-spacing: 0.1em; }
+
+/* Stock Market Styles */
+.header-tabs { display: flex; gap: 8px; margin-left: 40px; }
+.tab-btn {
+    background: transparent; border: 1px solid #333; color: var(--v3-text-ghost);
+    padding: 6px 16px; font-size: 0.65rem; font-weight: 900; text-transform: uppercase;
+    cursor: pointer; transition: all 0.2s;
+}
+.tab-btn.active { background: var(--v3-accent); color: #000; border-color: var(--v3-accent); }
+
+.stocks-container { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 32px; gap: 32px; }
+
+.market-overview { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+.stock-ticker {
+    background: #000; border: var(--v3-border-heavy); padding: 24px;
+    display: flex; flex-direction: column; gap: 12px; position: relative;
+}
+
+.ticker-info { display: flex; flex-direction: column; }
+.symbol { font-size: 1.5rem; font-weight: 900; color: var(--v3-accent); }
+.name { font-size: 0.6rem; font-weight: 800; color: var(--v3-text-ghost); text-transform: uppercase; }
+
+.ticker-price { display: flex; align-items: baseline; gap: 16px; }
+.price { font-size: 2rem; font-weight: 900; font-family: var(--font-family-mono); }
+.trend { font-size: 0.8rem; font-weight: 900; }
+.trend.up { color: var(--v3-success); }
+.trend.down { color: var(--v3-danger); }
+
+.freeze-alert {
+    margin-top: 12px; padding: 8px; background: rgba(248, 113, 113, 0.1);
+    border: 1px solid var(--v3-danger); color: var(--v3-danger);
+    font-size: 0.6rem; font-weight: 900; display: flex; align-items: center; gap: 8px;
+}
+
+.trading-box { padding: 24px; }
+.trading-box h3 { margin: 0 0 8px 0; font-size: 0.9rem; font-weight: 900; text-transform: uppercase; color: var(--v3-accent); }
+.hint { font-size: 0.65rem; color: var(--v3-text-ghost); margin-bottom: 24px; line-height: 1.4; }
+
+.input-row { display: flex; align-items: flex-end; gap: 24px; }
+.input-group { display: flex; flex-direction: column; gap: 8px; }
+.input-group label { font-size: 0.6rem; font-weight: 900; color: var(--v3-text-ghost); text-transform: uppercase; }
+.input-group input {
+    background: #000; border: 1px solid #333; color: #fff; padding: 10px;
+    font-family: var(--font-family-mono); font-weight: 900; width: 120px;
+}
+
+.order-preview { flex: 1; }
+.preview-item { display: flex; flex-direction: column; }
+.preview-item .label { font-size: 0.55rem; font-weight: 900; color: var(--v3-text-ghost); text-transform: uppercase; }
+.preview-item .value { font-size: 0.9rem; font-weight: 900; font-family: var(--font-family-mono); color: #fff; }
+
+.btn-order {
+    background: var(--v3-danger); color: #fff; border: none; padding: 12px 24px;
+    font-weight: 900; text-transform: uppercase; cursor: pointer; border-radius: 2px;
+}
+.btn-order:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.positions-list { display: flex; flex-direction: column; gap: 16px; }
+.section-title { font-size: 0.7rem; font-weight: 900; color: var(--v3-text-ghost); text-transform: uppercase; letter-spacing: 0.1em; }
+
+.positions-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.position-card {
+    background: rgba(255,255,255,0.03); border: var(--v3-border-soft); padding: 20px;
+    display: flex; flex-direction: column; gap: 12px;
+}
+
+.pos-main { display: flex; justify-content: space-between; align-items: center; }
+.pos-info { display: flex; flex-direction: column; }
+.shares { font-size: 0.9rem; font-weight: 900; color: #fff; }
+.entry { font-size: 0.6rem; color: var(--v3-text-ghost); font-family: var(--font-family-mono); }
+
+.pos-profit { display: flex; flex-direction: column; align-items: flex-end; }
+.pos-profit .val { font-size: 1.1rem; font-weight: 900; font-family: var(--font-family-mono); }
+.pos-profit.up .val { color: var(--v3-success); }
+.pos-profit.down .val { color: var(--v3-danger); }
+.pos-profit .label { font-size: 0.5rem; font-weight: 900; color: var(--v3-text-ghost); }
+
+.btn-close-pos {
+    background: transparent; border: 1px solid #333; color: #fff; padding: 8px;
+    font-size: 0.65rem; font-weight: 900; text-transform: uppercase; cursor: pointer;
+}
+.btn-close-pos:hover:not(:disabled) { border-color: var(--v3-accent); color: var(--v3-accent); }
+
+.no-positions { padding: 20px; color: var(--v3-text-ghost); font-size: 0.7rem; text-align: center; border: 1px dashed #333; grid-column: span 2; }
 </style>

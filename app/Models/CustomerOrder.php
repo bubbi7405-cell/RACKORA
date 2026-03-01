@@ -19,6 +19,9 @@ class CustomerOrder extends Model
         'status',
         'assigned_server_id',
         'contract_months',
+        'is_negotiable',
+        'base_price_requested',
+        'negotiation_attempts',
         'ordered_at',
         'patience_expires_at',
         'provisioned_at',
@@ -27,6 +30,8 @@ class CustomerOrder extends Model
         'uptime_percent',
         'downtime_ticks',
         'total_ticks',
+        'current_latency_ms',
+        'metrics_history',
     ];
 
     protected $casts = [
@@ -39,6 +44,8 @@ class CustomerOrder extends Model
         'provisioning_completes_at' => 'datetime',
         'expires_at' => 'datetime',
         'uptime_percent' => 'decimal:2',
+        'metrics_history' => 'array',
+        'current_latency_ms' => 'float',
     ];
 
     public function isProvisioningComplete(): bool
@@ -64,6 +71,11 @@ class CustomerOrder extends Model
     }
 
     public function server(): BelongsTo
+    {
+        return $this->belongsTo(Server::class, 'assigned_server_id');
+    }
+
+    public function assignedServer(): BelongsTo
     {
         return $this->belongsTo(Server::class, 'assigned_server_id');
     }
@@ -144,6 +156,8 @@ class CustomerOrder extends Model
             'id' => $this->id,
             'customerId' => $this->customer_id,
             'customerName' => $this->customer?->company_name,
+            'targetRegion' => $this->customer?->preferences['target_region'] ?? null,
+            'greenPreference' => $this->customer?->preferences['green_preference'] ?? false,
             'productType' => $this->product_type,
             'requirements' => $this->requirements,
             'pricePerMonth' => (float) $this->price_per_month,
@@ -169,6 +183,15 @@ class CustomerOrder extends Model
                 'target' => $this->getSlaThreshold(),
                 'current' => (float) $this->uptime_percent,
                 'isViolated' => $this->uptime_percent < $this->getSlaThreshold(),
+            ],
+            'negotiation' => [
+                'isNegotiable' => (bool) $this->is_negotiable,
+                'basePriceRequested' => (float) $this->base_price_requested,
+                'attempts' => (int) $this->negotiation_attempts,
+            ],
+            'metrics' => [
+                'currentLatency' => (float) $this->current_latency_ms,
+                'history' => $this->metrics_history ?? [],
             ]
         ];
     }

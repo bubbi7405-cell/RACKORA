@@ -42,5 +42,16 @@ class WorldEventSeeder extends Seeder
             'ends_at' => now()->addHours(6),
             'is_active' => true,
         ]);
+
+        WorldEvent::create([
+            'title' => 'Great Silicon Depression',
+            'description' => 'A global economic crash has hit the tech sector. Markets are bleeding, and liquidations are everywhere.',
+            'type' => 'downturn',
+            'modifier_type' => 'order_frequency',
+            'modifier_value' => 0.70, // 30% less orders
+            'starts_at' => now(),
+            'ends_at' => now()->addHours(48),
+            'is_active' => true,
+        ]);
     }
 }

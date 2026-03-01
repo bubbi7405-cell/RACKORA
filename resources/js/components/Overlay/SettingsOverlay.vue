@@ -38,6 +38,23 @@
                 <hr class="separator">
 
                 <div class="setting-group">
+                    <h3>Company Branding</h3>
+                    <div class="setting-item">
+                        <label>Company Name</label>
+                        <input 
+                            type="text" 
+                            v-model="companyName" 
+                            @blur="saveBranding"
+                            @keyup.enter="saveBranding"
+                            class="text-input"
+                            placeholder="Enter Company Name"
+                        >
+                    </div>
+                </div>
+
+                <hr class="separator">
+
+                <div class="setting-group">
                     <h3>Appearance</h3>
                     <div class="setting-item">
                         <label>Interface Theme</label>
@@ -72,6 +89,8 @@ import { ref } from 'vue';
 import { useAuthStore } from '../../stores/auth';
 import SoundManager from '../../services/SoundManager';
 import themeManager from '../../services/ThemeManager';
+import api from '../../utils/api';
+import { useGameStore } from '../../stores/game';
 
 const emit = defineEmits(['close']);
 const authStore = useAuthStore();
@@ -82,6 +101,29 @@ const isMuted = ref(SoundManager.isMuted);
 
 const themes = themeManager.getAvailableThemes();
 const currentTheme = ref(themeManager.getCurrentTheme());
+
+const companyName = ref(authStore.user?.company_name || '');
+const processing = ref(false);
+
+async function saveBranding() {
+    if (processing.value || !companyName.value) return;
+    processing.value = true;
+    try {
+        const response = await api.post('/management/branding', {
+            company_name: companyName.value
+        });
+        if (response.success) {
+            authStore.user.company_name = response.companyName;
+            
+            const gameStore = useGameStore();
+            gameStore.loadGameState();
+        }
+    } catch (e) {
+        console.error('Failed to save branding', e);
+    } finally {
+        processing.value = false;
+    }
+}
 
 function updateVolume(e) {
     const val = parseFloat(e.target.value);
@@ -257,5 +299,23 @@ async function logout() {
     text-align: center;
     font-size: 0.8rem;
     padding: 10px;
+}
+
+.text-input {
+    width: 100%;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    padding: 10px;
+    border-radius: 4px;
+    color: #e6edf3;
+    font-size: 1rem;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.text-input:focus {
+    outline: none;
+    border-color: #58a6ff;
+    box-shadow: 0 0 0 1px #58a6ff;
 }
 </style>

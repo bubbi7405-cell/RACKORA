@@ -16,29 +16,58 @@ class PlayerEconomy extends Model
     protected $fillable = [
         'user_id',
         'balance',
+        'spare_parts_count',
         'total_revenue',
         'total_expenses',
         'hourly_income',
         'hourly_expenses',
+        'total_power_kw',
+        'total_bandwidth_gbps',
         'reputation',
+        'shred_count',
         'experience_points',
         'level',
+        'corporate_specialization',
         'power_price_per_kwh',
         'bandwidth_cost_per_gbps',
         'current_tick',
         'last_income_tick',
+        'specialized_reputation',
         'automation_settings',
         'strategic_policies',
         'pending_decisions',
+        'energy_contract_type',
+        'energy_contract_price',
+        'energy_contract_expires_at',
+        'skill_points',
+        'unlocked_skills',
+        'difficulty',
+        'security_score',
+        'privacy_score',
+        'global_market_share',
+        'regional_shares',
+        'sector_shares',
+        'arpu',
+        'innovation_index',
+        'risk_exposure',
+        'marketing_budget',
+        'customer_acquisition_cost',
+        'federal_heat',
+        'metadata',
     ];
 
     protected $casts = [
         'balance' => 'decimal:2',
+        'spare_parts_count' => 'integer',
         'total_revenue' => 'decimal:2',
         'total_expenses' => 'decimal:2',
         'hourly_income' => 'decimal:2',
         'hourly_expenses' => 'decimal:2',
+        'total_power_kw' => 'decimal:4',
+        'total_bandwidth_gbps' => 'decimal:4',
         'reputation' => 'decimal:2',
+        'shred_count' => 'integer',
+        'specialized_reputation' => 'array',
         'power_price_per_kwh' => 'decimal:4',
         'bandwidth_cost_per_gbps' => 'decimal:2',
         'current_tick' => 'integer',
@@ -46,7 +75,43 @@ class PlayerEconomy extends Model
         'automation_settings' => 'array',
         'strategic_policies' => 'array',
         'pending_decisions' => 'array',
+        'energy_contract_price' => 'decimal:4',
+        'energy_contract_expires_at' => 'datetime',
+        'skill_points' => 'integer',
+        'unlocked_skills' => 'array',
+        'security_score' => 'decimal:2',
+        'privacy_score' => 'decimal:2',
+        'global_market_share' => 'decimal:3',
+        'regional_shares' => 'array',
+        'sector_shares' => 'array',
+        'arpu' => 'decimal:2',
+        'innovation_index' => 'decimal:2',
+        'risk_exposure' => 'decimal:2',
+        'marketing_budget' => 'decimal:2',
+        'customer_acquisition_cost' => 'decimal:2',
+        'federal_heat' => 'decimal:4',
+        'metadata' => 'array',
     ];
+
+    public function adjustSpecializedReputation(string $category, float $amount): void
+    {
+        $rep = $this->specialized_reputation ?? [
+            'budget' => 0.0,
+            'premium' => 0.0,
+            'hpc' => 0.0,
+            'green' => 0.0,
+        ];
+
+        $current = (float) ($rep[$category] ?? 0.0);
+        $rep[$category] = max(0, min(100, $current + $amount));
+        
+        $this->specialized_reputation = $rep;
+    }
+
+    public function getSpecializedReputation(string $category): float
+    {
+        return (float) ($this->specialized_reputation[$category] ?? 0.0);
+    }
 
     public function isAutomationEnabled(string $key): bool
     {
@@ -118,7 +183,17 @@ class PlayerEconomy extends Model
 
     public function addExperience(int $xp): void
     {
-        $this->experience_points += $xp;
+        $engine = \App\Models\GameConfig::get('engine_constants', []);
+        $multiplier = $engine['xp_multiplier'] ?? 1.0;
+
+        // SPECIALIZATION: XP Bonus
+        $specService = app(\App\Services\Game\SpecializationService::class);
+        $specMods = $specService->getActiveModifiers($this->user);
+        if (isset($specMods['passives']['xp_gain'])) {
+            $multiplier *= (1.0 + (float) $specMods['passives']['xp_gain']);
+        }
+        
+        $this->experience_points += (int) ($xp * $multiplier);
         $this->checkLevelUp();
         $this->save();
     }
@@ -135,6 +210,7 @@ class PlayerEconomy extends Model
         
         while ($this->experience_points >= $xpForNextLevel) {
             $this->level++;
+            $this->skill_points += 2; // Award 2 skill points per level
             $xpForNextLevel = $this->getXpForLevel($this->level + 1);
         }
     }
@@ -207,7 +283,10 @@ class PlayerEconomy extends Model
             'netIncomePerHour' => $this->getNetIncomePerHour(),
             'reputation' => (float) $this->reputation,
             'level' => $this->level,
+            'specialization' => $this->corporate_specialization,
             'currentTick' => $this->current_tick,
+            'gameSpeed' => (int) ($this->game_speed ?? 1),
+            'isPaused' => (bool) ($this->is_paused ?? false),
             'gameTime' => [
                 'hour' => $this->getGameHour(),
                 'minute' => $this->getGameMinute(),
@@ -223,10 +302,73 @@ class PlayerEconomy extends Model
                 'powerPerKwh' => (float) $this->power_price_per_kwh,
                 'bandwidthPerGbps' => (float) $this->bandwidth_cost_per_gbps,
             ],
+            'specializedReputation' => $this->specialized_reputation ?? [
+                'budget' => 0.0,
+                'premium' => 0.0,
+                'hpc' => 0.0,
+                'green' => 0.0
+            ],
+            'energy_contract' => [
+                'type' => $this->energy_contract_type,
+                'fixedPrice' => (float) $this->energy_contract_price,
+                'expiresAt' => $this->energy_contract_expires_at?->toIso8601String(),
+            ],
             'automation' => $this->automation_settings ?? [],
             'policies' => $this->strategic_policies ?? [],
             'pendingDecisions' => $this->pending_decisions ?? [],
+            'specialties' => [
+                'points' => (int) $this->skill_points,
+                'unlocked' => $this->unlocked_skills ?? [],
+            ],
+            'difficulty' => $this->difficulty,
+            'compliance' => [
+                'securityScore' => (float) $this->security_score,
+                'privacyScore' => (float) $this->privacy_score,
+                'shredCount' => (int) $this->shred_count,
+            ],
+            'heat' => (float) $this->federal_heat,
+            'risk' => (float) $this->risk_exposure,
+            'metadata' => $this->metadata ?? [],
         ];
+    }
+
+    public function getDifficultyModifiers(): array
+    {
+        $d = $this->difficulty ?? 'normal';
+        return match ($d) {
+            'easy' => [
+                'income_mod' => 1.5,
+                'expense_mod' => 0.7,
+                'event_freq_mod' => 0.4,
+                'satisfaction_decay_mod' => 0.5,
+                'xp_mod' => 1.2,
+                'repair_cost_mod' => 0.5,
+            ],
+            'hard' => [
+                'income_mod' => 0.8,
+                'expense_mod' => 1.3,
+                'event_freq_mod' => 2.5,
+                'satisfaction_decay_mod' => 1.5,
+                'xp_mod' => 0.9,
+                'repair_cost_mod' => 1.5,
+            ],
+            'ironman' => [
+                'income_mod' => 0.7,
+                'expense_mod' => 1.5,
+                'event_freq_mod' => 3.0,
+                'satisfaction_decay_mod' => 2.0,
+                'xp_mod' => 1.5, // High reward
+                'repair_cost_mod' => 2.0,
+            ],
+            default => [
+                'income_mod' => 1.0,
+                'expense_mod' => 1.0,
+                'event_freq_mod' => 1.0,
+                'satisfaction_decay_mod' => 1.0,
+                'xp_mod' => 1.0,
+                'repair_cost_mod' => 1.0,
+            ],
+        };
     }
 
     public function getPolicy(string $key, $default = null)

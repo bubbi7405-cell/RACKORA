@@ -46,6 +46,10 @@ export const useToastStore = defineStore('toast', () => {
         return addToast(message, 'info', duration);
     }
 
+    function achievement(message, duration = 8000) {
+        return addToast(message, 'achievement', duration);
+    }
+
     return {
         toasts,
         addToast,

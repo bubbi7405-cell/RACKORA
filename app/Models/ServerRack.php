@@ -26,6 +26,10 @@ class ServerRack extends Model
         'temperature',
         'dust_level',
         'purchase_cost',
+        'is_colocation_mode',
+        'colocation_units',
+        'led_color',
+        'led_mode',
     ];
 
     protected $casts = [
@@ -35,7 +39,12 @@ class ServerRack extends Model
         'current_heat_kw' => 'decimal:2',
         'temperature' => 'decimal:2',
         'dust_level' => 'decimal:2',
+        'thermal_map' => 'array',
+        'power_load_map' => 'array',
+        'pdu_status' => 'array',
         'purchase_cost' => 'decimal:2',
+        'is_colocation_mode' => 'boolean',
+        'colocation_units' => 'integer',
     ];
 
     public function room(): BelongsTo
@@ -108,9 +117,52 @@ class ServerRack extends Model
 
     public function recalculatePowerAndHeat(): void
     {
-        $this->current_power_kw = $this->servers->sum('power_draw_kw');
-        $this->current_heat_kw = $this->servers->sum('heat_output_kw');
-        $this->used_units = $this->servers->sum('size_u');
+        $this->current_power_kw = 0;
+        $this->current_heat_kw = 0;
+        
+        // Colocation overhead (Small tenants)
+        if ($this->is_colocation_mode) {
+            $this->current_power_kw += ($this->colocation_units * 0.15); // 150W per tenant
+            $this->current_heat_kw += ($this->colocation_units * 0.10);  // 100W heat per tenant
+        }
+
+        $this->used_units = $this->servers->sum('size_u') + ($this->is_colocation_mode ? $this->colocation_units : 0);
+        
+        // --- V2: Granular Simulation Maps ---
+        $thermalMap = array_fill(1, $this->total_units, (float) $this->temperature);
+        $powerMap = array_fill(1, $this->total_units, 0.0);
+        
+        foreach ($this->servers as $server) {
+            if (in_array($server->status, [\App\Enums\ServerStatus::ONLINE, \App\Enums\ServerStatus::DEGRADED])) {
+                $effPower = (float) $server->getEffectivePowerDraw();
+                $effHeat = (float) $server->getEffectiveHeatOutput();
+                
+                // FEATURE 59: Thermal Runaway (The Death Spiral)
+                // If ambient rack temperature is critical (>45C), server fans max out and components leak power,
+                // increasing power consumption by 15-25%.
+                if ($this->temperature > 45) {
+                    $effPower *= (1.0 + (rand(15, 25) / 100.0));
+                }
+                
+                $this->current_power_kw += $effPower;
+                $this->current_heat_kw += $effHeat;
+                
+                $heatPerUnit = $effHeat / max(1, $server->size_u);
+                $powerPerUnit = $effPower / max(1, $server->size_u);
+                
+                for ($i = 0; $i < $server->size_u; $i++) {
+                    $slot = $server->start_slot + $i;
+                    if ($slot <= $this->total_units) {
+                        $thermalMap[$slot] += ($heatPerUnit * 5.0); // Local hot spot effect
+                        $powerMap[$slot] = (float) $powerPerUnit;
+                    }
+                }
+            }
+        }
+        
+        $this->thermal_map = $thermalMap;
+        $this->power_load_map = $powerMap;
+        
         $this->save();
     }
 
@@ -153,13 +205,20 @@ class ServerRack extends Model
             ],
             'heat' => (float) $this->current_heat_kw,
             'temperature' => (float) $this->temperature,
+            'thermalMap' => $this->thermal_map ?? [],
+            'powerMap' => $this->power_load_map ?? [],
             'dustLevel' => (float) $this->dust_level,
+            'fanHealth' => (float) (($this->pdu_status ?? [])['fan_health'] ?? 100.0), // F64
             'status' => $this->status,
             'position' => $this->position ?? ['slot' => 0],
             'warnings' => [
                 'overheating' => $this->isOverheating(),
                 'critical' => $this->isCriticalTemperature(),
             ],
+            'isColocationMode' => (bool) $this->is_colocation_mode,
+            'colocationUnits' => (int) $this->colocation_units,
+            'ledColor' => $this->led_color,
+            'ledMode' => $this->led_mode,
             'slots' => $this->buildSlotMap(),
             'servers' => $this->servers->map(fn($server) => $server->toGameState())->toArray(),
         ];
@@ -187,8 +246,23 @@ class ServerRack extends Model
         }
 
         // Build complete slot map (1-indexed from bottom)
+        $coloRemaining = $this->is_colocation_mode ? $this->colocation_units : 0;
+        
         for ($i = 1; $i <= $this->total_units; $i++) {
-            $slots[$i] = $occupied[$i] ?? ['empty' => true];
+            if (isset($occupied[$i])) {
+                $slots[$i] = $occupied[$i];
+            } elseif ($coloRemaining > 0) {
+                $slots[$i] = [
+                    'empty' => false,
+                    'isColo' => true,
+                    'serverId' => 'colo-' . $i,
+                    'serverStatus' => 'online',
+                    'modelName' => 'Tenant Area (1U)',
+                ];
+                $coloRemaining--;
+            } else {
+                $slots[$i] = ['empty' => true];
+            }
         }
 
         return $slots;

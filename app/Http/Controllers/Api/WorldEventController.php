@@ -9,20 +9,11 @@ use Illuminate\Http\JsonResponse;
 class WorldEventController extends Controller
 {
     /**
-     * Get currently active world events.
+     * Get currently active world events with regional data.
      */
     public function getActive(): JsonResponse
     {
-        $events = WorldEvent::where('is_active', true)
-            ->where(function ($query) {
-                $query->whereNull('starts_at')
-                    ->orWhere('starts_at', '<=', now());
-            })
-            ->where(function ($query) {
-                $query->whereNull('ends_at')
-                    ->orWhere('ends_at', '>=', now());
-            })
-            ->get();
+        $events = WorldEvent::getActiveEventsForDisplay();
 
         return response()->json([
             'success' => true,

@@ -6,7 +6,7 @@ import path from 'path';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
+            input: ['resources/css/app.css', 'resources/js/app.js', 'resources/js/admin.js'],
             refresh: true,
         }),
         vue({
@@ -23,6 +23,26 @@ export default defineConfig({
             '@': path.resolve(__dirname, 'resources/js'),
             'vue': 'vue/dist/vue.esm-bundler.js',
         },
+    },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (id.includes('node_modules')) {
+                        if (id.includes('vue') || id.includes('pinia')) {
+                            return 'vendor-core';
+                        }
+                        return 'vendor-lib';
+                    }
+                    if (id.includes('resources/js/components/Overlay') ||
+                        id.includes('resources/js/components/Market') ||
+                        id.includes('resources/js/components/Game')) {
+                        return 'game-ui';
+                    }
+                }
+            }
+        },
+        chunkSizeWarningLimit: 1000,
     },
     server: {
         host: '0.0.0.0',

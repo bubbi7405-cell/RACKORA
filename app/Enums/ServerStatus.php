@@ -11,6 +11,7 @@ enum ServerStatus: string
     case DAMAGED = 'damaged';
     case MAINTENANCE = 'maintenance';
     case LOCKED = 'locked';
+    case EOL = 'eol';
 
     public function label(): string
     {
@@ -22,6 +23,7 @@ enum ServerStatus: string
             self::DAMAGED => 'Damaged',
             self::MAINTENANCE => 'Maintenance',
             self::LOCKED => 'Locked',
+            self::EOL => 'End of Life',
         };
     }
 
@@ -35,6 +37,7 @@ enum ServerStatus: string
             self::DAMAGED => '#ef4444',
             self::MAINTENANCE => '#6366f1',
             self::LOCKED => '#4f46e5',
+            self::EOL => '#0f172a',
         };
     }
 
@@ -46,5 +49,10 @@ enum ServerStatus: string
     public function canAcceptOrders(): bool
     {
         return $this === self::ONLINE;
+    }
+
+    public function isRepairable(): bool
+    {
+        return $this !== self::EOL;
     }
 }

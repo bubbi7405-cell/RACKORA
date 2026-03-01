@@ -1,13 +1,13 @@
 <template>
     <div id="game-root">
-        <!-- Loading Screen -->
+        <!-- Loading Overlay (Higher z-index) -->
         <LoadingScreen v-if="isLoading" />
 
         <!-- Auth Screen -->
-        <AuthScreen v-else-if="!isAuthenticated" />
+        <AuthScreen v-if="!isAuthenticated && !isLoading" />
 
-        <!-- Main Game -->
-        <GameContainer v-else />
+        <!-- Main Game (Persist in background during action loading) -->
+        <GameContainer v-if="isAuthenticated" />
 
         <!-- Toast Notifications -->
         <ToastContainer />

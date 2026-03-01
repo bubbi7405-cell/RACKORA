@@ -21,7 +21,9 @@ class GameStatistic extends Model
         'reputation',
         'active_customers',
         'active_servers',
-        'avg_satisfaction'
+        'avg_satisfaction',
+        'power_usage',
+        'bandwidth_usage'
     ];
 
     protected $casts = [
@@ -30,6 +32,8 @@ class GameStatistic extends Model
         'expenses' => 'decimal:2',
         'balance' => 'decimal:2',
         'reputation' => 'decimal:2',
+        'power_usage' => 'decimal:4',
+        'bandwidth_usage' => 'decimal:4',
         'avg_satisfaction' => 'decimal:2',
     ];
 }

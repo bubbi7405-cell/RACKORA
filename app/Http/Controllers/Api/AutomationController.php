@@ -14,7 +14,7 @@ class AutomationController extends Controller
     public function toggle(Request $request): JsonResponse
     {
         $request->validate([
-            'key' => 'required|string|in:auto_reboot,auto_provisioning',
+            'key' => 'required|string|in:auto_reboot,auto_provisioning,auto_cleanup,cooling_automation',
             'value' => 'required|boolean',
         ]);
 
@@ -23,6 +23,14 @@ class AutomationController extends Controller
         // Ensure player is initialized
         if (!$user->economy) {
             return response()->json(['success' => false, 'error' => 'Player not initialized'], 400);
+        }
+
+        // Check research for specific modules
+        if ($request->key === 'auto_cleanup' && !$user->isResearched('auto_cleanup')) {
+            return response()->json(['success' => false, 'error' => 'Research required: Garbage Collector Script'], 403);
+        }
+        if ($request->key === 'cooling_automation' && !$user->isResearched('cooling_automation')) {
+            return response()->json(['success' => false, 'error' => 'Research required: Adaptive Thermal Governor'], 403);
         }
 
         $user->economy->setAutomation($request->key, $request->value);

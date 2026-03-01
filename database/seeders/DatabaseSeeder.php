@@ -29,5 +29,17 @@ class DatabaseSeeder extends Seeder
                 'password' => bcrypt('Mandysandy.2007'),
             ]
         );
+        // Seed Global Game State
+        $this->call([
+            GameConfigSeeder::class,
+            HardwareGenerationSeeder::class,
+            CertificateSeeder::class,
+            CompetitorSeeder::class,
+            WorldEventSeeder::class,
+            MarketRegionSeeder::class,
+        ]);
+
+        // Initialize Dynamic Market State
+        \App\Services\Market\MarketSimulationService::initializeMarketState();
     }
 }

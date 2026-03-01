@@ -1,18 +1,19 @@
 <template>
-    <div class="world-news-ticker">
-        <div class="ticker-label">WORLD NEWS</div>
-        <div class="ticker-content" v-if="events.length > 0">
+    <div class="world-news-ticker" :class="{ 'ticker--compact': compact }">
+        <div class="ticker-label" v-if="!compact">CRYPTO_NEWS :: LIVE</div>
+        <div class="ticker-content" v-if="newsItems.length > 0">
             <div class="ticker-track" :style="{ animationDuration: scrollDuration + 's' }">
-                <div v-for="(event, index) in displayEvents" :key="index" class="news-item" :class="event.type">
-                    <span class="event-title">{{ event.title }}:</span>
-                    <span class="event-description">{{ event.description }}</span>
+                <div v-for="(item, index) in displayItems" :key="index" class="news-item" :class="item.type">
+                    <span class="item-cat">[{{ item.category }}]</span>
+                    <span class="item-headline">{{ item.headline }}</span>
+                    <span v-if="item.content" class="item-content">{{ item.content }}</span>
                 </div>
             </div>
         </div>
         <div class="ticker-content ticker-content--empty" v-else>
-            <div class="news-item">
-                <span class="event-title">SYSTEM:</span>
-                <span class="event-description">Global market conditions stable. Watch this space for economy shifts.</span>
+            <div class="news-item atmosphere">
+                <span class="item-cat">[CONNECTING]</span>
+                <span class="item-headline">Establishing secure uplink to Global News Network...</span>
             </div>
         </div>
     </div>
@@ -21,109 +22,161 @@
 <script setup>
 import { ref, onMounted, computed, onUnmounted } from 'vue';
 import api from '../../utils/api';
+import { useNewsStore } from '../../stores/news';
 
-const events = ref([]);
+const props = defineProps({
+    compact: { type: Boolean, default: false }
+});
+
+const newsStore = useNewsStore();
+const newsItems = computed(() => newsStore.historicalNews);
+
 const scrollDuration = computed(() => {
-    // Roughly 15 seconds per event for a good reading speed
-    const duration = events.value.length * 20;
-    return Math.max(duration, 30);
+    if (!newsItems.value || newsItems.value.length === 0) return 30;
+    // Roughly adjusted speed based on content length
+    const totalChars = newsItems.value.reduce((sum, item) => {
+        if (!item) return sum;
+        return sum + (item.headline?.length || 0) + (item.category?.length || 0);
+    }, 0);
+    return Math.max(totalChars / 12, 15); 
 });
 
-const displayEvents = computed(() => {
-    if (events.value.length === 0) return [];
-    // Repeat to ensure seamless loop
-    return [...events.value, ...events.value, ...events.value];
+const displayItems = computed(() => {
+    if (!newsItems.value || newsItems.value.length === 0) return [];
+    const validItems = newsItems.value.filter(item => item && item.headline);
+    if (validItems.length === 0) return [];
+    // Triple up for seamless loop
+    return [...validItems, ...validItems, ...validItems];
 });
 
-const loadEvents = async () => {
+const loadNews = async () => {
     try {
-        const response = await api.get('/world-events/active');
-        if (response.success) {
-            events.value = response.events;
+        const response = await api.get('/game/news');
+        if (response.success && response.data) {
+            newsStore.setInitialNews(response.data);
         }
     } catch (e) {
-        console.error('Failed to load world events', e);
+        console.error('Failed to load news feed', e);
     }
 };
 
-let interval = null;
 onMounted(() => {
-    loadEvents();
-    // Poll for new world events every minute
-    interval = setInterval(loadEvents, 60000);
-});
-
-onUnmounted(() => {
-    if (interval) clearInterval(interval);
+    if (newsItems.value.length === 0) {
+        loadNews();
+    }
 });
 </script>
 
 <style scoped>
 .world-news-ticker {
-    grid-area: news-ticker;
-    height: 30px;
-    background: rgba(0, 0, 0, 0.5);
-    border-bottom: 1px solid var(--color-border);
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-    z-index: 10;
-    font-size: 0.85rem;
-    font-family: 'Inter', sans-serif;
-    position: relative;
-}
-
-.ticker-label {
-    background: var(--color-primary);
-    color: #fff;
-    padding: 0 15px;
     height: 100%;
     display: flex;
     align-items: center;
-    font-weight: 800;
-    font-size: 0.7rem;
-    letter-spacing: 1px;
+    overflow: hidden;
+    font-size: 0.65rem;
+    font-family: var(--font-mono);
+    color: var(--v3-text-ghost);
+    background: rgba(0,0,0,0.4);
+    border-radius: 4px;
+    padding: 0 10px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.ticker-label {
+    padding-right: 15px;
+    font-weight: 900;
+    color: var(--v3-text-ghost);
+    letter-spacing: 0.15em;
     white-space: nowrap;
-    z-index: 5;
-    box-shadow: 10px 0 20px rgba(0,0,0,0.5);
+    border-right: 1px solid rgba(255,255,255,0.1);
+    margin-right: 20px;
+    font-size: 0.55rem;
 }
 
 .ticker-content {
     flex: 1;
     overflow: hidden;
-    display: flex;
-    align-items: center;
 }
 
 .ticker-track {
     display: flex;
     white-space: nowrap;
-    animation: scroll linear infinite;
-    padding-left: 50px;
+    animation: ticker-scroll linear infinite;
 }
 
 .news-item {
     display: flex;
     align-items: center;
-    margin-right: 150px;
-    color: var(--color-text-muted);
+    margin-right: 80px;
+    gap: 10px;
 }
 
-.event-title {
-    font-weight: 700;
-    color: var(--color-text-primary);
-    margin-right: 8px;
-    text-transform: uppercase;
+.item-cat {
+    font-weight: 900;
+    color: var(--v3-accent);
+    font-size: 0.5rem;
+    opacity: 0.7;
 }
 
-.news-item.crisis .event-title { color: var(--color-danger); }
-.news-item.boom .event-title { color: var(--color-success); }
-.news-item.news .event-title { color: var(--color-primary); }
+.item-headline {
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: 0.05em;
+}
 
-@keyframes scroll {
+.item-content {
+    opacity: 0.5;
+    font-style: italic;
+    font-size: 0.6rem;
+}
+
+/* Specific Types */
+.news-item.breaking { 
+    color: var(--v3-warning); 
+    position: relative;
+    padding: 0 15px;
+}
+
+.news-item.breaking::before {
+    content: 'BREAKING';
+    position: absolute;
+    top: -10px;
+    left: 15px;
+    font-size: 0.45rem;
+    font-weight: 900;
+    color: #fff;
+    background: var(--v3-danger);
+    padding: 1px 4px;
+    border-radius: 2px;
+    letter-spacing: 0.1em;
+    animation: v3-pulse-slow 1.5s infinite;
+}
+
+.news-item.breaking .item-cat { color: var(--v3-danger); font-weight: 900; text-shadow: 0 0 5px rgba(239, 68, 68, 0.4); }
+.news-item.breaking .item-headline { 
+    color: #fff; 
+    text-shadow: 0 0 10px rgba(255, 77, 79, 0.5);
+    font-size: 0.75rem;
+    font-weight: 900;
+}
+
+@keyframes v3-pulse-slow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(0.95); }
+}
+
+.news-item.milestone .item-cat { color: var(--v3-success); }
+.news-item.ticker { opacity: 0.6; font-size: 0.6rem; }
+.news-item.ticker .item-cat { display: none; }
+
+@keyframes ticker-scroll {
     0% { transform: translateX(0); }
-    100% { transform: translateX(-33.33%); } /* Since we repeated 3 times */
+    100% { transform: translateX(-33.333%); }
 }
 
-/* Pause on hover would be nice but might flicker with loop. Let's keep it simple. */
+.ticker--compact {
+    background: transparent;
+    border: none;
+}
 </style>
+

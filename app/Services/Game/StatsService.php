@@ -43,6 +43,8 @@ class StatsService
             'active_customers' => $activeCustomers,
             'active_servers' => $activeServers,
             'avg_satisfaction' => $avgSatisfaction,
+            'power_usage' => $economy->total_power_kw ?? 0,
+            'bandwidth_usage' => $economy->total_bandwidth_gbps ?? 0,
         ]);
     }
     

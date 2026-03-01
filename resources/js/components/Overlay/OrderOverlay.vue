@@ -11,7 +11,14 @@
                 <div class="customer-info">
                     <span class="customer-avatar">🏢</span>
                     <div class="customer-text">
-                        <h3>{{ order.customerName }}</h3>
+                        <div class="customer-title-row">
+                            <h3>{{ order.customerName }}</h3>
+                            <span v-if="order.sla && order.sla.tier === 'enterprise'" class="sla-badge enterprise">ENTERPRISE</span>
+                            <span v-if="order.sla && order.sla.tier === 'diamond' || order.sla.tier === 'whale'" class="sla-badge whale">DIAMOND_GRADE</span>
+                            <span v-if="order.targetRegion" class="region-badge" :title="'Prefers ' + order.targetRegion">
+                                {{ getRegionFlag(order.targetRegion) }} {{ order.targetRegion }}
+                            </span>
+                        </div>
                         <span class="customer-tier">{{ order.contractMonths }} month contract</span>
                     </div>
                 </div>
@@ -35,6 +42,28 @@
                             <div class="req-item" v-if="order.requirements.bandwidth">
                                 <span class="req-label">Bandwidth</span>
                                 <span class="req-value">{{ order.requirements.bandwidth }} Mbps</span>
+                            </div>
+                            <div class="req-item" v-if="order.requirements.max_latency_ms">
+                                <span class="req-label">Max Latency</span>
+                                <span class="req-value" style="color: #ff9d00">{{ order.requirements.max_latency_ms }} ms</span>
+                            </div>
+                            <div class="req-item" v-if="order.requirements.ipv4">
+                                <span class="req-label">IPv4_ADDR</span>
+                                <span class="req-value">{{ order.requirements.ipv4 }} Fixed</span>
+                            </div>
+                            <div class="req-item" v-if="order.requirements.os">
+                                <span class="req-label">Required OS</span>
+                                <span class="req-value" style="color: #58a6ff">{{ order.requirements.os }}</span>
+                            </div>
+                            <div class="req-item" v-if="order.requirements.ports && order.requirements.ports.length">
+                                <span class="req-label">Comm Ports</span>
+                                <span class="req-value" style="color: #ff9d00">TCP: {{ order.requirements.ports.join(', ') }}</span>
+                            </div>
+                            <div class="req-item">
+                                <span class="req-label">SECURITY_PATCH_LVL</span>
+                                <span class="req-value" :style="{ color: getRequiredSecurity(order.sla?.tier) > 0 ? '#ff5f5f' : '#8b949e' }">
+                                    {{ getRequiredSecurity(order.sla?.tier) }}%
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -86,6 +115,13 @@
 
             <div class="overlay-actions">
                 <button class="btn btn--danger" @click="rejectOrder">Reject Order</button>
+                <button 
+                    v-if="order.isNegotiable || (order.negotiation && order.negotiation.isNegotiable)" 
+                    class="btn btn--primary" 
+                    @click="$emit('negotiate', order)"
+                >
+                    Negotiate Terms
+                </button>
             </div>
         </div>
     </div>
@@ -104,20 +140,23 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'negotiate']);
 const gameStore = useGameStore();
 const toastStore = useToastStore();
 
 const availableServers = computed(() => {
     const servers = [];
+    console.log('SCANNING ROOMS:', Object.keys(gameStore.rooms || {}).length);
+    
+    // Own rooms
     for (const roomId in gameStore.rooms) {
         const room = gameStore.rooms[roomId];
+        console.log('Room:', room.name, 'Racks:', room.racks?.length);
         if (room.racks) {
             for (const rack of room.racks) {
+                console.log('Rack:', rack.name, 'Servers:', rack.servers?.length);
                 if (rack.servers) {
                     for (const server of rack.servers) {
-                        // Filters: Must be online, must be proper type (e.g. vserver node if VPS)
-                        // For now, simplify: status must be online or 'provisioning'
                         if (server.status !== 'offline' && server.status !== 'damaged') {
                             servers.push(server);
                         }
@@ -126,6 +165,18 @@ const availableServers = computed(() => {
             }
         }
     }
+
+    // Rented servers
+    if (gameStore.rentedServers) {
+        console.log('SCANNING RENTED:', gameStore.rentedServers.length);
+        for (const server of gameStore.rentedServers) {
+            if (server.status !== 'offline' && server.status !== 'damaged') {
+                servers.push(server);
+            }
+        }
+    }
+
+    console.log('FOUND TOTAL SERVERS:', servers.length);
     return servers;
 });
 
@@ -134,21 +185,83 @@ function isSuitable(server) {
     
     // Check requirements
     const req = props.order.requirements;
-    if (server.specs.cpuCores < req.cpu) return false;
-    if (server.specs.ramGb < req.ram) return false;
-    if (server.specs.storageTb * 1024 < req.storage) return false;
+    console.log('CHECKING SERVER:', server.id, 'FOR ORDER:', props.order.id);
+    console.log('REQS:', req);
+    console.log('SPECS:', server.specs);
+
+    if (server.specs.cpuCores < req.cpu) {
+        console.log('REJECTED: CPU', server.specs.cpuCores, '<', req.cpu);
+        return false;
+    }
+    if (server.specs.ramGb < req.ram) {
+        console.log('REJECTED: RAM', server.specs.ramGb, '<', req.ram);
+        return false;
+    }
+    if (server.specs.storageTb * 1024 < req.storage) {
+        console.log('REJECTED: DISK', server.specs.storageTb * 1024, '<', req.storage);
+        return false;
+    }
+
+    // Check OS
+    if (req.os) {
+        if (server.os.type !== req.os) {
+            console.log('REJECTED: OS TYPE', server.os.type, '!==', req.os);
+            return false;
+        }
+        if (server.os.status !== 'installed') {
+            console.log('REJECTED: OS STATUS', server.os.status);
+            return false;
+        }
+    }
 
     // Check availability (if vserver node)
-    if (server.type === 'vserver_node') {
+    if (server.type === 'shared_node') {
+        if (props.order.productType !== 'web_hosting' && props.order.productType !== 'database_hosting') return false;
+        if (server.vserver.available <= 0) return false;
+    } else if (server.type === 'vserver_node') {
         if (server.vserver.available <= 0) return false;
     } else {
-        // Dedicated: must be empty/unused?
-        // Current logic doesn't track "used" status for dedicated well yet, 
-        // assuming dedicated = 1 order capacity for now (or locked)
+        // Dedicated: must be empty/unused
         if (server.activeOrdersCount > 0) return false;
     }
 
+    // Check Latency Requirement
+    if (req.max_latency_ms) {
+        let roomLatency = null;
+        for (const roomId in gameStore.rooms) {
+            const room = gameStore.rooms[roomId];
+            if (room.racks) {
+                for (const rack of room.racks) {
+                    if (rack.servers && rack.servers.some(s => s.id === server.id)) {
+                        roomLatency = room.latency || 100;
+                        break;
+                    }
+                }
+            }
+            if (roomLatency !== null) break;
+        }
+        
+        // If we found the room and it doesn't meet the requirement, reject
+        if (roomLatency !== null && roomLatency > req.max_latency_ms) {
+            return false;
+        }
+    }
+
+    // Check Security Patch Level
+    const requiredSecurity = getRequiredSecurity(props.order.sla?.tier);
+    if ((server.os?.patch_level || 0) < requiredSecurity) {
+        console.log('REJECTED: Security Level', server.os?.patch_level, '<', requiredSecurity);
+        return false;
+    }
+
     return true;
+}
+
+function getRequiredSecurity(tier) {
+    if (tier === 'diamond' || tier === 'whale') return 95;
+    if (tier === 'enterprise') return 90;
+    if (tier === 'premium') return 80;
+    return 0;
 }
 
 async function acceptOrder(serverId) {
@@ -195,6 +308,11 @@ function formatTime(seconds) {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
+
+function getRegionFlag(regionKey) {
+    if (!regionKey) return '';
+    return gameStore.regions[regionKey]?.flag || '❓';
+}
 </script>
 
 <style scoped>
@@ -211,7 +329,12 @@ function formatTime(seconds) {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(2px);
+}
+
+@keyframes v3-pop-in {
+    from { transform: scale(0.98) translateY(10px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
 }
 
 .overlay-content {
@@ -219,19 +342,14 @@ function formatTime(seconds) {
     width: 600px;
     max-width: 90%;
     max-height: 90vh;
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    background: var(--v3-bg-overlay);
+    border: var(--v3-border-heavy);
+    border-radius: var(--v3-radius);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    animation: slideUp 0.3s ease-out;
-}
-
-@keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    animation: v3-pop-in 0.15s var(--v3-easing) forwards;
 }
 
 .overlay-header {
@@ -286,9 +404,48 @@ function formatTime(seconds) {
 }
 
 .customer-text h3 {
-    margin: 0 0 4px 0;
+    margin: 0;
     font-size: 1.1rem;
     color: #e6edf3;
+}
+
+.customer-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.region-badge {
+    font-size: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: #8b949e;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sla-badge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sla-badge.enterprise {
+    background: linear-gradient(135deg, #1f6feb, #388bfd);
+    box-shadow: 0 0 10px rgba(31, 111, 235, 0.3);
+}
+
+.sla-badge.whale {
+    background: linear-gradient(135deg, #d29922, #e3b341);
+    color: #0d1117;
+    box-shadow: 0 0 10px rgba(210, 153, 34, 0.4);
 }
 
 .customer-tier {
@@ -496,5 +653,16 @@ function formatTime(seconds) {
 
 .btn--danger:hover {
     background: rgba(248, 81, 73, 0.1);
+}
+
+.btn--primary {
+    background: #2ea043;
+    color: white;
+    margin-left: 12px;
+}
+
+.btn--primary:hover {
+    background: #3fb950;
+    box-shadow: 0 0 10px rgba(46, 160, 67, 0.4);
 }
 </style>

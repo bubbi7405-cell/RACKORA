@@ -1,0 +1,228 @@
+/* ==========================================================================
+   RACKORA - ULTRA REDESIGN (ENTERPRISE INDUSTRIAL)
+   Focus: Precision, Micro-Animation, and Dramatic Hierarchy
+   ========================================================================== */
+
+:root {
+    --sidebar-width: 240px;
+    --sidebar-collapsed-width: 68px;
+    --topbar-height: 52px;
+
+    /* Industrial Tiered Black System */
+    --color-base: #020305;
+    /* "The Void" */
+    --color-surface: #06080a;
+    /* Node Surface */
+    --color-elevated: #0d0f14;
+    /* Asset Surface */
+    --color-sidebar: #040507;
+
+    /* System Accents */
+    --color-accent: #3a86ff;
+    /* Uplink Blue */
+    --color-success: #22c55e;
+    /* Operational Green */
+    --color-warning: #eab308;
+    /* System Caution */
+    --color-danger: #ef4444;
+    /* Thermal Alert */
+    --color-muted: #64748b;
+    /* Component Metadata */
+    --color-deep: #000000;
+
+    /* Ultra Thin Borders */
+    --border-dim: 1px solid rgba(255, 255, 255, 0.04);
+    --border-ui: 1px solid rgba(255, 255, 255, 0.07);
+    --border-highlight: 1px solid rgba(255, 255, 255, 0.12);
+    --border-active: 1px solid var(--color-accent);
+
+    /* Typography */
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+
+    /* Animation Tokens */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --transition-subtle: all 0.2s var(--ease-out);
+    --transition-dramatic: all 0.6s var(--ease-out);
+}
+
+/* Base Body Hardening */
+body {
+    background-color: var(--color-base);
+    color: #e2e8f0;
+    font-family: var(--font-ui);
+    letter-spacing: -0.015em;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+}
+
+/* Precision Scrollbar */
+::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-accent);
+}
+
+/* System Scanline Effect (Ultra Subtle CRT) */
+.main-viewport::after {
+    content: " ";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.05) 50%),
+        linear-gradient(90deg, rgba(255, 0, 0, 0.01), rgba(0, 255, 0, 0.005), rgba(0, 0, 255, 0.01));
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.15;
+}
+
+/* Drama: Layout Reveal */
+@keyframes systemReveal {
+    0% {
+        opacity: 0;
+        transform: translateY(5px) scale(0.995);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.animate-view {
+    animation: systemReveal 0.6s var(--ease-out);
+}
+
+/* Micro-Animation: Pulse Glow (For Active States) */
+@keyframes pulseGlow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 10px rgba(58, 134, 255, 0.1);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(58, 134, 255, 0.25);
+    }
+}
+
+.active-glow {
+    animation: pulseGlow 4s infinite ease-in-out;
+}
+
+/* Micro-Animation: Data Stream (For Bars) */
+@keyframes dataStream {
+    0% {
+        background-position: 0% 0%;
+    }
+
+    100% {
+        background-position: 40px 0%;
+    }
+}
+
+.data-fill {
+    background-image: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
+    background-size: 40px 100%;
+    animation: dataStream 2s linear infinite;
+}
+
+/* Glass System */
+.glass-panel {
+    background: rgba(6, 8, 10, 0.7);
+    backdrop-filter: blur(16px) saturate(150%);
+    border: var(--border-ui);
+}
+
+/* Micro-Animation: Subtle Glitch (Enterprise Tension) */
+@keyframes glitch {
+    0% {
+        transform: translate(0);
+    }
+
+    1% {
+        transform: translate(-1px, 1px);
+    }
+
+    2% {
+        transform: translate(1px, -1px);
+    }
+
+    3% {
+        transform: translate(0);
+    }
+
+    100% {
+        transform: translate(0);
+    }
+}
+
+.animate-glitch {
+    animation: glitch 10s infinite linear;
+}
+
+/* Section Labels (Technical) */
+.section-label-industrial {
+    font-size: 0.55rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    color: var(--color-muted);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.section-label-industrial::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-dim);
+}
+
+/* Button Refinement */
+button {
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    transition: var(--transition-subtle);
+}
+
+.btn-enterprise {
+    background: rgba(255, 255, 255, 0.03);
+    border: var(--border-ui);
+    color: #fff;
+    padding: 8px 16px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 2px;
+}
+
+.btn-enterprise:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.btn-enterprise:active {
+    transform: translateY(0);
+}

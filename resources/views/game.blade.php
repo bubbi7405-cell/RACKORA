@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
-    <title>Server Tycoon - Build Your Hosting Empire</title>
-    <meta name="description" content="Server Tycoon - An immersive browser game where you build and manage your own server hosting empire. Install servers, manage customers, and handle crises in real-time.">
+    <title>Rackora by CodePony.de — Build Your Hosting Empire</title>
+    <meta name="description" content="Rackora by CodePony.de V.1.0 — An immersive browser game where you build and manage your own server hosting empire. Install servers, manage customers, and handle crises in real-time.">
     
     <!-- Prevent mobile zoom -->
     <meta name="apple-mobile-web-app-capable" content="yes">

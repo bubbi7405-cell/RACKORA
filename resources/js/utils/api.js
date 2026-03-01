@@ -1,5 +1,5 @@
 /**
- * API Utility for Server Tycoon
+ * API Utility for Rackora
  * Handles all HTTP requests to the game backend
  */
 
@@ -7,7 +7,7 @@ const API_BASE = '/api';
 
 class ApiClient {
     constructor() {
-        this.token = null;
+        this.token = localStorage.getItem('game_token') || null;
     }
 
     setToken(token) {
@@ -32,7 +32,13 @@ class ApiClient {
         };
 
         if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
-            options.body = JSON.stringify(data);
+            if (data instanceof FormData) {
+                // Let the browser set the Content-Type with boundary for FormData
+                delete headers['Content-Type'];
+                options.body = data;
+            } else {
+                options.body = JSON.stringify(data);
+            }
         }
 
         try {

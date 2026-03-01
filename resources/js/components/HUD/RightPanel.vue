@@ -1,189 +1,195 @@
 <template>
-    <aside class="right-panel">
-        <div class="panel-header">
-            <button v-if="selectedServerData" class="btn-back" @click="gameStore.selectServer(null)">&larr;</button>
-            <h3 class="panel-header__title">{{ selectedServerData ? 'Server Details' : 'Server Shop' }}</h3>
-        </div>
+    <aside class="right-panel" :class="{ 'slide-out-panel': slideOut }">
+        <header class="panel-header">
+            <div class="header-meta">
+                <span class="meta-label">SESSION_TYPE</span>
+                <span class="meta-id">{{ selectedServerId ? 'ASSET_INSPECTION' : 'HARDWARE_CATALOG' }}</span>
+            </div>
+            <button v-if="slideOut" class="close-btn" @click="$emit('close')">TERMINATE</button>
+        </header>
 
         <div class="panel-content">
             <!-- SHOP VIEW -->
-            <template v-if="!selectedServerData">
-                <!-- Server Categories -->
-                <div class="server-categories">
+            <template v-if="!selectedServerId">
+                <nav class="cat-nav">
                     <button 
                         v-for="cat in serverCategories" 
                         :key="cat.type"
-                        class="category-tab"
-                        :class="{ 'category-tab--active': selectedCategory === cat.type }"
+                        class="cat-btn"
+                        :class="{ 'active': selectedCategory === cat.type, 'locked': player.economy.level < cat.level }"
                         @click="selectedCategory = cat.type"
-                        :disabled="player.economy.level < cat.level"
                     >
-                        <span class="category-tab__icon">{{ cat.icon }}</span>
-                        <span class="category-tab__name">{{ cat.name }}</span>
-                        <span v-if="player.economy.level < cat.level" class="category-tab__lock">Lvl {{ cat.level }}</span>
+                        <span class="cat-label">{{ cat.name.toUpperCase() }}</span>
+                    </button>
+                </nav>
+
+                <div class="lease-toggle-bar">
+                    <div class="lease-toggle" :class="{ 'is-active': isLeasingMode }" @click="isLeasingMode = !isLeasingMode">
+                        <div class="toggle-switch"></div>
+                        <div class="toggle-text">
+                            <span class="main">HARDWARE_LEASING_MODE</span>
+                            <span class="sub">{{ isLeasingMode ? 'LOW CAPEX / HIGH OPEX' : 'FULL OWNERSHIP' }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="selectedCategory !== 'hardware_parts' && selectedCategory !== 'experimental'" class="gen-strip">
+                    <button
+                        v-for="g in generations"
+                        :key="g.generation"
+                        class="gen-pill"
+                        :class="{ 'active': selectedGen === g.generation, 'legacy': g.era === 'legacy', 'nextgen': g.era === 'nextgen' }"
+                        @click="selectedGen = g.generation"
+                        :title="`${g.name}: ${g.efficiency}x Perf, ${g.power}x Power`"
+                    >
+                        GEN_{{ g.generation }} <small v-if="g.era">{{ g.era.toUpperCase() }}</small>
                     </button>
                 </div>
 
-                <!-- Server Models -->
-                <div class="server-models">
+                <div class="hardware-list">
                     <div 
                         v-for="(model, key) in filteredModels" 
                         :key="key"
-                        class="server-model"
-                        :class="{ 'server-model--selected': selectedModel === key }"
-                        @click="selectModel(key)"
+                        class="model-row"
+                        :id="'shop-item-' + key"
                         draggable="true"
                         @dragstart="onDragStart($event, key, model)"
+                        @dragend="onDragEnd"
                     >
-                        <div class="server-model__header">
-                            <span class="server-model__name">{{ model.modelName }}</span>
-                            <span class="server-model__size">{{ model.sizeU }}U</span>
+                        <div class="model-visual">
+                            <HardwareIcon 
+                                :type="selectedCategory === 'hardware_parts' ? model._type : (['dedicated', 'storage_server', 'gpu_server'].includes(selectedCategory) ? 'rack' : 'server')" 
+                                size="md" 
+                            />
                         </div>
-                        
-                        <div class="server-model__specs">
-                            <div class="spec">
-                                <span class="spec__label">CPU</span>
-                                <span class="spec__value">{{ model.cpuCores }} cores</span>
+                        <div class="model-info">
+                            <div class="info-top">
+                                <span class="model-name">{{ model.name?.toUpperCase() || model.modelName?.toUpperCase() }}</span>
+                                <span class="model-u" v-if="selectedCategory !== 'hardware_parts'">{{ model.sizeU }}U</span>
                             </div>
-                            <div class="spec">
-                                <span class="spec__label">RAM</span>
-                                <span class="spec__value">{{ model.ramGb }} GB</span>
+                            <div class="spec-line" v-if="selectedCategory !== 'hardware_parts'">
+                                <span>{{ getGenSpec(model, 'cpuCores') }}C</span>
+                                <span class="sep">/</span>
+                                <span>{{ getGenSpec(model, 'ramGb') }}G</span>
+                                <span class="sep">/</span>
+                                <span>{{ model.storageTb }}T</span>
                             </div>
-                            <div class="spec">
-                                <span class="spec__label">Storage</span>
-                                <span class="spec__value">{{ model.storageTb }} TB</span>
-                            </div>
-                            <div class="spec">
-                                <span class="spec__label">Power</span>
-                                <span class="spec__value">{{ model.powerDrawKw }} kW</span>
+                            <div class="spec-line" v-else>
+                                <span v-if="model._type === 'cpu'">{{ model.cores }} Cores, {{ model.frequency_ghz }}GHz</span>
+                                <span v-else-if="model._type === 'ram'">{{ model.size_gb }}GB {{ model.type }}</span>
+                                <span v-else-if="model._type === 'storage'">{{ model.size_tb }}TB {{ model.type }}</span>
+                                <span v-else-if="model._type === 'motherboard'">{{ model.socket }}, {{ model.size_u }}U</span>
+                                <span v-else>GEN_{{ model.generation || 1 }}</span>
                             </div>
                         </div>
-
-                        <div class="server-model__footer">
-                            <span class="server-model__price">${{ model.purchaseCost.toLocaleString() }}</span>
-                            <button 
-                                class="btn-purchase" 
-                                @click.stop="purchaseServer(key)"
-                                :disabled="!canAfford(model.purchaseCost) || !selectedRack"
-                            >
-                                Buy
+                        <div class="model-action">
+                            <button class="buy-btn" :class="{ 'is-lease': isLeasingMode }" :id="'buy-btn-' + key" @click.stop="handlePurchase(key)" :disabled="!canAfford(getDisplayPrice(model))">
+                                <template v-if="isLeasingMode">
+                                    <span class="upfront">${{ getLeaseUpfront(model).toLocaleString() }}</span>
+                                    <span class="monthly">${{ getLeaseHourly(model).toFixed(2) }}/h</span>
+                                </template>
+                                <template v-else>
+                                    ${{ getGenPrice(model).toLocaleString() }}
+                                </template>
                             </button>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Selected Rack Info (Optional footer in shop) -->
-                <div v-if="selectedRack" class="selected-rack-info">
-                    <div class="rack-info-header">
-                        <span class="rack-info-name">🗄️ {{ selectedRack.name }}</span>
-                        <span class="rack-info-temp" :class="{ 'text-danger': selectedRack.temperature > 50 }">
-                            {{ selectedRack.temperature }}°C
-                        </span>
-                    </div>
-
-                    <div class="rack-metrics">
-                        <div class="rack-metric">
-                            <div class="metric-label">
-                                <span>Dust Level</span>
-                                <span>{{ Math.round(selectedRack.dustLevel) }}%</span>
-                            </div>
-                            <div class="metric-progress-bg">
-                                <div class="metric-progress-fill" 
-                                     :style="{ width: selectedRack.dustLevel + '%' }"
-                                     :class="getDustClass(selectedRack.dustLevel)">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="rack-actions">
-                        <div class="rack-capacity">
-                            <span>{{ selectedRack.units.available }}U Available</span>
-                        </div>
-                        <button 
-                            v-if="selectedRack.dustLevel > 10"
-                            class="btn-rack-action btn-clean" 
-                            @click="gameStore.cleanRack(selectedRack.id)"
-                        >
-                            🧹 Clean ($50)
-                        </button>
                     </div>
                 </div>
             </template>
 
-            <!-- DETAILS VIEW -->
-            <template v-else>
-                <div class="server-detail-section">
-                    <div class="server-detail-card main-card">
-                        <div class="server-detail__header">
-                            <div class="server-detail__name">{{ selectedServerData.modelName }}</div>
-                            <div class="server-detail__status-badge" :class="`status--${selectedServerData.status}`">
-                                {{ selectedServerData.status }}
-                            </div>
+            <!-- ASSET DETAILS VIEW -->
+            <template v-else-if="selectedServerData">
+                <div class="asset-details">
+                    <div class="asset-header">
+                        <div class="asset-title">
+                            <span class="asset-label">ASSET_ID</span>
+                            <h3 class="asset-name">{{ selectedServerData.modelName.toUpperCase() }}</h3>
                         </div>
-
-                        <div class="server-detail__stats">
-                            <div class="compact-spec"><span>CPU</span> <strong>{{ selectedServerData.specs.cpuCores }} Cores</strong></div>
-                            <div class="compact-spec"><span>RAM</span> <strong>{{ selectedServerData.specs.ramGb }} GB</strong></div>
+                        <div class="asset-status" :class="`status--${selectedServerData.status}`">
+                            {{ selectedServerData.status.toUpperCase() }}
                         </div>
-                        
-                        <!-- Health Bar -->
-                        <div class="server-detail__health">
-                            <div class="health-meta">
-                                <span class="health-label">Condition</span>
-                                <span class="health-value text-glow">{{ Math.round(selectedServerData.health) }}%</span>
-                            </div>
-                            <div class="health-bar">
-                                <div 
-                                    class="health-bar__fill" 
-                                    :class="{
-                                        'health--good': selectedServerData.health > 70,
-                                        'health--warn': selectedServerData.health > 30 && selectedServerData.health <= 70,
-                                        'health--danger': selectedServerData.health <= 30,
-                                    }"
-                                    :style="{ width: selectedServerData.health + '%' }"
-                                ></div>
-                            </div>
+                        <div v-if="selectedServerData.isLeased" class="asset-status status--leased">
+                            LEASED
                         </div>
+                    </div>
 
-                        <div class="server-detail__footer-actions">
-                            <button 
-                                v-if="needsRepair(selectedServerData)"
-                                class="btn-repair btn-large"
-                                :disabled="isRepairing"
-                                @click="repairSelectedServer"
-                            >
-                                🔧 {{ isRepairing ? 'Repairing...' : `Repair Server ($${repairCost})` }}
-                            </button>
-
-                            <button 
-                                class="btn-action btn-action--info"
-                                @click="$emit('openDetails', selectedServerData.id)"
-                            >🔬 Deep Inspection</button>
-                            
-                            <div class="power-controls">
-                                <button 
-                                    v-if="selectedServerData.status === 'online'" 
-                                    class="btn-action btn-action--danger"
-                                    @click="gameStore.powerOffServer(selectedServerData.id)"
-                                >Power Off</button>
-                                <button 
-                                    v-else-if="['offline', 'degraded', 'damaged'].includes(selectedServerData.status)"
-                                    class="btn-action btn-action--success"
-                                    @click="gameStore.powerOnServer(selectedServerData.id)"
-                                >Power On</button>
+                    <div class="asset-metrics">
+                        <div class="metric-item">
+                            <span class="m-label">CONDITION</span>
+                            <div class="m-bar-container">
+                                <div class="m-bar" :style="{ width: selectedServerData.health + '%' }" :class="healthClass"></div>
+                            </div>
+                            <span class="m-val">{{ Math.round(selectedServerData.health) }}%</span>
+                        </div>
+                        <div class="metric-grid">
+                            <div class="m-mini">
+                                <span class="mm-label">WEAR</span>
+                                <span class="mm-val">{{ Math.round(selectedServerData.aging?.wearPercentage || 0) }}%</span>
+                            </div>
+                            <div class="m-mini">
+                                <span class="mm-label">EFFICIENCY</span>
+                                <span class="mm-val">{{ Math.max(0, 100 - Math.round((selectedServerData.aging?.efficiencyPenalty || 0) * 100)) }}%</span>
+                            </div>
+                            <div class="m-mini resale-highlight secondary">
+                                <span class="mm-label">RESALE_VALUE</span>
+                                <span class="mm-val text-success">${{ Math.round(selectedServerData.resaleValue).toLocaleString() }}</span>
+                            </div>
+                            <div class="m-mini">
+                                <span class="mm-label">GENERATION</span>
+                                <span class="mm-val">GEN_{{ selectedServerData.hardwareGeneration }}</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Active Workloads placeholder -->
-                    <div class="server-workloads">
-                        <h4 class="section-title">Active Workloads</h4>
-                        <div class="workload-list">
-                            <div v-if="selectedServerData.activeOrdersCount > 0" class="workload-item">
-                                <span class="dot"></span> Running {{ selectedServerData.activeOrdersCount }} instances...
-                            </div>
-                            <div v-else class="empty-text">No active orders on this server.</div>
+                    <div class="asset-specs">
+                        <div class="s-row"><span>CPU_CORES</span> <strong>{{ selectedServerData.specs.cpuCores }}</strong></div>
+                        <div class="s-row"><span>RAM_CAPACITY</span> <strong>{{ selectedServerData.specs.ramGb }}G</strong></div>
+                        <div v-if="selectedServerData.activeOrdersCount > 0" class="s-row workload">
+                            <span>ACTIVE_WORKLOADS</span> 
+                            <strong>{{ selectedServerData.activeOrdersCount }} UNIT(S)</strong>
+                        </div>
+                        <div v-if="selectedServerData.isLeased" class="s-row workload">
+                            <span>HOURLY_LEASE_RATE</span> 
+                            <strong>${{ selectedServerData.leaseCostPerHour.toFixed(2) }}/h</strong>
+                        </div>
+                    </div>
+
+                    <div class="asset-actions">
+                        <button 
+                            v-if="needsRepair(selectedServerData)"
+                            class="action-btn primary"
+                            :disabled="isRepairing"
+                            @click="repairSelectedServer"
+                        >
+                            {{ isRepairing ? 'REPAIRING_IN_PROGRESS...' : `EXECUTE_REPAIR_($${repairCost})` }}
+                        </button>
+
+                        <button class="action-btn" @click="$emit('openDetails', selectedServerData.id)">
+                            DEEP_INSPECTION_MODE
+                        </button>
+
+                        <div class="action-grid">
+                            <button 
+                                v-if="selectedServerData.status === 'online'" 
+                                class="action-btn danger"
+                                @click="gameStore.powerOffServer(selectedServerData.id)"
+                            >POWER_OFF</button>
+                            <button 
+                                v-else
+                                class="action-btn success"
+                                @click="gameStore.powerOnServer(selectedServerData.id)"
+                            >POWER_ON</button>
+                            
+                            <button 
+                                v-if="selectedServerData.activeOrdersCount === 0 && selectedServerData.specs?.is_custom"
+                                class="action-btn warning"
+                                @click="disassembleSelectedServer"
+                            >DISASSEMBLE</button>
+                            <button 
+                                v-else-if="selectedServerData.activeOrdersCount === 0"
+                                class="action-btn warning"
+                                @click="sellSelectedServer"
+                            >LIQUIDATE</button>
                         </div>
                     </div>
                 </div>
@@ -198,56 +204,105 @@ import { useGameStore } from '../../stores/game';
 import { useToastStore } from '../../stores/toast';
 import { storeToRefs } from 'pinia';
 import api from '../../utils/api';
+import HardwareIcon from '../UI/HardwareIcon.vue';
+
+const props = defineProps({
+    slideOut: { type: Boolean, default: false }
+});
 
 const gameStore = useGameStore();
 const toastStore = useToastStore();
-const { player, selectedRack, selectedRackId, selectedServerId, rooms } = storeToRefs(gameStore);
+
+const rooms = computed(() => gameStore.rooms || {});
+const hardware = computed(() => gameStore.hardware || {});
+const player = computed(() => gameStore.player || {});
+const selectedRack = computed(() => gameStore.selectedRack);
+const selectedRackId = computed(() => gameStore.selectedRackId);
+const selectedServerId = computed(() => gameStore.selectedServerId);
+
+const emit = defineEmits(['openDetails', 'openAssembly', 'close']);
 
 const selectedCategory = ref('vserver_node');
-const selectedModel = ref(null);
 const serverCatalog = ref({});
 const isRepairing = ref(false);
+const selectedGen = ref(2);
+const generations = ref([]);
+const isLeasingMode = ref(false);
+
+const currentGen = computed(() => generations.value.find(g => g.generation === selectedGen.value));
+
+const getGenSpec = (model, key) => {
+    if (selectedCategory.value === 'hardware_parts') return model[key];
+    const g = currentGen.value;
+    if (!g || model.isExperimental) return model[key];
+    return Math.ceil(model[key] * g.efficiency);
+};
+
+const getGenPrice = (model) => {
+    if (selectedCategory.value === 'hardware_parts') return model.price || 0;
+    const g = currentGen.value;
+    if (!g || model.isExperimental) return model.purchaseCost;
+    return Math.round(model.purchaseCost * g.price);
+};
+
+const getLeaseUpfront = (model) => {
+    const price = getGenPrice(model);
+    return Math.round(price * 0.05); // 5% setup fee
+};
+
+const getLeaseHourly = (model) => {
+    const price = getGenPrice(model);
+    const monthlyRate = selectedCategory.value === 'hardware_parts' ? 0.10 : 0.12;
+    return (price * monthlyRate) / 720;
+};
+
+const getDisplayPrice = (model) => {
+    return isLeasingMode.value ? getLeaseUpfront(model) : getGenPrice(model);
+};
 
 const serverCategories = [
     { type: 'vserver_node', name: 'VServer', icon: '🖥️', level: 1 },
     { type: 'dedicated', name: 'Dedicated', icon: '🔧', level: 2 },
     { type: 'storage_server', name: 'Storage', icon: '💾', level: 5 },
     { type: 'gpu_server', name: 'GPU', icon: '🎮', level: 15 },
+    { type: 'experimental', name: 'Experimental', icon: '⚛️', level: 20 },
+    { type: 'hardware_parts', name: 'Hardware', icon: '📦', level: 1 },
 ];
 
 const filteredModels = computed(() => {
+    if (selectedCategory.value === 'hardware_parts') {
+        const flat = {};
+        for (const [type, items] of Object.entries(hardwareCatalog.value)) {
+            for (const [key, item] of Object.entries(items)) {
+                flat[`${type}:${key}`] = { ...item, _type: type, _key: key, modelName: item.name };
+            }
+        }
+        return flat;
+    }
     return serverCatalog.value[selectedCategory.value] || {};
 });
 
-// Find selected server data from rooms state
 const selectedServerData = computed(() => {
     if (!selectedServerId.value) return null;
-    
     for (const room of Object.values(rooms.value)) {
         for (const rack of (room.racks || [])) {
             for (const server of (rack.servers || [])) {
-                if (server.id === selectedServerId.value) {
-                    return server;
-                }
+                if (server.id === selectedServerId.value) return server;
             }
         }
     }
     return null;
 });
 
+const needsRepair = (server) => server.health < 80;
 const repairCost = computed(() => {
     if (!selectedServerData.value) return 0;
-    return Math.round((selectedServerData.value.purchaseCost || 500) * 0.2);
+    return Math.round((selectedServerData.value.purchaseCost || 500) * 0.15);
 });
-
-function needsRepair(server) {
-    return ['damaged', 'degraded'].includes(server.status);
-}
 
 async function repairSelectedServer() {
     if (!selectedServerId.value || isRepairing.value) return;
     isRepairing.value = true;
-    
     try {
         await gameStore.repairServer(selectedServerId.value);
     } finally {
@@ -259,659 +314,557 @@ function canAfford(cost) {
     return player.value.economy.balance >= cost;
 }
 
-function selectModel(key) {
-    selectedModel.value = selectedModel.value === key ? null : key;
+async function sellSelectedServer() {
+    if (!selectedServerId.value) return;
+    if (!confirm('Are you sure you want to sell this server?')) return;
+    try {
+        const res = await api.post('/hardware/sell', { server_id: selectedServerId.value });
+        if (res.success) {
+            toastStore.success(res.message);
+            gameStore.selectServer(null);
+            gameStore.loadGameState();
+        }
+    } catch (e) {
+        toastStore.error('Failed to sell server.');
+    }
 }
+
+async function disassembleSelectedServer() {
+    if (!selectedServerId.value) return;
+    if (!confirm('Are you sure you want to disassemble this server into parts?')) return;
+    try {
+        const success = await gameStore.disassembleServer(selectedServerId.value);
+        if (success) {
+            gameStore.selectServer(null);
+            gameStore.loadGameState();
+        }
+    } catch (e) {
+        toastStore.error('Failed to disassemble server.');
+    }
+}
+
+const hardwareCatalog = ref({});
 
 async function loadCatalog() {
     try {
-        const response = await api.get('/catalog/servers');
-        if (response.success) {
-            serverCatalog.value = response.data;
-        }
+        const [serverRes, hardwareRes] = await Promise.all([
+            api.get('/catalog/servers'),
+            api.get('/hardware/catalog')
+        ]);
+        
+        if (serverRes.success) serverCatalog.value = serverRes.data;
+        if (hardwareRes.success) hardwareCatalog.value = hardwareRes.data;
     } catch (error) {
-        console.error('Failed to load server catalog:', error);
+        console.error('Failed to load catalogs', error);
     }
+}
+
+async function loadGenerations() {
+    try {
+        const res = await api.get('/hardware/generations');
+        if (res.success) generations.value = res.data;
+    } catch (e) {}
 }
 
 async function purchaseServer(modelKey) {
     if (!selectedRackId.value) {
-        toastStore.warning('Select a rack first');
+        toastStore.warning('SELECT_TARGET_RACK: Click a rack unit in the layout below to select it.');
         return;
     }
-
     const rack = selectedRack.value;
-    if (!rack) return;
-
-    // Find first available slot
     const model = filteredModels.value[modelKey];
     const freeSlots = findFreeSlots(rack, model.sizeU);
-    
     if (freeSlots.length === 0) {
         toastStore.error('No space available in rack');
         return;
     }
-
-    const result = await gameStore.placeServer(
-        rack.id,
-        selectedCategory.value,
-        modelKey,
-        freeSlots[0]
+    await gameStore.placeServer(
+        rack.id, 
+        selectedCategory.value, 
+        modelKey, 
+        freeSlots[0], 
+        selectedGen.value,
+        isLeasingMode.value
     );
-
-    if (result.success) {
-        selectedModel.value = null;
-    }
 }
 
 function findFreeSlots(rack, sizeNeeded) {
-    // Find contiguous free slots
-    const slots = rack.slots;
+    if (!rack?.units || !rack.servers) return [];
+    const totalSlots = rack.units.total;
+    const occupied = new Set();
+    rack.servers.forEach(s => {
+        if (!s) return;
+        for (let i = 0; i < s.sizeU; i++) occupied.add(s.startSlot + i);
+    });
     const freeSlots = [];
-
-    for (let i = 1; i <= rack.units.total - sizeNeeded + 1; i++) {
-        let canFit = true;
+    for (let i = 1; i <= totalSlots - sizeNeeded + 1; i++) {
+        let isSlotFree = true;
         for (let j = 0; j < sizeNeeded; j++) {
-            if (!slots[i + j]?.empty) {
-                canFit = false;
-                break;
-            }
+            if (occupied.has(i + j)) { isSlotFree = false; break; }
         }
-        if (canFit) {
-            freeSlots.push(i);
-        }
+        if (isSlotFree) freeSlots.push(i);
     }
-
     return freeSlots;
 }
 
+// Hardware buying logic
+async function handlePurchase(modelKey) {
+    if (selectedCategory.value === 'hardware_parts') {
+        const item = filteredModels.value[modelKey];
+        if (!item) return;
+        await gameStore.purchaseComponent(item._type, item._key, 'standard', isLeasingMode.value);
+    } else {
+        await purchaseServer(modelKey);
+    }
+}
+
+
 function onDragStart(event, modelKey, model) {
-    event.dataTransfer.setData('application/json', JSON.stringify({
+    const dragData = JSON.stringify({
         type: 'new_server',
         category: selectedCategory.value,
         modelKey,
         sizeU: model.sizeU,
-    }));
-    event.dataTransfer.effectAllowed = 'copy';
+        generation: selectedGen.value,
+        isLeased: isLeasingMode.value
+    });
+    event.dataTransfer.setData('application/json', dragData);
+    gameStore.startDrag({ sizeU: model.sizeU });
+}
+
+function onDragEnd() {
+    gameStore.endDrag();
 }
 
 onMounted(() => {
     loadCatalog();
+    loadGenerations();
 });
-const getDustClass = (dust) => {
-    if (dust > 70) return 'progress-red';
-    if (dust > 40) return 'progress-yellow';
-    return 'progress-green';
-};
+
+const healthClass = computed(() => {
+    if (!selectedServerData.value) return '';
+    const h = selectedServerData.value.health;
+    if (h > 70) return 'health-good';
+    if (h > 30) return 'health-warn';
+    return 'health-danger';
+});
 </script>
 
 <style scoped>
 .right-panel {
-    grid-area: right-panel;
-    background: linear-gradient(270deg, rgba(15, 20, 25, 0.98) 0%, rgba(22, 27, 34, 0.95) 100%);
-    border-left: 1px solid var(--color-border);
+    width: 380px;
+    height: 100%;
+    background: var(--v3-bg-surface);
+    border-left: var(--v3-border-heavy);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    z-index: 100;
+    box-shadow: -10px 0 40px rgba(0,0,0,0.3);
+}
+
+.slide-out-panel {
+    position: absolute;
+    right: 0;
+    top: 0;
+    box-shadow: -20px 0 60px rgba(0,0,0,0.5);
+}
+
+.panel-header {
+    height: var(--v3-topbar-height);
+    padding: 0 24px;
+    border-bottom: var(--v3-border-soft);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0,0,0,0.1);
+}
+
+.header-meta { display: flex; flex-direction: column; }
+.meta-label { 
+    font-size: 0.45rem; 
+    font-weight: 900; 
+    color: var(--v3-text-ghost); 
+    letter-spacing: 0.25em; 
+    margin-bottom: 2px; 
+}
+.meta-id { 
+    font-size: 0.75rem; 
+    font-weight: 800; 
+    color: #fff; 
+    letter-spacing: 0.1em;
+}
+
+.close-btn {
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: var(--v3-text-ghost);
+    padding: 6px 12px;
+    border: var(--v3-border-soft);
+    background: transparent;
+    cursor: pointer;
+    transition: all var(--v3-transition-fast);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.close-btn:hover {
+    color: #fff;
+    background: var(--v3-bg-accent);
+    border-color: var(--v3-text-ghost);
 }
 
 .panel-content {
     flex: 1;
     overflow-y: auto;
-    padding: var(--space-md);
-}
-
-.server-categories {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-xs);
-    margin-bottom: var(--space-md);
-}
-
-.category-tab {
     display: flex;
     flex-direction: column;
+}
+
+.lease-toggle-bar {
+    padding: 12px 24px;
+    border-bottom: var(--v3-border-soft);
+    background: rgba(88, 166, 255, 0.05);
+}
+
+.lease-toggle {
+    display: flex;
     align-items: center;
-    padding: var(--space-sm);
-    background: var(--color-bg-elevated);
-    border: 1px solid transparent;
-    border-radius: var(--radius-md);
-    transition: all var(--transition-fast);
+    gap: 16px;
+    cursor: pointer;
+    user-select: none;
 }
 
-.category-tab:hover:not(:disabled) {
-    background: var(--color-bg-light);
+.toggle-switch {
+    width: 36px;
+    height: 18px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid var(--v3-border-soft);
+    border-radius: 9px;
+    position: relative;
+    transition: all 0.3s;
 }
 
-.category-tab--active {
-    border-color: var(--color-primary);
-    background: var(--color-primary-dim);
+.toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    background: var(--v3-text-ghost);
+    border-radius: 50%;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.category-tab:disabled {
-    opacity: 0.4;
+.lease-toggle.is-active .toggle-switch {
+    background: var(--v3-accent-soft);
+    border-color: var(--v3-accent);
 }
 
-.category-tab__icon {
-    font-size: 1.25rem;
+.lease-toggle.is-active .toggle-switch::after {
+    left: 20px;
+    background: var(--v3-accent);
+    box-shadow: 0 0 10px var(--v3-accent);
 }
 
-.category-tab__name {
-    font-size: var(--font-size-xs);
+.toggle-text { display: flex; flex-direction: column; }
+.toggle-text .main { font-size: 0.6rem; font-weight: 900; color: #fff; letter-spacing: 0.1em; }
+.toggle-text .sub { font-size: 0.45rem; font-weight: 800; color: var(--v3-text-ghost); letter-spacing: 0.05em; }
+
+/* SHOP STYLES - V3 ENTERPRISE */
+.cat-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--v3-border-soft);
+    border-bottom: var(--v3-border-soft);
+}
+
+.cat-btn {
+    padding: 16px;
+    background: transparent;
+    border: none;
+    border-right: var(--v3-border-soft);
+    border-bottom: var(--v3-border-soft);
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: var(--v3-text-secondary);
+    transition: all var(--v3-transition-fast);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    opacity: 0.7;
+}
+
+.cat-btn:hover:not(.locked) { 
+    color: #fff; 
+    background: var(--v3-bg-accent); 
+    opacity: 1;
+}
+
+.cat-btn.active { 
+    background: var(--v3-bg-overlay); 
+    color: var(--v3-accent); 
+    opacity: 1;
+    box-shadow: inset 0 -2px 0 var(--v3-accent);
+}
+
+.cat-btn.locked { opacity: 0.2; cursor: not-allowed; filter: grayscale(1); }
+
+.gen-strip {
+    padding: 12px 24px;
+    display: flex;
+    gap: 12px;
+    border-bottom: var(--v3-border-soft);
+    background: rgba(0,0,0,0.2);
+}
+
+.gen-pill {
+    font-size: 0.55rem;
+    font-weight: 900;
+    font-family: var(--font-family-mono);
+    color: var(--v3-text-ghost);
+    padding: 4px 10px;
+    border: var(--v3-border-soft);
+    border-radius: 2px;
+    background: transparent;
+    cursor: pointer;
+    transition: all var(--v3-transition-fast);
+}
+
+.gen-pill.active { 
+    border-color: var(--v3-accent); 
+    color: var(--v3-accent); 
+    background: var(--v3-accent-soft);
+}
+
+.gen-pill small {
+    display: block;
+    font-size: 0.35rem;
+    opacity: 0.5;
     margin-top: 2px;
 }
 
-.category-tab__lock {
-    font-size: var(--font-size-xs);
-    color: var(--color-warning);
-}
+.gen-pill.legacy { border-style: dotted; }
+.gen-pill.nextgen { border-color: var(--v3-warning); color: var(--v3-warning); }
+.gen-pill.nextgen.active { background: rgba(244, 180, 0, 0.1); }
 
-.server-models {
+.hardware-list { display: flex; flex-direction: column; }
+
+.model-row {
+    padding: 16px 20px;
+    border-bottom: var(--v3-border-soft);
     display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-    margin-bottom: var(--space-lg);
-}
-
-.server-model {
-    background: var(--color-bg-elevated);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: var(--space-md);
+    gap: 16px;
+    align-items: center;
     cursor: grab;
-    transition: all var(--transition-fast);
+    transition: all var(--v3-transition-fast);
 }
 
-.server-model:hover {
-    border-color: var(--color-primary);
+.model-row:hover { 
+    background: var(--v3-bg-overlay); 
+    box-shadow: inset 4px 0 0 var(--v3-accent);
 }
 
-.server-model--selected {
-    border-color: var(--color-primary);
-    background: var(--color-primary-dim);
-}
-
-.server-model:active {
-    cursor: grabbing;
-}
-
-.server-model__header {
+.model-visual {
+    width: 48px;
+    height: 48px;
+    background: #000;
+    border: var(--v3-border-soft);
+    border-radius: 4px;
+    overflow: hidden;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-sm);
+    justify-content: center;
+    flex-shrink: 0;
 }
 
-.server-model__name {
-    font-weight: 600;
-    font-size: var(--font-size-sm);
+.model-thumb {
+    width: 60%;
+    height: 60%;
+    object-fit: contain;
+    opacity: 0.8;
 }
 
-.server-model__size {
-    font-family: var(--font-family-mono);
-    font-size: var(--font-size-xs);
-    color: var(--color-primary);
-    background: var(--color-primary-dim);
-    padding: 0.125rem 0.375rem;
-    border-radius: var(--radius-sm);
+.model-row:hover .model-visual {
+    background: rgba(88, 166, 255, 0.1);
 }
 
-.server-model__specs {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-xs);
-    margin-bottom: var(--space-sm);
+.model-info {
+    flex: 1;
 }
 
-.spec {
-    display: flex;
-    justify-content: space-between;
-    font-size: var(--font-size-xs);
-}
-
-.spec__label {
-    color: var(--color-text-muted);
-}
-
-.spec__value {
-    font-family: var(--font-family-mono);
-}
-
-.server-model__footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: var(--space-sm);
-    border-top: 1px solid var(--color-border);
-}
-
-.server-model__price {
-    font-family: var(--font-family-mono);
-    font-weight: 600;
-    color: var(--color-success);
-}
-
-.btn-purchase {
-    padding: var(--space-xs) var(--space-md);
-    background: var(--color-primary);
-    color: var(--color-bg-deep);
-    font-weight: 600;
-    font-size: var(--font-size-xs);
-    border-radius: var(--radius-sm);
-    transition: all var(--transition-fast);
-}
-
-.btn-purchase:hover:not(:disabled) {
-    background: var(--color-primary);
-    filter: brightness(1.2);
-}
-
-.btn-purchase:disabled {
-    background: var(--color-bg-light);
-    color: var(--color-text-muted);
-}
-
-.selected-rack-info {
-    margin-top: var(--space-lg);
-}
-
-.section-title {
-    font-size: var(--font-size-xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--color-text-secondary);
-    margin-bottom: var(--space-sm);
-}
-
-.rack-info-card {
-    background: var(--color-bg-elevated);
-    border: 1px solid var(--color-primary);
-    border-radius: var(--radius-md);
-    padding: var(--space-md);
-}
-
-.rack-info-card__name {
-    font-weight: 600;
-    margin-bottom: var(--space-sm);
-}
-
-.rack-info-card__stats {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
-}
-
-.rack-stat {
-    display: flex;
-    justify-content: space-between;
-    font-size: var(--font-size-sm);
-}
-
-.rack-stat__label {
-    color: var(--color-text-muted);
-}
-
-.rack-stat__value {
-    font-family: var(--font-family-mono);
-}
-
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: var(--space-xl);
-    color: var(--color-text-muted);
-    text-align: center;
-}
-
-.empty-state__icon {
-    font-size: 2rem;
-    margin-bottom: var(--space-sm);
-}
-
-.empty-state__text {
-    font-size: var(--font-size-sm);
-}
-
-/* Server Detail Panel */
-.server-detail-card {
-    background: var(--color-bg-elevated);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: var(--space-md);
-}
-
-.server-detail__name {
-    font-weight: 600;
-    font-size: var(--font-size-sm);
-    color: var(--color-text-primary);
-    margin-bottom: var(--space-xs);
-}
-
-.server-detail__status {
-    display: inline-block;
-    font-size: var(--font-size-xs);
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: var(--radius-sm);
-    text-transform: uppercase;
+.info-top { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.model-name { 
+    font-size: 0.8rem; 
+    font-weight: 800; 
+    color: #fff; 
     letter-spacing: 0.05em;
-    margin-bottom: var(--space-sm);
 }
-
-.status--online { background: rgba(46, 160, 67, 0.2); color: #3fb950; }
-.status--offline { background: rgba(139, 148, 158, 0.2); color: #8b949e; }
-.status--degraded { background: rgba(210, 153, 34, 0.2); color: #d29922; }
-.status--damaged { background: rgba(248, 81, 73, 0.2); color: #f85149; }
-.status--provisioning { background: rgba(56, 132, 255, 0.2); color: #388bfd; }
-
-.server-detail__health {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    margin-bottom: var(--space-sm);
-}
-
-.health-label {
-    font-size: var(--font-size-xs);
-    color: var(--color-text-muted);
-    width: 40px;
-    flex-shrink: 0;
-}
-
-.health-bar {
-    flex: 1;
-    height: 6px;
-    background: var(--color-bg-dark, #161b22);
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.health-bar__fill {
-    height: 100%;
-    border-radius: 3px;
-    transition: width 0.5s ease, background-color 0.3s ease;
-}
-
-.health--good { background: #3fb950; }
-.health--warn { background: #d29922; }
-.health--danger { background: #f85149; }
-
-.health-value {
-    font-size: var(--font-size-xs);
-    font-family: var(--font-family-mono);
-    color: var(--color-text-muted);
-    width: 35px;
-    text-align: right;
-    flex-shrink: 0;
-}
-
-.btn-repair {
-    width: 100%;
-    padding: var(--space-sm) var(--space-md);
-    background: linear-gradient(135deg, #da6b2b, #d29922);
-    color: #fff;
-    border: none;
-    border-radius: var(--radius-sm);
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    margin-bottom: var(--space-sm);
-}
-
-.btn-repair:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(210, 153, 34, 0.3);
-}
-
-.btn-repair:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-}
-
-.server-detail__actions {
-    display: flex;
-    gap: var(--space-xs);
-}
-
-.btn-back {
-    background: transparent;
-    border: none;
-    color: var(--color-text-muted);
-    font-size: 1.2rem;
-    cursor: pointer;
-    padding: 0 10px 0 0;
-    transition: color 0.2s;
-}
-.btn-back:hover { color: var(--color-primary); }
-
-.selected-rack-info.minimal {
-    margin-top: auto;
-    padding-top: var(--space-md);
-    border-top: 1px solid var(--color-border);
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
-}
-
-/* Updated Details View Styles */
-.server-detail-section {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-lg);
-}
-
-.server-detail-card.main-card {
-    background: rgba(var(--color-primary-rgb), 0.03);
-    border: 1px solid rgba(var(--color-primary-rgb), 0.2);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-}
-
-.server-detail__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--space-md);
-}
-
-.server-detail__status-badge {
-    font-size: 0.65rem;
-    font-weight: 800;
-    padding: 2px 8px;
-    border-radius: 4px;
-    text-transform: uppercase;
-}
-
-.server-detail__stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: var(--space-lg);
-}
-
-.compact-spec {
-    font-size: 0.75rem;
-    display: flex;
-    justify-content: space-between;
-    background: rgba(0,0,0,0.2);
-    padding: 4px 8px;
-    border-radius: 4px;
-}
-
-.health-meta {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 5px;
-}
-
-.text-glow {
-    text-shadow: 0 0 10px rgba(var(--color-primary-rgb), 0.5);
-}
-
-.btn-large {
-    padding: 12px !important;
-    font-size: 0.9rem !important;
-}
-
-.btn-action--info {
-    border-color: rgba(var(--color-primary-rgb), 0.3);
-    color: var(--color-primary);
-    margin-bottom: var(--space-sm);
-}
-
-.power-controls {
-    display: flex;
-    gap: var(--space-xs);
-}
-
-.server-workloads {
-    margin-top: var(--space-md);
-}
-
-.workload-list {
-    background: rgba(0,0,0,0.2);
-    border-radius: 6px;
-    padding: 10px;
-    min-height: 60px;
-}
-
-.workload-item {
-    font-size: 0.8rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.dot {
-    width: 6px;
-    height: 6px;
-    background: var(--color-success);
-    border-radius: 50%;
-    box-shadow: 0 0 5px var(--color-success);
-}
-
-.empty-text {
-    font-size: 0.75rem;
-    color: var(--color-text-muted);
-    font-style: italic;
-    text-align: center;
-    padding-top: 15px;
-}
-
-.btn-action {
-    flex: 1;
-    padding: var(--space-xs) var(--space-sm);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    font-size: var(--font-size-xs);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    background: var(--color-bg-elevated);
-    color: var(--color-text-primary);
-}
-
-.btn-action--danger {
-    border-color: rgba(248, 81, 73, 0.3);
-    color: #f85149;
-}
-
-.btn-action--danger:hover {
-    background: rgba(248, 81, 73, 0.15);
-}
-
-.btn-action--success {
-    border-color: rgba(46, 160, 67, 0.3);
-    color: #3fb950;
-}
-
-.btn-action--success:hover {
-    background: rgba(46, 160, 67, 0.15);
-}
-/* Selected Rack Info Section */
-.selected-rack-info {
-    margin-top: auto;
-    background: rgba(var(--color-primary-rgb), 0.05);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: var(--space-md);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-}
-
-.rack-info-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: 600;
-}
-
-.rack-info-temp {
-    font-family: var(--font-family-mono);
-    font-size: var(--font-size-sm);
-}
-
-.rack-metrics {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.metric-label {
-    display: flex;
-    justify-content: space-between;
-    font-size: var(--font-size-xs);
-    color: var(--color-text-muted);
-    margin-bottom: 2px;
-}
-
-.metric-progress-bg {
-    height: 6px;
-    background: rgba(0,0,0,0.3);
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.metric-progress-fill {
-    height: 100%;
-    transition: width 0.3s ease, background-color 0.3s ease;
-}
-
-.progress-green { background: var(--color-success); box-shadow: 0 0 8px var(--color-success); }
-.progress-yellow { background: var(--color-warning); box-shadow: 0 0 8px var(--color-warning); }
-.progress-red { background: var(--color-danger); box-shadow: 0 0 8px var(--color-danger); }
-
-.rack-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 4px;
-}
-
-.rack-capacity {
-    font-size: var(--font-size-xs);
-    color: var(--color-text-secondary);
-}
-
-.btn-rack-action {
-    padding: 4px 12px;
-    background: var(--color-primary);
-    color: #000;
-    border: none;
-    border-radius: 4px;
-    font-size: var(--font-size-xs);
+.model-u { 
+    font-size: 0.55rem; 
+    font-family: var(--font-family-mono); 
+    color: var(--v3-text-ghost); 
     font-weight: 700;
+}
+
+.spec-line { 
+    font-size: 0.6rem; 
+    font-family: var(--font-family-mono); 
+    color: var(--v3-text-secondary); 
+    font-weight: 600;
+}
+.spec-line .sep { opacity: 0.3; margin: 0 6px; }
+
+.buy-btn {
+    padding: 8px 14px;
+    background: transparent;
+    border: 1px solid var(--v3-border-heavy);
+    color: var(--v3-success);
+    font-size: 0.7rem;
+    font-family: var(--font-family-mono);
+    font-weight: 800;
+    border-radius: var(--v3-radius);
+    transition: all var(--v3-transition-fast);
     cursor: pointer;
-    transition: transform 0.1s;
+}
+.buy-btn:hover:not(:disabled) { 
+    background: var(--v3-success); 
+    border-color: var(--v3-success);
+    color: var(--v3-bg-base); 
+    transform: translateY(-1px);
 }
 
-.btn-rack-action:hover {
-    transform: scale(1.05);
-    background: #fff;
+.buy-btn.is-lease {
+    color: var(--v3-accent);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 12px;
+    line-height: 1.2;
 }
 
-.text-danger { color: var(--color-danger) !important; }
+.buy-btn.is-lease .upfront {
+    font-size: 0.75rem;
+}
+
+.buy-btn.is-lease .monthly {
+    font-size: 0.5rem;
+    opacity: 0.8;
+}
+
+.buy-btn:disabled { opacity: 0.2; filter: grayscale(1); cursor: not-allowed; }
+
+/* ASSET DETAILS V3 */
+.asset-details { padding: 32px; display: flex; flex-direction: column; gap: 40px; }
+
+.asset-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.asset-label { 
+    font-size: 0.45rem; 
+    font-weight: 900; 
+    color: var(--v3-text-ghost); 
+    letter-spacing: 0.25em; 
+    margin-bottom: 4px;
+}
+.asset-name { 
+    font-size: 1rem; 
+    font-weight: 900; 
+    color: #fff; 
+    letter-spacing: 0.1em;
+}
+.asset-status { 
+    font-size: 0.55rem; 
+    font-weight: 900; 
+    font-family: var(--font-family-mono); 
+    padding: 4px 10px; 
+    border-radius: 2px; 
+    letter-spacing: 0.1em;
+}
+
+.status--online { background: rgba(46, 204, 113, 0.1); color: var(--v3-success); border: 1px solid rgba(46, 204, 113, 0.2); }
+.status--offline { background: rgba(0, 0, 0, 0.3); color: var(--v3-text-ghost); border: 1px solid var(--v3-border-soft); }
+.status--leased { background: rgba(88, 166, 255, 0.1); color: var(--v3-accent); border: 1px solid rgba(88, 166, 255, 0.2); margin-left: 8px; }
+
+.asset-metrics { display: flex; flex-direction: column; gap: 20px; }
+.metric-item { display: flex; align-items: center; gap: 16px; }
+.m-label { width: 90px; font-size: 0.55rem; font-weight: 900; color: var(--v3-text-ghost); letter-spacing: 0.15em; }
+.m-bar-container { flex: 1; height: 3px; background: rgba(255,255,255,0.03); border-radius: 1px; overflow: hidden; }
+.m-bar { height: 100%; background: var(--v3-accent); transition: width var(--v3-transition-slow); }
+.m-bar.health-good { background: var(--v3-success); }
+.m-bar.health-warn { background: var(--v3-warning); }
+.m-bar.health-danger { background: var(--v3-danger); }
+.m-val { width: 42px; font-size: 0.65rem; font-family: var(--font-family-mono); color: var(--v3-text-primary); text-align: right; font-weight: 700; }
+
+.metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.m-mini { 
+    background: rgba(0,0,0,0.2); 
+    padding: 16px; 
+    border: var(--v3-border-soft); 
+    display: flex; 
+    flex-direction: column; 
+    gap: 6px; 
+    border-radius: var(--v3-radius);
+}
+.mm-label { font-size: 0.45rem; font-weight: 900; color: var(--v3-text-ghost); letter-spacing: 0.1em; }
+.mm-val { font-size: 0.9rem; font-family: var(--font-family-mono); color: #fff; font-weight: 800; }
+
+.m-mini.resale-highlight {
+    background: rgba(46, 204, 113, 0.05);
+    border-color: rgba(46, 204, 113, 0.2);
+}
+.text-success { color: var(--v3-success) !important; }
+
+.asset-specs { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 12px; 
+    border-top: var(--v3-border-soft); 
+    padding-top: 32px; 
+}
+.s-row { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--v3-text-secondary); font-weight: 600; }
+.s-row strong { color: #fff; font-family: var(--font-family-mono); font-weight: 700; }
+.s-row.workload { color: var(--v3-accent); margin-top: 12px; }
+
+.asset-actions { display: flex; flex-direction: column; gap: 12px; margin-top: auto; }
+.action-btn { 
+    width: 100%; padding: 14px; 
+    background: var(--v3-bg-overlay); 
+    border: var(--v3-border-soft);
+    color: var(--v3-text-primary); 
+    font-size: 0.65rem; 
+    font-weight: 800; 
+    letter-spacing: 0.15em; 
+    transition: all var(--v3-transition-fast);
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: var(--v3-radius);
+}
+.action-btn:hover:not(:disabled) { 
+    background: var(--v3-bg-accent);
+    border-color: var(--v3-text-ghost);
+    color: #fff;
+    transform: translateY(-1px);
+}
+.action-btn.primary { 
+    background: var(--v3-accent); 
+    color: #fff; 
+    border: none;
+    box-shadow: 0 4px 15px var(--v3-accent-soft);
+}
+.action-btn.primary:hover { 
+    background: #477fff; 
+    box-shadow: 0 6px 20px var(--v3-accent-glow);
+}
+
+.action-btn.danger { color: var(--v3-danger); border-color: rgba(255, 77, 79, 0.2); }
+.action-btn.danger:hover { background: rgba(255, 77, 79, 0.1); border-color: var(--v3-danger); }
+
+.action-btn.success { color: var(--v3-success); border-color: rgba(46, 204, 113, 0.2); }
+.action-btn.success:hover { background: rgba(46, 204, 113, 0.1); border-color: var(--v3-success); }
+
+.action-btn.warning { color: var(--v3-warning); border-color: rgba(244, 180, 0, 0.2); }
+.action-btn.warning:hover { background: rgba(244, 180, 0, 0.1); border-color: var(--v3-warning); }
+
+.action-btn:disabled { opacity: 0.3; filter: grayscale(1); cursor: not-allowed; }
+
+.action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 </style>

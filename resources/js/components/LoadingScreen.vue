@@ -1,8 +1,9 @@
 <template>
     <div class="loading-screen">
         <div class="loading-screen__logo">
-            <span class="loading-logo-text">Server</span>
-            <span class="loading-logo-accent">Tycoon</span>
+            <span class="loading-logo-text">Rack</span>
+            <span class="loading-logo-accent">ora</span>
+            <div class="loading-branding">by CodePony.de <span class="loading-version">V.1.0</span></div>
         </div>
         <div class="loading-screen__progress">
             <div class="progress-bar">
@@ -73,6 +74,26 @@ onMounted(() => {
 .loading-logo-accent {
     color: var(--color-primary);
     text-shadow: 0 0 30px var(--color-primary-glow);
+}
+
+.loading-branding {
+    font-size: 0.8rem;
+    color: #484f58;
+    letter-spacing: 1.5px;
+    margin-top: 6px;
+    font-weight: 400;
+    text-transform: none;
+}
+
+.loading-version {
+    display: inline-block;
+    background: rgba(88, 166, 255, 0.1);
+    color: #58a6ff;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    margin-left: 4px;
 }
 
 .loading-screen__progress {

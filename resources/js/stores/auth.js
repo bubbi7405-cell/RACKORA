@@ -10,6 +10,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // Getters
     const isAuthenticated = computed(() => !!token.value && !!user.value);
+    const isAdmin = computed(() => user.value?.is_admin === true);
 
     // Actions
     async function checkAuth() {
@@ -41,8 +42,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     async function login(email, password) {
-        isLoading.value = true;
-
+        // Do not set global isLoading to prevent AuthScreen unmount
         try {
             const response = await api.post('/login', { email, password });
 
@@ -57,14 +57,11 @@ export const useAuthStore = defineStore('auth', () => {
             }
         } catch (error) {
             return { success: false, error: error.message || 'Login failed' };
-        } finally {
-            isLoading.value = false;
         }
     }
 
     async function register(name, email, password, passwordConfirmation) {
-        isLoading.value = true;
-
+        // Do not set global isLoading to prevent AuthScreen unmount
         try {
             const response = await api.post('/register', {
                 name,
@@ -84,8 +81,6 @@ export const useAuthStore = defineStore('auth', () => {
             }
         } catch (error) {
             return { success: false, error: error.message || 'Registration failed' };
-        } finally {
-            isLoading.value = false;
         }
     }
 
@@ -103,6 +98,7 @@ export const useAuthStore = defineStore('auth', () => {
         isLoading,
         // Getters
         isAuthenticated,
+        isAdmin,
         // Actions
         checkAuth,
         login,

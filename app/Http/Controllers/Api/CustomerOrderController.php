@@ -70,6 +70,14 @@ class CustomerOrderController extends Controller
             // Award XP for accepting an order
             $user->economy->addExperience(10);
             
+            // --- FEATURE 35: AI REACTION ---
+            $actionType = $order->sla_tier === 'whale' ? 'accept_whale' : ($order->sla_tier === 'enterprise' ? 'accept_enterprise' : null);
+            if ($actionType) {
+                app(\App\Services\Market\CompetitorAIService::class)->reactToPlayerAction($user, $actionType, ['order' => $order]);
+            }
+            
+            \App\Models\GameLog::log($user, "ORDER_ACCEPTED: {$order->product_type} - {$order->customer->company_name}", 'success', 'economy');
+            
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -101,6 +109,8 @@ class CustomerOrderController extends Controller
             ], 400);
         }
 
+        \App\Models\GameLog::log($user, "ORDER_REJECTED: {$order->product_type} - {$order->customer->company_name}", 'info', 'economy');
+
         $order->cancel(); // Or reject logic? Cancel is fine.
 
         return response()->json([
@@ -125,7 +135,7 @@ class CustomerOrderController extends Controller
         $server = $order->server;
         if ($server) {
             // Free VServer slot if applicable
-            if ($server->type === \App\Enums\ServerType::VSERVER_NODE && $server->vservers_used > 0) {
+            if (($server->type === \App\Enums\ServerType::VSERVER_NODE || $server->type === \App\Enums\ServerType::SHARED_NODE) && $server->vservers_used > 0) {
                 $server->vservers_used--;
                 $server->save();
             }
@@ -138,6 +148,8 @@ class CustomerOrderController extends Controller
 
         // Reputation penalty for breaking a contract
         $user->economy->adjustReputation(-5);
+
+        \App\Models\GameLog::log($user, "ORDER_CANCELLED: {$order->product_type} - {$order->customer->company_name} (Penalized)", 'danger', 'economy');
 
         // Register incident on customer
         $order->customer->registerIncident();

@@ -1,7 +1,7 @@
 <template>
     <footer class="bottom-hud">
         <div class="action-buttons">
-            <button class="action-button" @click="refreshState" :disabled="isRefreshing">
+            <button class="action-button" @click="refresh" :disabled="isRefreshing">
                 <span class="action-button__icon">
                     <svg :class="{ 'spin': isRefreshing }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="23 4 23 10 17 10"/>
@@ -12,7 +12,7 @@
                 <span class="action-button__label">Refresh</span>
             </button>
 
-            <button class="action-button" @click="emit('openMarket')">
+            <button class="action-button" @click="handleAction('openMarket')">
                 <span class="action-button__icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
@@ -23,7 +23,7 @@
                 <span class="action-button__label">Market</span>
             </button>
 
-            <button class="action-button" @click="emit('openCustomers')">
+            <button class="action-button" @click="handleAction('openCustomers')">
                 <span class="action-button__icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -35,7 +35,7 @@
                 <span class="action-button__label">Customers</span>
             </button>
 
-            <button class="action-button" @click="emit('openUpgrades')">
+            <button class="action-button" @click="handleAction('openUpgrades')">
                 <span class="action-button__icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="12" y1="20" x2="12" y2="10"/>
@@ -46,7 +46,7 @@
                 <span class="action-button__label">Upgrades</span>
             </button>
 
-            <button class="action-button" @click="emit('openStats')">
+            <button class="action-button" @click="handleAction('openStats')">
                 <span class="action-button__icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
@@ -56,7 +56,7 @@
                 <span class="action-button__label">Statistics</span>
             </button>
 
-            <button class="action-button" @click="emit('openEmployees')">
+            <button class="action-button" @click="handleAction('openEmployees')">
                 <span class="action-button__icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
@@ -66,7 +66,7 @@
                 <span class="action-button__label">Employees</span>
             </button>
 
-            <button class="action-button" @click="emit('openAutomation')">
+            <button class="action-button" @click="handleAction('openAutomation')">
                 <span class="action-button__icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="4 17 10 11 4 5"></polyline>
@@ -75,13 +75,82 @@
                 </span>
                 <span class="action-button__label">Scripts</span>
             </button>
+
+            <button class="action-button" @click="handleAction('openCompliance')">
+                <span class="action-button__icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 7V3M21 7V3M3 7V3M21 17v4M3 17v4M12 17v4M13.5 10H15M9 10H10.5M12 14v-4"/>
+                        <circle cx="12" cy="7" r="1"/>
+                        <circle cx="21" cy="7" r="1"/>
+                        <circle cx="3" cy="7" r="1"/>
+                    </svg>
+                </span>
+                <span class="action-button__label">Compliance</span>
+            </button>
+
+            <button class="action-button" :class="{ 'energy-volatile': isEnergyVolatile }" @click="handleAction('openEnergy')">
+                <span class="action-button__icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                    </svg>
+                    <span v-if="isEnergyVolatile" class="mini-pulse-alert" title="Market Volatility Detected">!</span>
+                </span>
+                <span class="action-button__label">Energy</span>
+            </button>
+
+            <button class="action-button" @click="handleAction('openLogs')">
+                <span class="action-button__icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                </span>
+                <span class="action-button__label">Logs</span>
+            </button>
+
+            <button class="action-button action-button--urgent" @click="handleAction('openIncidents')">
+                <span class="action-button__icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </span>
+                <span class="action-button__label">Incidents</span>
+            </button>
         </div>
 
-        <!-- Time indicator -->
-        <div class="time-indicator">
-            <span class="time-indicator__icon">{{ isDay ? '☀️' : '🌙' }}</span>
-            <span class="time-indicator__label">Game Time</span>
-            <span class="time-indicator__value">{{ gameTime.formatted }}</span>
+        <div class="right-section">
+            <div 
+                v-if="pendingOrdersCount > 0" 
+                class="status-group" 
+                :class="{ 'status-group--urgent': urgentOrdersCount > 0 }"
+                @click="emit('openCustomers')"
+                title="View Pending Orders"
+            >
+                <div class="status-icon">📦</div>
+                <div class="status-info">
+                    <span class="status-label">Orders</span>
+                    <span class="status-value" :class="{ 'urgent-text': urgentOrdersCount > 0 }">
+                        {{ pendingOrdersCount }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Corp Logo -->
+            <div class="hud-logo">
+                <img src="/images/logo.png" alt="Corp" />
+            </div>
+
+            <!-- Time indicator -->
+            <div class="time-indicator">
+                <span class="time-indicator__icon">{{ isDay ? '☀️' : '🌙' }}</span>
+                <span class="time-indicator__label">Game Time</span>
+                <span class="time-indicator__value">{{ gameTime.formatted }}</span>
+            </div>
         </div>
     </footer>
 </template>
@@ -90,9 +159,11 @@
 import { ref, computed } from 'vue';
 import { useGameStore } from '../../stores/game';
 
-const emit = defineEmits(['openMarket', 'openCustomers', 'openUpgrades', 'openStats', 'openEmployees', 'openAutomation']);
+const emit = defineEmits(['openMarket', 'openCustomers', 'openUpgrades', 'openStats', 'openEmployees', 'openAutomation', 'openEnergy', 'openLogs', 'openIncidents', 'openCompliance']);
 
 const gameStore = useGameStore();
+
+const isEnergyVolatile = computed(() => gameStore.energyMarket?.isVolatile || false);
 
 const gameTime = computed(() => gameStore.player?.economy?.gameTime || { formatted: '00:00', hour: 0 });
 const isDay = computed(() => gameTime.value.hour >= 6 && gameTime.value.hour < 20);
@@ -107,6 +178,13 @@ const refresh = async () => {
         isRefreshing.value = false;
     }
 };
+
+const handleAction = (action) => {
+    emit(action);
+};
+
+const pendingOrdersCount = computed(() => gameStore.orders?.pending?.length || 0);
+const urgentOrdersCount = computed(() => gameStore.orders?.urgentCount || 0);
 </script>
 
 <style scoped>
@@ -120,11 +198,40 @@ const refresh = async () => {
     justify-content: space-between;
     padding: 0 var(--space-xl);
     backdrop-filter: blur(8px);
+    z-index: 1500;
 }
 
 .action-buttons {
     display: flex;
     gap: var(--space-md);
+}
+
+.right-section {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xl);
+}
+
+.hud-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding-right: var(--space-md);
+    border-right: 1px solid rgba(255,255,255,0.1);
+}
+
+.hud-logo img {
+    height: 100%;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 0 2px rgba(255,255,255,0.3));
+    transition: transform 0.2s;
+}
+
+.hud-logo img:hover {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 5px rgba(255,255,255,0.6));
 }
 
 .action-button {
@@ -145,6 +252,19 @@ const refresh = async () => {
     background: var(--color-primary-dim);
     border-color: var(--color-primary);
     transform: translateY(-2px);
+}
+
+.action-button--urgent {
+    border-color: rgba(244, 67, 54, 0.3);
+}
+
+.action-button--urgent:hover:not(:disabled) {
+    background: rgba(244, 67, 54, 0.15);
+    border-color: #f44336;
+}
+
+.action-button--urgent .action-button__icon {
+    color: #f44336;
 }
 
 .action-button:disabled {
@@ -177,6 +297,54 @@ const refresh = async () => {
     letter-spacing: 0.05em;
 }
 
+.status-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.status-group:hover {
+    background: var(--color-bg-light);
+    transform: translateY(-1px);
+}
+
+.status-group--urgent {
+    border-color: var(--color-danger);
+    background: rgba(244, 67, 54, 0.1);
+    animation: pulse-border 2s infinite;
+}
+
+.status-icon { font-size: 1.2rem; }
+
+.status-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.status-label {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.status-value {
+    font-family: var(--font-family-mono);
+    font-weight: bold;
+    color: var(--color-text-primary);
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.urgent-text { color: var(--color-danger); }
+
 .time-indicator {
     display: flex;
     flex-direction: column;
@@ -193,5 +361,45 @@ const refresh = async () => {
     font-family: var(--font-family-mono);
     font-size: var(--font-size-lg);
     color: var(--color-primary);
+}
+
+@keyframes pulse-border {
+    0% { border-color: var(--color-danger); box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.4); }
+    70% { border-color: var(--color-danger); box-shadow: 0 0 0 6px rgba(244, 67, 54, 0); }
+    100% { border-color: var(--color-danger); box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
+}
+
+/* F121 Volatility indicator */
+.energy-volatile {
+    border-color: rgba(255, 187, 51, 0.4) !important;
+}
+
+.energy-volatile .action-button__icon {
+    color: #ffbb33;
+    position: relative;
+}
+
+.mini-pulse-alert {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ffbb33;
+    color: #000;
+    font-size: 0.6rem;
+    font-weight: 800;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #000;
+    animation: blink 0.8s infinite;
+}
+
+@keyframes blink {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.1); }
+    100% { opacity: 1; transform: scale(1); }
 }
 </style>

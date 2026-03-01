@@ -30,8 +30,14 @@ class GameEvent extends Model
         'deadline_at',
         'resolved_at',
         'consequences',
+        'replay_data',
         'damage_cost',
         'affected_customers_count',
+        'management_score',
+        'management_grade',
+        'action_cost',
+        'has_post_mortem',
+        'reputation_recovered',
     ];
 
     protected $casts = [
@@ -39,11 +45,14 @@ class GameEvent extends Model
         'status' => EventStatus::class,
         'available_actions' => 'array',
         'consequences' => 'array',
+        'replay_data' => 'array',
         'warning_at' => 'datetime',
         'escalates_at' => 'datetime',
         'deadline_at' => 'datetime',
         'resolved_at' => 'datetime',
         'damage_cost' => 'decimal:2',
+        'has_post_mortem' => 'boolean',
+        'reputation_recovered' => 'decimal:2',
     ];
 
     public function user(): BelongsTo
@@ -128,6 +137,50 @@ class GameEvent extends Model
         $this->save();
     }
 
+    public function getPostMortem(): array
+    {
+        if ($this->status->isActive()) {
+            return [];
+        }
+
+        $isSuccess = $this->status === EventStatus::RESOLVED;
+        $lessons = [];
+
+        // Type-specific lessons
+        switch ($this->type) {
+            case EventType::OVERHEATING:
+                if (!$isSuccess) $lessons[] = "Check your room cooling capacity. Overheating occurs when rack heat exceeds room cooling.";
+                else $lessons[] = "Prompt response prevented permanent server damage.";
+                break;
+            case EventType::POWER_OUTAGE:
+                $lessons[] = "Investing in UPS research can provide critical extra minutes during blackouts.";
+                break;
+            case EventType::DDOS_ATTACK:
+                $lessons[] = "Higher Network Tiers (Fiber/Backbone) provide better resistance to volumetric attacks.";
+                break;
+            case EventType::HARDWARE_FAILURE:
+                $lessons[] = "Technicians can automatically fix minor hardware faults before they escalate.";
+                break;
+        }
+
+        // Grade-specific feedback
+        if ($isSuccess) {
+            switch ($this->management_grade) {
+                case 'S': $lessons[] = "Exceptional performance. Response time was near-instant."; break;
+                case 'C':
+                case 'D': $lessons[] = "Response was slow. Consider automating repetitive manual tasks."; break;
+            }
+        } else {
+            $lessons[] = "Unresolved incidents lead to massive reputation loss and potential customer churn.";
+        }
+
+        return [
+            'lessons' => $lessons,
+            'summary' => $isSuccess ? "Incident successfully contained." : "Incident response failed.",
+            'timeToResolve' => $this->resolved_at ? $this->warning_at->diffForHumans($this->resolved_at, true) : 'N/A',
+        ];
+    }
+
     public function toGameState(): array
     {
         return [
@@ -158,7 +211,14 @@ class GameEvent extends Model
             'consequences' => $this->consequences,
             'damageCost' => (float) $this->damage_cost,
             'affectedCustomersCount' => $this->affected_customers_count,
+            'managementScore' => $this->management_score,
+            'managementGrade' => $this->management_grade,
+            'actionCost' => (float) $this->action_cost,
             'isActive' => $this->status->isActive(),
+            'postMortem' => $this->getPostMortem(),
+            'hasPostMortem' => $this->has_post_mortem,
+            'reputationRecovered' => (float) $this->reputation_recovered,
+            'replay_data' => $this->replay_data,
         ];
     }
 }

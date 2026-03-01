@@ -1,290 +1,330 @@
 <template>
-    <header class="top-bar">
-        <!-- Left section - Logo & Money -->
-        <div class="hud-section">
-            <div class="game-logo">
-                <span class="game-logo__text">Server</span>
-                <span class="game-logo__accent">Tycoon</span>
+    <header class="v2-topbar">
+        <div class="v2-status-group">
+            <div class="v2-stat-item is-supporting"
+                v-tooltip="{ title: 'Uplink-Status', content: 'Zeigt die Verbindung zum Spielserver an.', hint: 'Grün bedeutet Echtzeit-Synchronisation.' }">
+                <span class="v2-stat-label">UPLINK</span>
+                <span class="v2-stat-value" :class="{ 'is-success': wsConnected, 'is-danger': !wsConnected }">
+                    {{ wsConnected ? 'LIVE' : 'OFFLINE' }}
+                </span>
             </div>
-
-            <div class="hud-stat hud-stat--money" @click="openFinance" role="button" tabindex="0">
-                <div class="hud-stat__icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="1" x2="12" y2="23"/>
-                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                        </svg>
-                    </div>
-                <div>
-                    <div class="hud-stat__value">${{ formatMoney(economy.balance) }}</div>
-                    <div class="hud-stat__label" :class="{ 'text-success': netIncome > 0, 'text-danger': netIncome < 0 }">
-                        {{ netIncome >= 0 ? '+' : '' }}${{ formatMoney(netIncome) }}/hr
-                    </div>
-                </div>
+            <div class="v2-stat-item is-supporting"
+                v-tooltip="{ title: 'Operator ID', content: 'Dein registrierter Unternehmensname im Netzwerk.' }">
+                <span class="v2-stat-label">OPERATOR</span>
+                <span class="v2-stat-value">{{ player?.companyName || 'R_ALPHA' }}</span>
             </div>
+            <div class="v2-stat-item is-secondary"
+                v-tooltip="{ title: 'Systemzeit', content: 'Aktuelle Zeit in der Simulationsinstanz.', hint: 'Wichtig für Energie-Preisphasen.' }">
+                <span class="v2-stat-label">SYSTEM_TIME</span>
+                <span class="v2-stat-value">{{ formattedTime }}</span>
+            </div>
+            <WeatherWidget />
         </div>
 
-        <!-- Center section - Stats -->
-        <div class="hud-section">
-            <div class="hud-stat" :class="{ 'hud-stat--warning': stats.uptime < 99 }">
-                <div class="hud-stat__icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-                        <polyline points="2 17 12 22 22 17"/>
-                        <polyline points="2 12 12 17 22 12"/>
-                    </svg>
-                </div>
-                <div>
-                    <div class="hud-stat__value">{{ stats.onlineServers }}/{{ stats.totalServers }}</div>
-                    <div class="hud-stat__label">Servers Online</div>
-                </div>
-            </div>
-
-            <div class="hud-stat">
-                <div class="hud-stat__icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                        <circle cx="9" cy="7" r="4"/>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                    </svg>
-                </div>
-                <div>
-                    <div class="hud-stat__value">{{ customers.active }}</div>
-                    <div class="hud-stat__label">Customers</div>
-                </div>
-            </div>
-
-            <div class="hud-stat" :class="{ 'hud-stat--danger': orders.urgentCount > 0 }">
-                <div class="hud-stat__icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                        <line x1="16" y1="13" x2="8" y2="13"/>
-                        <line x1="16" y1="17" x2="8" y2="17"/>
-                    </svg>
-                </div>
-                <div>
-                    <div class="hud-stat__value">{{ orders.pending.length }}</div>
-                    <div class="hud-stat__label">Pending Orders</div>
-                </div>
-            </div>
-
-            <div v-if="activeEventCount > 0" class="hud-stat hud-stat--danger event-indicator">
-                <div class="hud-stat__icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                        <line x1="12" y1="9" x2="12" y2="13"/>
-                        <line x1="12" y1="17" x2="12.01" y2="17"/>
-                    </svg>
-                </div>
-                <div>
-                    <div class="hud-stat__value">{{ activeEventCount }}</div>
-                    <div class="hud-stat__label">Active Crisis!</div>
-                </div>
-            </div>
+        <div class="v2-center-monitoring">
+            <MarketAlertTicker />
+            <WorldNewsTicker compact />
         </div>
 
-        <!-- Right section - Player & Reputation -->
-        <div class="hud-section">
-            <div class="hud-stat">
-                <div class="hud-stat__icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                    </svg>
-                </div>
-                <div>
-                    <div class="hud-stat__value">{{ Math.round(economy.reputation) }}</div>
-                    <div class="hud-stat__label">Reputation</div>
-                </div>
+        <div class="v2-status-group">
+            <div class="v2-stat-item is-primary"
+                v-tooltip="{ title: 'Kapital', content: 'Deine liquiden Mittel für Hardware und Expansion.', hint: 'Kredite erhöhen deine monatlichen Fixkosten!' }">
+                <span class="v2-stat-label">CAPITAL</span>
+                <span class="v2-stat-value is-success">${{ formatMoney(economy.balance) }}</span>
+            </div>
+            <div class="v2-stat-item is-secondary"
+                v-tooltip="{ title: 'Netto-Cashflow', content: 'Stündlicher Gewinn oder Verlust nach Abzug aller Betriebskosten.', hint: 'Achte auf deine Energiepreise!' }">
+                <span class="v2-stat-label">NET_FLOW</span>
+                <span class="v2-stat-value" :class="{ 'is-success': netIncome > 0, 'is-danger': netIncome < 0 }">
+                    {{ netIncome >= 0 ? '+' : '' }}{{ formatMoney(netIncome) }}
+                </span>
             </div>
 
-            <div class="player-info">
-                <div class="player-level">
-                    <span class="player-level__badge">Level {{ economy.level }}</span>
-                    <div class="player-level__xp-bar">
-                        <div 
-                            class="player-level__xp-fill" 
-                            :style="{ width: economy.experience.progress + '%' }"
-                        ></div>
-                    </div>
+            <div class="v2-divider"></div>
+
+            <ControlCenter @openMarketing="$emit('openMarketing')" @openLeaderboard="$emit('openLeaderboard')"
+                @openRoadmap="$emit('openRoadmap')" @openAnalytics="$emit('openAnalytics')"
+                @openAchievements="$emit('openAchievements')" @openFinance="$emit('openFinance')"
+                @openReplay="$emit('openReplay')" @openSettings="$emit('openProfile')"
+                @openCustomers="$emit('openCustomers')" @openEmployees="$emit('openEmployees')" />
+
+            <a v-if="player?.is_admin" href="/admin" target="_blank" class="v2-stat-item admin-button"
+                v-tooltip="'Access Obsidian Live-Ops'">
+                <span class="v2-stat-label" style="color:#ef4444">LIVE_OPS</span>
+                <span class="v2-stat-value" style="color:#fca5a5">OBSIDIAN</span>
+            </a>
+
+            <button class="v2-profile-area" @click="$emit('openProfile')">
+                <div class="v2-stat-item is-supporting">
+                    <span class="v2-stat-label">RANK</span>
+                    <span class="v2-stat-value">LVL_{{ player?.economy?.level || 1 }}</span>
                 </div>
-                <button class="player-avatar" @click="openSettings">
-                    <span>{{ playerInitial }}</span>
-                </button>
-            </div>
+                <div class="v2-avatar-glow"></div>
+            </button>
         </div>
     </header>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useGameStore } from '../../stores/game';
-import { useAuthStore } from '../../stores/auth';
 import { storeToRefs } from 'pinia';
+import WorldNewsTicker from './WorldNewsTicker.vue';
+import MarketAlertTicker from './MarketAlertTicker.vue';
+import WeatherWidget from './WeatherWidget.vue';
+import ControlCenter from './ControlCenter.vue';
 
 const gameStore = useGameStore();
-const authStore = useAuthStore();
-const emit = defineEmits(['openFinance', 'openSettings']);
 
-import SoundManager from '../../services/SoundManager';
+const player = computed(() => gameStore.player || {});
+const economy = computed(() => gameStore.player?.economy || {});
+const lastUpdate = computed(() => gameStore.lastUpdate);
+const wsConnected = computed(() => gameStore.wsConnected);
 
-const { player, customers, orders, stats, activeEventCount } = storeToRefs(gameStore);
+defineEmits(['openProfile', 'openMarketing', 'openLeaderboard', 'openRoadmap', 'openAnalytics', 'openAchievements', 'openFinance', 'openReplay', 'openCustomers', 'openEmployees']);
 
-
-
-const economy = computed(() => player.value.economy);
-const netIncome = computed(() => economy.value.netIncomePerHour);
-
-const playerInitial = computed(() => {
-    return authStore.user?.name?.charAt(0).toUpperCase() || 'P';
+const formattedTime = computed(() => {
+    if (!lastUpdate.value) return '--:--:--';
+    try {
+        const d = new Date(lastUpdate.value);
+        if (isNaN(d.getTime())) return '--:--:--';
+        return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    } catch (e) {
+        return '--:--:--';
+    }
 });
 
-function openFinance() {
-    SoundManager.playClick();
-    emit('openFinance');
-}
-
-function openSettings() {
-    SoundManager.playClick();
-    emit('openSettings');
-}
+const netIncome = computed(() => {
+    const inc = economy.value?.hourlyIncome || 0;
+    const exp = economy.value?.hourlyExpenses || 0;
+    return inc - exp;
+});
 
 function formatMoney(value) {
-    if (value >= 1000000) {
-        return (value / 1000000).toFixed(2) + 'M';
-    }
-    if (value >= 1000) {
-        return (value / 1000).toFixed(1) + 'K';
-    }
-    return value.toFixed(0);
+    if (value === undefined || value === null) return '0';
+    if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+    if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
+    return Math.floor(value).toLocaleString();
 }
 </script>
 
 <style scoped>
-.top-bar {
-    grid-area: top-bar;
-    height: 60px;
-    background: linear-gradient(180deg, rgba(22, 27, 34, 0.98) 0%, rgba(15, 20, 25, 0.95) 100%);
-    border-bottom: 1px solid var(--color-border);
+.v2-topbar {
+    height: var(--topbar-height);
+    background: var(--color-base);
+    border-bottom: var(--border-ui);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 var(--space-lg);
-    backdrop-filter: blur(8px);
-    z-index: 100;
+    padding: 0 var(--space-xl);
+    z-index: 1000;
 }
 
-.game-logo {
-    font-size: 1.25rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-right: var(--space-lg);
-}
-
-.game-logo__text {
-    color: var(--color-text-primary);
-}
-
-.game-logo__accent {
-    color: var(--color-primary);
-}
-
-.hud-section {
+.bar-section {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
-}
-
-.hud-stat {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    padding: var(--space-xs) var(--space-md);
-    background: rgba(33, 38, 45, 0.6);
-    border-radius: var(--radius-md);
-    border: 1px solid transparent;
-}
-
-.hud-stat__icon {
-    width: 20px;
-    height: 20px;
-    color: var(--color-primary);
-}
-
-.hud-stat__icon svg {
-    width: 100%;
+    gap: 32px;
     height: 100%;
 }
 
-.hud-stat__value {
-    font-family: var(--font-family-mono);
-    font-size: var(--font-size-lg);
-    font-weight: 600;
-    line-height: 1.2;
+.bar-section.center {
+    flex: 1;
+    justify-content: center;
+    gap: 40px;
 }
 
-.hud-stat__label {
-    font-size: var(--font-size-xs);
-    color: var(--color-text-muted);
-    text-transform: uppercase;
+/* System Uplink */
+.system-uplink {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.uplink-pip {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-danger);
+    box-shadow: 0 0 8px var(--color-danger);
+}
+
+.uplink-pip.online {
+    background: var(--color-success);
+    box-shadow: 0 0 10px var(--color-success);
+    animation: pulse-status 2s infinite;
+}
+
+.uplink-label {
+    font-size: 0.55rem;
+    font-weight: 900;
+    color: var(--color-muted);
+    letter-spacing: 0.15em;
+}
+
+@keyframes pulse-status {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.6;
+        transform: scale(0.9);
+    }
+}
+
+/* Company Badge */
+.company-badge {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.corp-name {
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: #fff;
     letter-spacing: 0.05em;
 }
 
-.hud-stat--money .hud-stat__value {
+.corp-id {
+    font-size: 0.5rem;
+    font-family: var(--font-mono);
+    color: var(--color-muted);
+    opacity: 0.5;
+}
+
+/* Runtime Monitor */
+.monitor-seq {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 24px;
+    position: relative;
+}
+
+.seq-line {
+    width: 40px;
+    height: 1px;
+    background: var(--color-accent);
+    position: relative;
+    overflow: hidden;
+}
+
+.seq-line::after {
+    content: '';
+    position: absolute;
+    left: -100%;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, #fff, transparent);
+    animation: scanline 3s infinite linear;
+}
+
+.seq-label {
+    font-size: 0.55rem;
+    font-weight: 800;
+    color: var(--color-muted);
+    letter-spacing: 0.2em;
+}
+
+.seq-value {
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    color: var(--color-accent);
+    font-weight: 800;
+}
+
+@keyframes scanline {
+    0% {
+        left: -100%;
+    }
+
+    100% {
+        left: 100%;
+    }
+}
+
+/* Finance Stat Group */
+.stat-group {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 6px 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: var(--border-dim);
+    border-radius: 2px;
+}
+
+.stat-mini {
+    display: flex;
+    flex-direction: column;
+}
+
+.m-label {
+    font-size: 0.5rem;
+    font-weight: 900;
+    color: var(--color-muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 2px;
+}
+
+.m-val {
+    font-size: 0.8rem;
+    font-family: var(--font-mono);
+    font-weight: 800;
+    color: #fff;
+}
+
+.m-val.pos {
     color: var(--color-success);
 }
 
-.hud-stat--money {
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.hud-stat--money:hover {
-    background: rgba(33, 38, 45, 0.9);
-    border-color: #30363d;
-}
-
-.hud-stat--warning {
-    border-color: var(--color-warning);
-}
-
-.hud-stat--warning .hud-stat__icon {
-    color: var(--color-warning);
-}
-
-.hud-stat--danger {
-    border-color: var(--color-danger);
-    animation: pulse-border 1s ease-in-out infinite;
-}
-
-.hud-stat--danger .hud-stat__icon {
+.m-val.neg {
     color: var(--color-danger);
 }
 
-@keyframes pulse-border {
-    0%, 100% { border-color: var(--color-danger); }
-    50% { border-color: transparent; }
+.sep {
+    width: 1px;
+    height: 20px;
+    background: var(--border-dim);
 }
 
-.event-indicator {
-    background: var(--color-danger-dim);
-}
-
-.player-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+/* Profile Trigger */
+.profile-trigger {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    color: var(--color-bg-deep);
-    transition: transform var(--transition-fast);
+    gap: 12px;
 }
 
-.player-avatar:hover {
+.level-badge {
+    font-size: 0.6rem;
+    font-weight: 900;
+    color: var(--color-muted);
+    border: var(--border-dim);
+    padding: 2px 6px;
+    border-radius: 2px;
+}
+
+.avatar-box {
+    width: 32px;
+    height: 32px;
+    background: var(--color-muted);
+    opacity: 0.1;
+    border: var(--border-ui);
+    transition: var(--transition-subtle);
+}
+
+.profile-trigger:hover .avatar-box {
+    opacity: 0.3;
+    border-color: #fff;
     transform: scale(1.05);
+}
+
+.divider {
+    display: none;
 }
 </style>

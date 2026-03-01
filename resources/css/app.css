@@ -3,6 +3,8 @@
    Dark, immersive, HUD-based UI for premium strategy game experience
    ========================================================================== */
 @import './themes.css';
+@import './ui-redesign.css';
+@import './design-system.css';
 
 /* --------------------------------------------------------------------------
    CSS CUSTOM PROPERTIES - DESIGN TOKENS
@@ -366,7 +368,6 @@ button:disabled {
    GAME WORLD - CANVAS AREA
    -------------------------------------------------------------------------- */
 .game-world {
-    grid-area: game-world;
     position: relative;
     background: var(--color-bg-deep);
     overflow: hidden;
@@ -1114,4 +1115,57 @@ button:disabled {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--color-text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   GLOBAL OVERLAY FIX
+   -------------------------------------------------------------------------- */
+[class*="-overlay"],
+.overlay-backdrop {
+    pointer-events: auto !important;
+}
+
+/* ==========================================================================
+   FEATURE 285: ROOM THEMES & FACILITY SKINS
+   ========================================================================== */
+
+.infrastructure-v2.theme-cyberpunk {
+    --color-primary: #ff00ff;
+    --color-primary-dim: rgba(255, 0, 255, 0.15);
+    --color-primary-glow: rgba(255, 0, 255, 0.4);
+    --color-bg-deep: #2a0033;
+    --color-bg-dark: #1a0022;
+    --color-border: rgba(255, 0, 255, 0.2);
+}
+
+.infrastructure-v2.theme-industrial {
+    --color-primary: #ff5500;
+    --color-primary-dim: rgba(255, 85, 0, 0.15);
+    --color-primary-glow: rgba(255, 85, 0, 0.4);
+    --color-bg-deep: #1a1a1a;
+    --color-bg-dark: #121212;
+    --color-border: rgba(255, 85, 0, 0.2);
+}
+
+.infrastructure-v2.theme-minimalist {
+    --color-primary: #000000;
+    --color-primary-dim: rgba(0, 0, 0, 0.05);
+    --color-primary-glow: rgba(0, 0, 0, 0.1);
+    --color-bg-deep: #ffffff;
+    --color-bg-dark: #f8f9fa;
+    --color-bg-medium: #e9ecef;
+    --color-text-primary: #121212;
+    --color-text-secondary: #495057;
+    --color-text-muted: #adb5bd;
+    --color-border: rgba(0, 0, 0, 0.1);
+}
+
+/* Animations and tweaks for themes */
+.infrastructure-v2.theme-cyberpunk .v2-gauge-fill {
+    box-shadow: 0 0 10px var(--color-primary);
+}
+
+.infrastructure-v2.theme-industrial .v2-card {
+    border-radius: 0;
+    background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.01) 0, rgba(255, 255, 255, 0.01) 1px, transparent 1px, transparent 10px);
 }

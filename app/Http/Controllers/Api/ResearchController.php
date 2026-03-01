@@ -14,13 +14,13 @@ class ResearchController extends Controller
     ) {}
 
     /**
-     * Get available research projects
+     * Get updated research state
      */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        $projects = $this->researchService->getAvailableResearches($user);
+        $projects = $this->researchService->getResearchState($user);
 
         return response()->json([
             'success' => true,
@@ -34,24 +34,24 @@ class ResearchController extends Controller
     public function start(Request $request): JsonResponse
     {
         $request->validate([
-            'research_key' => 'required|string',
+            'tech_id' => 'required|string',
         ]);
 
         $user = $request->user();
 
-        $result = $this->researchService->startResearch($user, $request->research_key);
-
-        if (!$result['success']) {
+        try {
+            $research = $this->researchService->startResearch($user, $request->tech_id);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $research,
+                'message' => 'Research started successfully.',
+            ]);
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'error' => $result['error'],
+                'error' => $e->getMessage(),
             ], 400);
         }
-
-        return response()->json([
-            'success' => true,
-            'data' => $result['data'],
-            'message' => 'Research started successfully.',
-        ]);
     }
 }

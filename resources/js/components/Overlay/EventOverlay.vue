@@ -1,7 +1,69 @@
 <template>
     <Transition name="overlay">
         <div 
-            v-if="currentEvent" 
+            v-if="events.resolvedSummary" 
+            class="event-overlay event-overlay--resolved"
+        >
+            <div class="event-card event-card--resolved">
+                <div class="grade-medal" :class="'grade--' + events.resolvedSummary.managementGrade">
+                    <span class="grade-medal__label">GRADE</span>
+                    <span class="grade-medal__char">{{ events.resolvedSummary.managementGrade }}</span>
+                </div>
+
+                <h2 class="event-card__title text-success">Incident Resolved</h2>
+                <div class="score-display">
+                    <div class="score-display__value">{{ events.resolvedSummary.managementScore }}</div>
+                    <div class="score-display__label">Performance Score</div>
+                </div>
+
+                <div class="resolution-stats">
+                    <div class="res-stat">
+                        <span class="res-stat__label">Response Time:</span>
+                        <span class="res-stat__value">{{ formatDuration(events.resolvedSummary.timing.warningAt, events.resolvedSummary.timing.resolvedAt) }}</span>
+                    </div>
+                    <div class="res-stat">
+                        <span class="res-stat__label">Mitigation Cost:</span>
+                        <span class="res-stat__value">${{ events.resolvedSummary.actionCost.toLocaleString() }}</span>
+                    </div>
+                    <div class="res-stat">
+                        <span class="res-stat__label">Collateral Impact:</span>
+                        <span class="res-stat__value text-danger">${{ events.resolvedSummary.damageCost.toLocaleString() }}</span>
+                    </div>
+                </div>
+
+                <div v-if="events.resolvedSummary.postMortem?.lessons?.length > 0" class="post-mortem">
+                    <div class="post-mortem__title">POST-MORTEM ANALYSIS</div>
+                    <ul class="post-mortem__list">
+                        <li v-for="(lesson, index) in events.resolvedSummary.postMortem.lessons" :key="index">
+                            {{ lesson }}
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="event-resolution-actions">
+                    <button class="event-action-btn event-action-btn--primary" @click="gameStore.closeResolvedSummary">
+                        Mission Accomplished
+                    </button>
+                    
+                    <button 
+                        v-if="events.resolvedSummary.replay_data?.length > 0"
+                        class="event-action-btn event-action-btn--secondary" 
+                        @click="showReplay = true"
+                    >
+                        Review Blackbox Recording
+                    </button>
+                </div>
+
+                <IncidentReplay 
+                    v-if="showReplay" 
+                    :event="events.resolvedSummary" 
+                    @close="showReplay = false" 
+                />
+            </div>
+        </div>
+
+        <div 
+            v-else-if="currentEvent" 
             class="event-overlay"
             :class="overlayClass"
         >
@@ -40,6 +102,19 @@
                 <h2 class="event-card__title">{{ eventTitle }}</h2>
                 <p class="event-card__description">{{ eventDescription }}</p>
 
+                <!-- Stress Meter (Multi-event pressure) -->
+                <div v-if="activeEventsCount > 1" class="stress-meter">
+                    <div class="stress-meter__label">
+                        <span class="blink">⚠️</span> MULTI-INCIDENT STRESS <span class="blink">⚠️</span>
+                    </div>
+                    <div class="stress-meter__description">
+                        Critical load! Your team is overwhelmed. All deadlines are accelerating by <b>{{ (activeEventsCount - 1) * 30 }}s</b> per tick.
+                    </div>
+                    <div class="stress-meter__bar">
+                        <div class="stress-meter__fill" :style="{ width: Math.min(100, (activeEventsCount - 1) * 25) + '%' }"></div>
+                    </div>
+                </div>
+
                 <!-- Timer -->
                 <div class="event-card__timer-label">Time Remaining</div>
                 <div class="event-card__timer" :class="{ 'event-card__timer--critical': remainingSeconds < 30 }">
@@ -47,35 +122,41 @@
                 </div>
 
                 <!-- Affected entities -->
-                <div v-if="currentEvent.affectedServers?.length" class="affected-entities">
-                    <span class="affected-entities__label">Affected:</span>
-                    <span class="affected-entities__count">{{ currentEvent.affectedServers.length }} server(s)</span>
+                <div v-if="currentEvent.affected_customers_count > 0" class="affected-entities">
+                    <span class="affected-entities__label">Affected Customers:</span>
+                    <span class="affected-entities__count">{{ currentEvent.affected_customers_count }}</span>
                 </div>
 
                 <!-- Action Buttons -->
                 <div class="event-actions">
                     <button 
-                        v-for="action in currentEvent.actions" 
+                        v-for="action in currentEvent.available_actions" 
                         :key="action.id"
                         class="event-action-btn"
-                        :class="{ 'event-action-btn--primary': action.isPrimary }"
+                        :class="getActionClass(action)"
                         @click="resolveEvent(action.id)"
                         :disabled="isResolving || !canAffordAction(action)"
                     >
                         <div class="event-action-btn__info">
-                            <div class="event-action-btn__name">{{ action.name }}</div>
+                            <div class="event-action-btn__name-row">
+                                <span class="event-action-btn__name">{{ action.label }}</span>
+                                <span v-if="getActionBadge(action)" class="action-badge" :class="'action-badge--' + getActionBadgeType(action)">
+                                    {{ getActionBadge(action) }}
+                                </span>
+                            </div>
                             <div class="event-action-btn__desc">{{ action.description }}</div>
                         </div>
                         <div class="event-action-btn__meta">
                             <div v-if="action.cost > 0" class="event-action-btn__cost">${{ action.cost.toLocaleString() }}</div>
-                            <div class="event-action-btn__success">{{ Math.round(action.successChance * 100) }}% success</div>
+                            <div v-else class="event-action-btn__cost text-success">FREE</div>
+                            <div class="event-action-btn__success">{{ action.success_chance }}% success</div>
                         </div>
                     </button>
                 </div>
 
                 <!-- Skip/Ignore -->
                 <button class="event-skip-btn" @click="dismissEvent">
-                    Let it fail (consequences will apply)
+                    Let it fail (reputation & SLA penalties will apply)
                 </button>
             </div>
         </div>
@@ -85,30 +166,36 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useGameStore } from '../../stores/game';
-import { storeToRefs } from 'pinia';
+import IncidentReplay from '../HUD/IncidentReplay.vue';
 
 const gameStore = useGameStore();
-const { events, player } = storeToRefs(gameStore);
+
+// Replace storeToRefs with direct computed properties
+const events = computed(() => gameStore.events);
+const player = computed(() => gameStore.player);
 
 const isResolving = ref(false);
+const showReplay = ref(false);
 const remainingSeconds = ref(0);
 let timerInterval = null;
 
 // Get the most urgent event
 const currentEvent = computed(() => {
-    if (!events.value.active || events.value.active.length === 0) return null;
+    if (!events.active || events.active.length === 0) return null;
     
     // Sort by deadline, return most urgent
-    const sorted = [...events.value.active].sort((a, b) => {
-        return new Date(a.deadline) - new Date(b.deadline);
+    const sorted = [...events.active].sort((a, b) => {
+        return new Date(a.deadline_at) - new Date(b.deadline_at);
     });
     
     return sorted[0];
 });
 
+const activeEventsCount = computed(() => events.active?.length || 0);
+
 const overlayClass = computed(() => {
     if (!currentEvent.value) return '';
-    if (currentEvent.value.status === 'escalated' || remainingSeconds.value < 30) {
+    if (currentEvent.value.severity === 'critical' || remainingSeconds.value < 60) {
         return 'event-overlay--critical';
     }
     return 'event-overlay--warning';
@@ -116,39 +203,28 @@ const overlayClass = computed(() => {
 
 const cardClass = computed(() => {
     if (!currentEvent.value) return '';
-    if (currentEvent.value.status === 'escalated') return 'event-card--escalated';
+    if (currentEvent.value.status === 'escalated' || currentEvent.value.severity === 'critical') return 'event-card--escalated';
     return '';
 });
 
 const eventTitle = computed(() => {
     if (!currentEvent.value) return '';
-    const titles = {
-        power_outage: 'POWER OUTAGE',
-        overheating: 'CRITICAL OVERHEATING',
-        ddos_attack: 'DDoS ATTACK DETECTED',
-        hardware_failure: 'HARDWARE FAILURE',
-        network_outage: 'NETWORK OUTAGE',
-        security_breach: 'SECURITY BREACH',
-        cooling_failure: 'COOLING SYSTEM FAILURE',
-        bandwidth_spike: 'BANDWIDTH OVERLOAD',
-    };
-    return titles[currentEvent.value.type] || 'CRISIS EVENT';
+    return currentEvent.value.title;
 });
 
 const eventDescription = computed(() => {
     if (!currentEvent.value) return '';
-    const descriptions = {
-        power_outage: 'Immediate power loss detected. Servers are running on UPS backup. Take action before batteries deplete!',
-        overheating: 'Temperature exceeds safe operating limits. Servers at risk of thermal shutdown and damage!',
-        ddos_attack: 'Massive traffic flood detected targeting your infrastructure. Service degradation imminent!',
-        hardware_failure: 'Critical hardware component has failed. Affected servers are at risk of data loss!',
-        network_outage: 'Network connectivity issues detected. External services may be unreachable!',
-        security_breach: 'Unauthorized access attempt detected. Customer data may be at risk!',
-        cooling_failure: 'Primary cooling system offline. Temperatures rising rapidly!',
-        bandwidth_spike: 'Bandwidth utilization exceeding capacity. Service quality degrading!',
-    };
-    return descriptions[currentEvent.value.type] || 'A critical event requires your immediate attention.';
+    return currentEvent.value.description;
 });
+
+function formatDuration(start, end) {
+    const s = new Date(start);
+    const e = new Date(end);
+    const diff = Math.floor((e - s) / 1000);
+    const mins = Math.floor(diff / 60);
+    const secs = diff % 60;
+    return `${mins}m ${secs}s`;
+}
 
 const formattedTime = computed(() => {
     const mins = Math.floor(remainingSeconds.value / 60);
@@ -170,17 +246,39 @@ async function resolveEvent(actionId) {
 }
 
 function dismissEvent() {
-    // User chooses to let the event fail
-    // In a real implementation, this would trigger auto-fail
+    // Just close for now, let it auto-fail in background
+    gameStore.closeEventOverlay();
 }
 
 function updateTimer() {
-    if (!currentEvent.value?.deadline) return;
+    if (!currentEvent.value?.deadline_at) return;
     
-    const deadline = new Date(currentEvent.value.deadline);
+    const deadline = new Date(currentEvent.value.deadline_at);
     const now = new Date();
     const diff = Math.max(0, Math.floor((deadline - now) / 1000));
     remainingSeconds.value = diff;
+}
+
+// Dilemma helpers
+function getActionClass(action) {
+    if (action.id.includes('quick') || action.id.includes('blackhole')) return 'event-action-btn--warning';
+    if (action.success_chance >= 90 && action.cost > 0) return 'event-action-btn--primary';
+    return '';
+}
+
+function getActionBadge(action) {
+    if (action.id.includes('quick')) return 'RISKY';
+    if (action.id.includes('blackhole')) return 'SAFE (DOWNTIME)';
+    if (action.id.includes('premium') || action.id.includes('replace_drive')) return 'RECOMMENDED';
+    if (action.success_chance < 50) return 'UNRELIABLE';
+    return null;
+}
+
+function getActionBadgeType(action) {
+    if (action.id.includes('quick')) return 'danger';
+    if (action.id.includes('blackhole')) return 'warning';
+    if (action.id.includes('premium')) return 'success';
+    return 'info';
 }
 
 onMounted(() => {
@@ -214,6 +312,10 @@ onUnmounted(() => {
 
 .event-overlay--critical {
     animation: overlay-pulse-critical 1s ease-in-out infinite;
+}
+
+.event-overlay--resolved {
+    background: rgba(10, 13, 20, 0.95);
 }
 
 @keyframes overlay-pulse-warning {
@@ -281,6 +383,119 @@ onUnmounted(() => {
     color: var(--color-danger);
 }
 
+/* Resolution Grade Styles */
+.grade-medal {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto var(--space-lg);
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 4px solid var(--color-text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    position: relative;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+}
+
+.grade-medal__label {
+    font-size: 10px;
+    font-weight: 800;
+    opacity: 0.6;
+    letter-spacing: 0.2em;
+}
+
+.grade-medal__char {
+    font-size: 60px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.grade--S { border-color: #ffd700; color: #ffd700; box-shadow: 0 0 40px rgba(255, 215, 0, 0.3); }
+.grade--A { border-color: #c0c0c0; color: #c0c0c0; }
+.grade--B { border-color: #cd7f32; color: #cd7f32; }
+.grade--C { border-color: #4a9eff; color: #4a9eff; }
+.grade--D { border-color: #ff8c00; color: #ff8c00; }
+.grade--F { border-color: var(--color-danger); color: var(--color-danger); }
+
+.score-display {
+    margin-bottom: var(--space-xl);
+}
+
+.score-display__value {
+    font-size: 48px;
+    font-weight: 800;
+    font-family: var(--font-family-mono);
+}
+
+.score-display__label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+}
+
+.resolution-stats {
+    background: rgba(255,255,255,0.03);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    text-align: left;
+}
+
+.res-stat {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--font-size-sm);
+}
+
+.res-stat__label { color: var(--color-text-muted); }
+.res-stat__value { font-weight: 600; font-family: var(--font-family-mono); }
+
+.post-mortem {
+    margin-bottom: var(--space-xl);
+    text-align: left;
+    background: rgba(0, 212, 255, 0.05);
+    border: 1px solid var(--color-primary-dim);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+}
+
+.post-mortem__title {
+    font-size: var(--font-size-xs);
+    font-weight: 800;
+    color: var(--color-primary);
+    letter-spacing: 0.1em;
+    margin-bottom: var(--space-sm);
+}
+
+.post-mortem__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.post-mortem__list li {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    padding-left: 1.25rem;
+    position: relative;
+    line-height: 1.4;
+    margin-bottom: var(--space-xs);
+}
+
+.post-mortem__list li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--color-primary);
+}
+
+.text-success { color: var(--color-success); }
+
 .event-card__title {
     font-size: var(--font-size-2xl);
     font-weight: 700;
@@ -315,6 +530,103 @@ onUnmounted(() => {
 .event-card__timer--critical {
     color: var(--color-danger);
     animation: timer-flash 0.5s steps(1) infinite;
+}
+
+/* Stress Meter */
+.stress-meter {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-lg);
+    text-align: left;
+}
+
+.stress-meter__label {
+    font-size: var(--font-size-sm);
+    font-weight: 800;
+    color: var(--color-danger);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stress-meter__description {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-sm);
+}
+
+.stress-meter__bar {
+    height: 6px;
+    background: var(--color-bg-dark);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.stress-meter__fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-danger), #ff4d4d);
+    transition: width 0.5s ease;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.blink {
+    animation: blink 1s infinite;
+}
+
+/* Action Grid Enhancements */
+.event-action-btn__name-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: 2px;
+}
+
+.action-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.action-badge--danger {
+    background: var(--color-danger-dim);
+    color: var(--color-danger);
+    border: 1px solid var(--color-danger);
+}
+
+.action-badge--warning {
+    background: var(--color-warning-dim);
+    color: var(--color-warning);
+    border: 1px solid var(--color-warning);
+}
+
+.action-badge--success {
+    background: var(--color-success-dim);
+    color: var(--color-success);
+    border: 1px solid var(--color-success);
+}
+
+.action-badge--info {
+    background: var(--color-primary-dim);
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+}
+
+.event-action-btn--warning {
+    border-color: var(--color-warning);
+}
+
+.event-action-btn--warning:hover:not(:disabled) {
+    background: var(--color-warning-dim);
+    border-color: var(--color-warning);
 }
 
 @keyframes timer-flash {

@@ -1,0 +1,560 @@
+<template>
+    <header class="top-bar">
+        <!-- Left section - Logo & Money -->
+        <div class="hud-section">
+            <div class="game-logo">
+                <span class="game-logo__text">Rack</span>
+                <span class="game-logo__accent">ora</span>
+                <span class="ws-indicator" :class="{ 'ws-connected': gameStore.wsConnected }" :title="gameStore.wsConnected ? 'Real-time connected' : 'Polling mode'"></span>
+            </div>
+
+            <div class="company-branding">
+                <div class="company-logo" v-if="player?.companyLogo">
+                    <img :src="player.companyLogo" :alt="player.companyName">
+                </div>
+                <div class="company-logo company-logo--default" v-else>
+                    {{ companyInitial }}
+                </div>
+                <span class="company-name">{{ player?.companyName || 'Unnamed Corp' }}</span>
+            </div>
+
+            <div 
+                class="hud-stat hud-stat--money" 
+                @click="openFinance" 
+                @mouseenter="tooltipStore.show($event, { title: 'Net Worth', content: 'Your current liquid balance. This is what you use to buy hardware and pay bills.' })"
+                @mouseleave="tooltipStore.hide()"
+                role="button" 
+                tabindex="0"
+            >
+                <div class="hud-stat__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="1" x2="12" y2="23"/>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
+                    </div>
+                <div>
+                    <div class="hud-stat__value">${{ formatMoney(economy.balance) }}</div>
+                    <div class="hud-stat__label" :class="{ 'text-success': netIncome > 0, 'text-danger': netIncome < 0 }">
+                        {{ netIncome >= 0 ? '+' : '' }}${{ formatMoney(netIncome) }}/hr
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center section - Stats -->
+        <div class="hud-section">
+            <div class="hud-stat speed-controls">
+                <button 
+                    class="speed-btn" 
+                    :class="{ active: isPaused || gameSpeed === 0 }" 
+                    @click="setSpeed(0)" 
+                    title="Pause Game"
+                >⏸</button>
+                <button 
+                    class="speed-btn" 
+                    :class="{ active: !isPaused && gameSpeed === 1 }" 
+                    @click="setSpeed(1)" 
+                    title="Normal Speed (1x)"
+                >▶</button>
+                <button 
+                    class="speed-btn" 
+                    :class="{ active: !isPaused && gameSpeed === 2 }" 
+                    @click="setSpeed(2)" 
+                    title="Fast Forward (2x)"
+                >⏩</button>
+                <button 
+                    class="speed-btn" 
+                    :class="{ active: !isPaused && gameSpeed >= 5 }" 
+                    @click="setSpeed(5)" 
+                    title="Turbo Speed (5x)"
+                >⏭</button>
+            </div>
+
+            <GlobalEventTicker />
+
+            <div 
+                class="hud-stat" 
+                :class="{ 'hud-stat--warning': stats.uptime < 99 }"
+                @mouseenter="tooltipStore.show($event, { title: 'Infrastructure', content: 'Number of servers currently online vs total servers. Offline servers generate no revenue and risk SLA penalties.', hint: 'Check the heat maps if servers keep shutting down.' })"
+                @mouseleave="tooltipStore.hide()"
+            >
+                <div class="hud-stat__icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                        <polyline points="2 17 12 22 22 17"/>
+                        <polyline points="2 12 12 17 22 12"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="hud-stat__value">{{ stats.onlineServers }}/{{ stats.totalServers }}</div>
+                    <div class="hud-stat__label">Servers Online</div>
+                </div>
+            </div>
+
+            <div 
+                class="hud-stat"
+                @mouseenter="tooltipStore.show($event, { title: 'User Base', content: 'Total number of active customer contracts. High satisfaction leads to more high-paying referrals.', hint: 'Churned customers reduce your global reputation.' })"
+                @mouseleave="tooltipStore.hide()"
+            >
+                <div class="hud-stat__icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="hud-stat__value">{{ customers.active }}</div>
+                    <div class="hud-stat__label">Customers</div>
+                </div>
+            </div>
+
+            <div 
+                class="hud-stat" 
+                :class="{ 'hud-stat--danger': orders.urgentCount > 0 }"
+                @mouseenter="tooltipStore.show($event, { title: 'Service Queue', content: 'Active requests waiting for infrastructure assignment. Delaying these leads to lost reputation.', hint: 'Research Automated Provisioning for hands-free management.' })"
+                @mouseleave="tooltipStore.hide()"
+            >
+                <div class="hud-stat__icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="hud-stat__value">{{ orders.pending?.length || 0 }}</div>
+                    <div class="hud-stat__label">Pending Orders</div>
+                </div>
+            </div>
+
+            <div v-if="activeEventCount > 0" class="hud-stat hud-stat--danger event-indicator">
+                <div class="hud-stat__icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="hud-stat__value">{{ activeEventCount }}</div>
+                    <div class="hud-stat__label">Active Crisis!</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right section - Player & Reputation -->
+        <div class="hud-section">
+            <div class="hud-stat strategy-badge" @click="$emit('openSpecialization')" title="Current Strategy">
+                <div class="hud-stat__icon strategy-icon">
+                    {{ getSpecIcon(player?.specialization) }}
+                </div>
+                <div>
+                    <div class="hud-stat__value spec-name" :style="{ color: getSpecColor(player?.specialization) }">
+                        {{ getSpecName(player?.specialization) }}
+                    </div>
+                    <div class="hud-stat__label">Business Strategy</div>
+                </div>
+            </div>
+
+            <div class="hud-stat">
+                <div class="hud-stat__icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="hud-stat__value">{{ Math.round(economy.reputation) }}</div>
+                    <div class="hud-stat__label">Reputation</div>
+                </div>
+            </div>
+
+            <div class="player-info">
+                <ControlCenter 
+                    @openRoadmap="$emit('openRoadmap')"
+                    @openMarketing="$emit('openMarketing')"
+                    @openPerformance="$emit('openPerformance')"
+                    @openLeaderboard="$emit('openLeaderboard')"
+                    @openAchievements="$emit('openAchievements')"
+                />
+                <div class="player-level">
+                    <span class="player-level__badge">Level {{ economy.level }}</span>
+                    <div class="player-level__xp-bar">
+                        <div 
+                            class="player-level__xp-fill" 
+                            :style="{ width: economy.experience.progress + '%' }"
+                        ></div>
+                    </div>
+                </div>
+                <button class="player-avatar" @click="openProfile">
+                    <img v-if="player?.avatar" :src="imageUrl(player?.avatar)" class="avatar-img-small">
+                    <span v-else>{{ playerInitial }}</span>
+                </button>
+            </div>
+        </div>
+    </header>
+</template>
+
+<script setup>
+import { computed, ref } from 'vue';
+import { useGameStore } from '../../stores/game';
+import { useAuthStore } from '../../stores/auth';
+import { useTooltipStore } from '../../stores/tooltip';
+import { storeToRefs } from 'pinia';
+import GlobalEventTicker from './GlobalEventTicker.vue';
+import ControlCenter from './ControlCenter.vue';
+
+const gameStore = useGameStore();
+const authStore = useAuthStore();
+const tooltipStore = useTooltipStore();
+const { player, customers, orders, stats, activeEventCount, gameSpeed, isPaused } = storeToRefs(gameStore);
+const { isAdmin } = storeToRefs(authStore);
+
+import SoundManager from '../../services/SoundManager';
+
+const emit = defineEmits(['openFinance', 'openSettings', 'openRoadmap', 'openLeaderboard', 'openMarketing', 'openSpecialization', 'openAchievements', 'openPerformance', 'openProfile']);
+
+const economy = computed(() => player.value?.economy || {});
+const netIncome = computed(() => economy.value?.netIncomePerHour || 0);
+
+const setSpeed = (speed) => {
+    gameStore.setGameSpeed(speed);
+    SoundManager.playClick();
+};
+
+const getSpecIcon = (key) => {
+    const map = {
+        'balanced': '🏢',
+        'budget': '📦',
+        'premium': '💎',
+        'hpc_specialist': '⚡',
+        'green_eco': '🌱',
+        'crypto_vault': '🔐'
+    };
+    return map[key] || '🏢';
+};
+
+const getSpecName = (key) => {
+    const map = {
+        'balanced': 'Generalist',
+        'budget': 'Budget King',
+        'premium': 'Premium',
+        'hpc_specialist': 'AI Hub',
+        'green_eco': 'Eco-Green',
+        'crypto_vault': 'Crypto Hub'
+    };
+    return map[key] || 'Generalist';
+};
+
+const getSpecColor = (key) => {
+    const map = {
+        'balanced': '#8b949e',
+        'budget': '#f85149',
+        'premium': '#d29922',
+        'hpc_specialist': '#a371f7',
+        'green_eco': '#3fb950',
+        'crypto_vault': '#1f6feb'
+    };
+    return map[key] || '#8b949e';
+};
+
+const imageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    return `/storage/${path}`;
+};
+
+const playerInitial = computed(() => {
+    const name = player.value?.name || authStore.user?.name || 'P';
+    return name.charAt(0).toUpperCase();
+});
+
+const companyInitial = computed(() => {
+    const name = player.value?.companyName || 'U';
+    return name.charAt(0).toUpperCase();
+});
+
+function openFinance() {
+    SoundManager.playClick();
+    emit('openFinance');
+}
+
+function openSettings() {
+    SoundManager.playClick();
+    emit('openSettings');
+}
+
+function openProfile() {
+    SoundManager.playClick();
+    emit('openProfile');
+}
+
+function formatMoney(val) {
+    const value = Number(val || 0);
+    if (value >= 1000000) {
+        return (value / 1000000).toFixed(2) + 'M';
+    }
+    if (value >= 1000) {
+        return (value / 1000).toFixed(1) + 'K';
+    }
+    return value.toFixed(0);
+}
+</script>
+
+<style scoped>
+.top-bar {
+    grid-area: top-bar;
+    height: 60px;
+    background: linear-gradient(180deg, rgba(22, 27, 34, 0.98) 0%, rgba(15, 20, 25, 0.95) 100%);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-lg);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+}
+
+.game-logo {
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-right: var(--space-md);
+}
+
+.company-branding {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding-left: var(--space-md);
+    margin-left: var(--space-md);
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.company-logo {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.company-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.company-logo--default {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    background: rgba(0, 255, 157, 0.1);
+    border-color: rgba(0, 255, 157, 0.2);
+}
+
+.company-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    letter-spacing: 0.02em;
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.game-logo__text {
+    color: var(--color-text-primary);
+}
+
+.game-logo__accent {
+    color: var(--color-primary);
+}
+
+.ws-indicator {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: #d29922; margin-left: 6px; vertical-align: middle;
+    animation: wsPulse 2s infinite;
+}
+.ws-indicator.ws-connected {
+    background: #3fb950; box-shadow: 0 0 6px rgba(63, 185, 80, 0.5);
+    animation: none;
+}
+@keyframes wsPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.hud-section {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.hud-stat {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-md);
+    background: rgba(33, 38, 45, 0.6);
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+}
+
+.speed-controls {
+    padding: 2px 4px;
+    gap: 4px;
+}
+
+.speed-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--color-text-muted);
+    font-size: 1rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    line-height: 1;
+    transition: all 0.2s;
+}
+
+.speed-btn:hover {
+    color: var(--color-text-primary);
+    background: rgba(255,255,255,0.05);
+}
+
+.speed-btn.active {
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.15);
+    border-color: rgba(255, 215, 0, 0.3);
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+}
+
+.hud-stat__icon {
+    width: 20px;
+    height: 20px;
+    color: var(--color-primary);
+}
+
+.hud-stat__icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.hud-stat__value {
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.hud-stat__label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.hud-stat--money .hud-stat__value {
+    color: var(--color-success);
+}
+
+.hud-stat--money {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.hud-stat--money:hover {
+    background: rgba(33, 38, 45, 0.9);
+    border-color: #30363d;
+}
+
+.hud-stat--warning {
+    border-color: var(--color-warning);
+}
+
+.hud-stat--warning .hud-stat__icon {
+    color: var(--color-warning);
+}
+
+.hud-stat--danger {
+    border-color: var(--color-danger);
+    animation: pulse-border 1s ease-in-out infinite;
+}
+
+.hud-stat--danger .hud-stat__icon {
+    color: var(--color-danger);
+}
+
+@keyframes pulse-border {
+    0%, 100% { border-color: var(--color-danger); }
+    50% { border-color: transparent; }
+}
+
+.event-indicator {
+    background: var(--color-danger-dim);
+}
+
+.admin-btn {
+    background: rgba(88, 166, 255, 0.1);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    border-radius: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1.1rem;
+    margin-right: 10px;
+}
+.admin-btn:hover {
+    background: rgba(88, 166, 255, 0.3);
+    border-color: #58a6ff;
+    box-shadow: 0 0 15px rgba(88, 166, 255, 0.5);
+    transform: translateY(-1px);
+}
+
+.player-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: var(--color-bg-deep);
+    transition: transform var(--transition-fast);
+    cursor: pointer; position: relative; overflow: hidden;
+}
+.avatar-img-small {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.player-avatar:hover {
+    transform: scale(1.05);
+}
+
+
+.strategy-badge {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.strategy-badge:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+.strategy-icon {
+    font-size: 1.2rem;
+    display: flex; align-items: center; justify-content: center;
+}
+.spec-name {
+    text-shadow: 0 0 10px currentColor;
+}
+</style>

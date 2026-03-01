@@ -78,7 +78,7 @@ const getIcon = (key) => {
 const confirmDecision = async () => {
     if (!selectedOption.value || !currentDecision.value) return;
 
-    processing.ref = true;
+    processing.value = true;
     try {
         const response = await api.post('/management/decision', {
             decision_type: currentDecision.value.type,
@@ -101,14 +101,33 @@ const confirmDecision = async () => {
 </script>
 
 <style scoped>
+.overlay-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(12px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto; /* Important: ensures overlay intercepts clicks */
+}
+
+.glass-panel {
+    background: rgba(20, 25, 35, 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
 .decision-overlay {
     width: 900px;
     max-width: 95vw;
-    background: linear-gradient(135deg, rgba(10, 15, 25, 0.95) 0%, rgba(20, 25, 40, 0.95) 100%);
-    border: 1px solid rgba(0, 242, 255, 0.3);
-    box-shadow: 0 0 50px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(0, 242, 255, 0.1);
-    border-radius: 16px;
-    padding: 40px;
+    border: 1px solid rgba(0, 242, 255, 0.2);
+    box-shadow: 0 0 80px rgba(0, 212, 255, 0.05);
+    border-radius: 20px;
+    padding: 50px;
     color: #fff;
     position: relative;
     overflow: hidden;

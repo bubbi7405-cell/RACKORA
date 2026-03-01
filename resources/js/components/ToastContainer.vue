@@ -21,6 +21,11 @@
                         <line x1="12" y1="9" x2="12" y2="13"/>
                         <line x1="12" y1="17" x2="12.01" y2="17"/>
                     </svg>
+                    <svg v-else-if="toast.type === 'achievement'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 15l-2 5 2 2 2-2-2-5z"/>
+                        <path d="M12 15l2-5-2-2-2 2 2 5z"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
                     <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/>
                         <line x1="12" y1="16" x2="12" y2="12"/>
@@ -78,6 +83,15 @@ const { toasts } = storeToRefs(toastStore);
 .toast--error .toast__icon { color: var(--color-danger); }
 .toast--warning .toast__icon { color: var(--color-warning); }
 .toast--info .toast__icon { color: var(--color-info); }
+.toast--achievement .toast__icon { color: #388bfd; }
+.toast--achievement { 
+    border-left: 4px solid #388bfd; 
+    background: linear-gradient(90deg, rgba(56, 139, 253, 0.1) 0%, rgba(22, 27, 34, 0.95) 100%);
+}
+.toast--achievement .toast__message {
+    font-weight: bold;
+    color: #fff;
+}
 
 /* Transition animations */
 .toast-enter-active {

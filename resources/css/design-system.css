@@ -1,0 +1,440 @@
+/* ═══════════════════════════════════════════════════════════════
+   RACKORA DESIGN SYSTEM v2.0 — CONTROL_ROOM
+   Bloomberg Terminal × Datacenter Control Room
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+    /* ─── BASE PALETTE ────────────────────────────────────── */
+    --ds-bg-void: hsl(222, 30%, 4%);
+    --ds-bg-base: hsl(222, 25%, 7%);
+    --ds-bg-elevated: hsl(222, 22%, 10%);
+    --ds-bg-overlay: hsl(222, 20%, 13%);
+    --ds-bg-subtle: hsl(222, 18%, 16%);
+    --ds-bg-hover: hsl(222, 16%, 18%);
+
+    /* ─── TEXT HIERARCHY ──────────────────────────────────── */
+    --ds-text-primary: hsl(210, 20%, 92%);
+    --ds-text-secondary: hsl(215, 15%, 58%);
+    --ds-text-muted: hsl(220, 12%, 38%);
+    --ds-text-ghost: hsl(220, 10%, 24%);
+    --ds-text-inverse: hsl(222, 25%, 7%);
+
+    /* ─── ACCENT (Primary Blue) ───────────────────────────── */
+    --ds-accent: hsl(220, 85%, 58%);
+    --ds-accent-hover: hsl(220, 85%, 65%);
+    --ds-accent-soft: hsla(220, 85%, 58%, 0.06);
+    --ds-accent-medium: hsla(220, 85%, 58%, 0.12);
+    --ds-accent-glow: hsla(220, 85%, 58%, 0.20);
+
+    /* ─── SEMANTIC: SEVERITY SPECTRUM ─────────────────────── */
+    --ds-nominal: hsl(152, 55%, 48%);
+    --ds-nominal-soft: hsla(152, 55%, 48%, 0.06);
+    --ds-nominal-medium: hsla(152, 55%, 48%, 0.12);
+    --ds-nominal-glow: hsla(152, 55%, 48%, 0.18);
+
+    --ds-caution: hsl(42, 80%, 52%);
+    --ds-caution-soft: hsla(42, 80%, 52%, 0.06);
+    --ds-caution-medium: hsla(42, 80%, 52%, 0.12);
+    --ds-caution-glow: hsla(42, 80%, 52%, 0.18);
+
+    --ds-warning: hsl(28, 85%, 52%);
+    --ds-warning-soft: hsla(28, 85%, 52%, 0.06);
+    --ds-warning-medium: hsla(28, 85%, 52%, 0.12);
+    --ds-warning-glow: hsla(28, 85%, 52%, 0.18);
+
+    --ds-critical: hsl(0, 70%, 52%);
+    --ds-critical-soft: hsla(0, 70%, 52%, 0.06);
+    --ds-critical-medium: hsla(0, 70%, 52%, 0.12);
+    --ds-critical-glow: hsla(0, 70%, 52%, 0.18);
+
+    --ds-info: hsl(195, 70%, 52%);
+    --ds-info-soft: hsla(195, 70%, 52%, 0.06);
+    --ds-info-medium: hsla(195, 70%, 52%, 0.12);
+    --ds-info-glow: hsla(195, 70%, 52%, 0.18);
+
+    /* ─── BORDERS ─────────────────────────────────────────── */
+    --ds-border-subtle: 1px solid hsla(220, 20%, 28%, 0.25);
+    --ds-border-default: 1px solid hsla(220, 20%, 28%, 0.40);
+    --ds-border-strong: 1px solid hsla(220, 20%, 28%, 0.60);
+    --ds-border-accent: 1px solid hsla(220, 85%, 58%, 0.25);
+    --ds-border-color: hsla(220, 20%, 28%, 0.40);
+
+    /* ─── TYPOGRAPHY ──────────────────────────────────────── */
+    --ds-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ds-font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+    --ds-text-xs: 0.625rem;
+    /* 10px */
+    --ds-text-sm: 0.725rem;
+    /* 11.6px */
+    --ds-text-base: 0.8125rem;
+    /* 13px */
+    --ds-text-md: 0.875rem;
+    /* 14px */
+    --ds-text-lg: 1rem;
+    /* 16px */
+    --ds-text-xl: 1.25rem;
+    /* 20px */
+    --ds-text-2xl: 1.5rem;
+    /* 24px */
+    --ds-text-3xl: 2rem;
+    /* 32px */
+    --ds-text-display: 2.5rem;
+    /* 40px */
+
+    --ds-leading-tight: 1.2;
+    --ds-leading-normal: 1.5;
+    --ds-leading-relaxed: 1.7;
+
+    --ds-tracking-tight: -0.01em;
+    --ds-tracking-normal: 0;
+    --ds-tracking-wide: 0.05em;
+    --ds-tracking-wider: 0.10em;
+    --ds-tracking-widest: 0.15em;
+
+    /* ─── SPACING SCALE ───────────────────────────────────── */
+    --ds-space-0: 0;
+    --ds-space-1: 2px;
+    --ds-space-2: 4px;
+    --ds-space-3: 6px;
+    --ds-space-4: 8px;
+    --ds-space-5: 10px;
+    --ds-space-6: 12px;
+    --ds-space-8: 16px;
+    --ds-space-10: 20px;
+    --ds-space-12: 24px;
+    --ds-space-16: 32px;
+    --ds-space-20: 40px;
+    --ds-space-24: 48px;
+    --ds-space-32: 64px;
+
+    /* ─── RADII ───────────────────────────────────────────── */
+    --ds-radius-sm: 2px;
+    --ds-radius-md: 4px;
+    --ds-radius-lg: 6px;
+    --ds-radius-xl: 8px;
+    --ds-radius-full: 9999px;
+
+    /* ─── SHADOWS ─────────────────────────────────────────── */
+    --ds-shadow-sm: 0 1px 3px hsla(0, 0%, 0%, 0.25);
+    --ds-shadow-md: 0 2px 8px hsla(0, 0%, 0%, 0.35);
+    --ds-shadow-lg: 0 4px 20px hsla(0, 0%, 0%, 0.40);
+    --ds-shadow-xl: 0 8px 40px hsla(0, 0%, 0%, 0.50);
+    --ds-shadow-inset: inset 0 1px 3px hsla(0, 0%, 0%, 0.20);
+
+    /* ─── ANIMATION ───────────────────────────────────────── */
+    --ds-ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --ds-ease-in-out: cubic-bezier(0.42, 0, 0.58, 1);
+    --ds-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ds-ease-bounce: cubic-bezier(0.68, -0.55, 0.27, 1.55);
+
+    --ds-duration-fast: 120ms;
+    --ds-duration-normal: 250ms;
+    --ds-duration-slow: 500ms;
+    --ds-duration-slower: 800ms;
+
+    /* ─── Z-INDEX ─────────────────────────────────────────── */
+    --ds-z-base: 1;
+    --ds-z-dropdown: 100;
+    --ds-z-sticky: 200;
+    --ds-z-overlay: 300;
+    --ds-z-modal: 400;
+    --ds-z-toast: 500;
+    --ds-z-tooltip: 600;
+
+    /* ─── V3 COMPATIBILITY LAYER (High-Tech Theme) ─── */
+    --v3-bg-surface: var(--ds-bg-overlay);
+    --v3-bg-elevated: var(--ds-bg-subtle);
+    --v3-border-soft: var(--ds-border-subtle);
+    --v3-border-heavy: 1px solid var(--ds-text-ghost);
+    --v3-text-primary: var(--ds-text-primary);
+    --v3-text-secondary: var(--ds-text-secondary);
+    --v3-text-ghost: var(--ds-text-muted);
+    
+    --v3-accent: var(--ds-accent);
+    --v3-accent-dim: var(--ds-accent-medium);
+    
+    --v3-success: var(--ds-nominal);
+    --v3-warning: var(--ds-caution);
+    --v3-danger: var(--ds-critical);
+    
+    --v3-radius: var(--ds-radius-lg);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SEVERITY-BASED ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes ds-pulse-nominal {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 var(--ds-nominal-glow);
+    }
+
+    50% {
+        box-shadow: 0 0 8px 1px var(--ds-nominal-glow);
+    }
+}
+
+@keyframes ds-pulse-caution {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 var(--ds-caution-glow);
+    }
+
+    50% {
+        box-shadow: 0 0 10px 2px var(--ds-caution-glow);
+    }
+}
+
+@keyframes ds-pulse-warning {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 var(--ds-warning-glow);
+    }
+
+    50% {
+        box-shadow: 0 0 12px 2px var(--ds-warning-glow);
+    }
+}
+
+@keyframes ds-pulse-critical {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 var(--ds-critical-glow);
+    }
+
+    50% {
+        box-shadow: 0 0 14px 3px var(--ds-critical-glow);
+    }
+}
+
+@keyframes ds-flash {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes ds-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes ds-slide-in-right {
+    from {
+        opacity: 0;
+        transform: translateX(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes ds-grid-pulse {
+    0% {
+        opacity: 0.25;
+    }
+
+    100% {
+        opacity: 0.45;
+    }
+}
+
+@keyframes ds-number-bump {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.06);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SEVERITY UTILITY CLASSES
+   ═══════════════════════════════════════════════════════════════ */
+
+.severity-nominal {
+    color: var(--ds-nominal);
+}
+
+.severity-caution {
+    color: var(--ds-caution);
+}
+
+.severity-warning {
+    color: var(--ds-warning);
+}
+
+.severity-critical {
+    color: var(--ds-critical);
+}
+
+.bg-severity-nominal {
+    background: var(--ds-nominal-soft);
+    border-color: var(--ds-nominal);
+}
+
+.bg-severity-caution {
+    background: var(--ds-caution-soft);
+    border-color: var(--ds-caution);
+}
+
+.bg-severity-warning {
+    background: var(--ds-warning-soft);
+    border-color: var(--ds-warning);
+}
+
+.bg-severity-critical {
+    background: var(--ds-critical-soft);
+    border-color: var(--ds-critical);
+}
+
+.pulse-nominal {
+    animation: ds-pulse-nominal 3s ease-in-out infinite;
+}
+
+.pulse-caution {
+    animation: ds-pulse-caution 2.5s ease-in-out infinite;
+}
+
+.pulse-warning {
+    animation: ds-pulse-warning 2s ease-in-out infinite;
+}
+
+.pulse-critical {
+    animation: ds-pulse-critical 1.2s ease-in-out infinite;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   CONTROL ROOM BACKGROUND
+   ═══════════════════════════════════════════════════════════════ */
+
+.control-room-bg {
+    position: relative;
+}
+
+.control-room-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(circle at 1px 1px,
+            hsla(220, 20%, 30%, 0.12) 1px,
+            transparent 0);
+    background-size: 20px 20px;
+    animation: ds-grid-pulse 5s ease-in-out infinite alternate;
+    pointer-events: none;
+    z-index: 0;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   BASE RESET FOR DESIGN SYSTEM COMPONENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+.ds-card {
+    background: var(--ds-bg-elevated);
+    border: var(--ds-border-subtle);
+    border-radius: var(--ds-radius-md);
+    padding: var(--ds-space-8);
+    transition: border-color var(--ds-duration-normal) var(--ds-ease-out),
+        box-shadow var(--ds-duration-normal) var(--ds-ease-out);
+}
+
+.ds-card:hover {
+    border-color: var(--ds-border-color);
+}
+
+.ds-label {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-text-xs);
+    font-weight: 700;
+    color: var(--ds-text-muted);
+    letter-spacing: var(--ds-tracking-widest);
+    text-transform: uppercase;
+    line-height: var(--ds-leading-tight);
+}
+
+.ds-value {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-text-xl);
+    font-weight: 800;
+    color: var(--ds-text-primary);
+    letter-spacing: var(--ds-tracking-tight);
+    line-height: 1;
+}
+
+.ds-value-sm {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-text-md);
+    font-weight: 700;
+    color: var(--ds-text-primary);
+    letter-spacing: var(--ds-tracking-tight);
+}
+
+.ds-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--ds-space-1) var(--ds-space-3);
+    border-radius: var(--ds-radius-sm);
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-text-xs);
+    font-weight: 800;
+    letter-spacing: var(--ds-tracking-wide);
+    text-transform: uppercase;
+    border: 1px solid currentColor;
+    line-height: var(--ds-leading-tight);
+}
+
+.ds-divider {
+    width: 100%;
+    height: 1px;
+    background: var(--ds-border-color);
+    border: none;
+    margin: var(--ds-space-6) 0;
+}
+
+.ds-mono {
+    font-family: var(--ds-font-mono);
+}
+
+.ds-sans {
+    font-family: var(--ds-font-sans);
+}
+
+.ds-animate-fade-in {
+    animation: ds-fade-in var(--ds-duration-normal) var(--ds-ease-out) both;
+}
+
+.ds-animate-slide-in {
+    animation: ds-slide-in-right var(--ds-duration-normal) var(--ds-ease-out) both;
+}

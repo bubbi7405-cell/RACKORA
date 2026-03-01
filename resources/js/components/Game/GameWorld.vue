@@ -1,99 +1,129 @@
 <template>
     <div class="game-world" ref="worldContainer">
-        <!-- Day/Night Cycle Overlay -->
-        <div class="day-night-overlay" :style="dayNightStyle"></div>
-        <!-- Canvas for isometric rendering -->
-        <canvas 
-            ref="gameCanvas" 
-            class="game-canvas"
-            @click="handleCanvasClick"
-            @mousemove="handleMouseMove"
-        ></canvas>
+        <canvas ref="gameCanvas" class="game-canvas"></canvas>
+        <div class="atmosphere-layer" :style="atmosphereStyle"></div>
 
-        <!-- Room view overlay with rack visualization -->
-        <div v-if="selectedRoom" class="room-view">
-            <div class="room-header">
-                <h2 class="room-header__title">{{ selectedRoom.name }}</h2>
-                <div class="room-header__stats">
-                    <span class="room-stat" :class="{ 'room-stat--danger': selectedRoom.warnings?.powerOverload }">
-                        <span class="room-stat__icon">⚡</span>
-                        <span class="room-stat__value">{{ formatPower(selectedRoom.power?.current) }}</span>
-                        <span class="room-stat__max">/ {{ formatPower(selectedRoom.power?.max) }}</span>
-                    </span>
-                    <span class="room-stat" :class="{ 'room-stat--danger': selectedRoom.warnings?.overheating }">
-                        <span class="room-stat__icon">🌡</span>
-                        <span class="room-stat__value">{{ Math.round(selectedRoom.cooling?.percent || 0) }}%</span>
-                    </span>
-                    <span class="room-stat" :class="{ 'room-stat--danger': selectedRoom.warnings?.bandwidthSaturated }">
-                        <span class="room-stat__icon">🌐</span>
-                        <span class="room-stat__value">{{ (selectedRoom.bandwidth?.current || 0).toFixed(1) }}</span>
-                        <span class="room-stat__max">/ {{ (selectedRoom.bandwidth?.max || 0).toFixed(1) }} Gbps</span>
-                    </span>
+        <div v-if="selectedRoom" class="room-context">
+            <header class="room-topbar glass-panel">
+                <div class="topbar-scan"></div>
+                <div class="room-info">
+                    <div class="sys-id">NODE_CONTEXT_0{{ selectedRoom.id }}</div>
+                    <h2 class="room-name">{{ (selectedRoom.name || 'Unknown Room').toUpperCase() }}</h2>
                 </div>
-                <!-- Warning Badges -->
-                <div v-if="hasRoomWarnings" class="room-header__warnings">
-                    <span v-if="selectedRoom.warnings?.powerOverload" class="warning-badge warning-badge--red">⚡ POWER OVERLOAD</span>
-                    <span v-if="selectedRoom.warnings?.overheating" class="warning-badge warning-badge--orange">🌡 OVERHEATING</span>
-                    <span v-if="selectedRoom.warnings?.bandwidthSaturated" class="warning-badge warning-badge--blue">🌐 BANDWIDTH SATURATED</span>
+                
+                <div class="room-telemetry">
+                    <div class="tele-group">
+                        <div class="tele-item" :class="{ 'danger': selectedRoom.warnings?.powerOverload }">
+                            <span class="t-label">POWER_FEED</span>
+                            <span class="t-val">{{ formatPower(selectedRoom.power?.current) }}</span>
+                        </div>
+                        <div class="t-track"><div class="t-fill data-fill" :style="{ width: (selectedRoom.power?.percent || 0) + '%' }"></div></div>
+                    </div>
+
+                    <div class="tele-group">
+                        <div class="tele-item" :class="{ 'danger': selectedRoom.warnings?.overheating }">
+                            <span class="t-label">THERMAL_LOAD</span>
+                            <span class="t-val">{{ Math.round(selectedRoom.cooling?.percent || 0) }}%</span>
+                        </div>
+                        <div class="t-track"><div class="t-fill data-fill" :style="{ width: (selectedRoom.cooling?.percent || 0) + '%', background: 'var(--color-danger)' }"></div></div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Rack Grid -->
-            <div class="rack-grid">
-                <RackComponent 
-                    v-for="rack in selectedRoom.racks" 
-                    :key="rack.id"
-                    :rack="rack"
-                    @select="gameStore.selectRack(rack.id)"
-                    :isSelected="selectedRackId === rack.id"
-                />
+                <div class="room-actions">
+                    <button class="btn-enterprise" @click="showCustomization = true">CONFIGURE_ZONE</button>
+                </div>
+            </header>
 
-                <!-- Empty rack slots -->
-                <div 
-                    v-for="slot in emptyRackSlots" 
-                    :key="'empty-' + slot"
-                    class="rack-slot-empty"
-                    @click="showRackPurchase = true"
-                >
-                    <div class="rack-slot-empty__icon">+</div>
-                    <span class="rack-slot-empty__text">Add Rack</span>
+            <div class="rack-operations">
+                <div class="aisle aisle-1" :style="{ gridTemplateColumns: `repeat(${rowLength}, 1fr)` }">
+                    <div v-for="slotIdx in row1Slots" :key="'slot-' + slotIdx" class="slot-wrapper">
+                        <RackComponent 
+                            v-if="getRackAtSlot(slotIdx)"
+                            :rack="getRackAtSlot(slotIdx)"
+                            @select="gameStore.selectRack(getRackAtSlot(slotIdx).id)"
+                            @selectServer="(id) => $emit('open-server-details', id)"
+                            :isSelected="selectedRackId === getRackAtSlot(slotIdx).id"
+                            :id="'rack-unit-' + getRackAtSlot(slotIdx).id"
+                            v-tooltip="getRackTooltip(getRackAtSlot(slotIdx))"
+                        />
+                        <button v-else class="empty-slot" :id="slotIdx === 0 ? 'tutorial-first-slot' : null" @click="showRackPurchase = true">
+                            <span class="plus">+</span>
+                            <span class="label">ADD_UNIT</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="aisle-meta">
+                    <div class="aisle-line"></div>
+                    <span class="aisle-id">{{ aisleLabel }}</span>
+                    <div class="aisle-line"></div>
+                </div>
+
+                <div class="aisle aisle-2" :style="{ gridTemplateColumns: `repeat(${rowLength}, 1fr)` }">
+                    <div v-for="slotIdx in row2Slots" :key="'slot-' + slotIdx" class="slot-wrapper">
+                        <RackComponent 
+                            v-if="getRackAtSlot(slotIdx)"
+                            :rack="getRackAtSlot(slotIdx)"
+                            @select="gameStore.selectRack(getRackAtSlot(slotIdx).id)"
+                            @selectServer="(id) => $emit('open-server-details', id)"
+                            :isSelected="selectedRackId === getRackAtSlot(slotIdx).id"
+                            v-tooltip="getRackTooltip(getRackAtSlot(slotIdx))"
+                        />
+                        <button v-else class="empty-slot" @click="showRackPurchase = true">
+                            <span class="plus">+</span>
+                            <span class="label">ADD_UNIT</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Rack Purchase Modal -->
-        <div v-if="showRackPurchase" class="modal-overlay" @click.self="showRackPurchase = false">
-            <div class="modal-card">
-                <h3 class="modal-card__title">Purchase Rack</h3>
-                <div class="rack-options">
-                    <button 
-                        v-for="(specs, type) in rackTypes" 
-                        :key="type"
-                        class="rack-option"
-                        @click="purchaseRack(type)"
-                        :disabled="!canAfford(specs.cost) || player.economy.level < specs.level"
-                    >
-                        <div class="rack-option__name">{{ specs.name }}</div>
-                        <div class="rack-option__specs">{{ specs.units }}U capacity</div>
-                        <div class="rack-option__cost">
-                            ${{ specs.cost.toLocaleString() }}
-                        </div>
-                        <div v-if="player.economy.level < specs.level" class="rack-option__locked">
-                            Level {{ specs.level }} required
-                        </div>
-                    </button>
+
+
+        <div v-else class="empty-world-state">
+            <div class="state-content">
+                <div class="spinner"></div>
+                <h3>ESTABLISHING_UPLINK</h3>
+                <p>Waiting for node telemetry...</p>
+                <div v-if="gameStore.rooms && Object.keys(gameStore.rooms).length === 0" class="no-rooms-hint">
+                    <p>No infrastructure detected.</p>
                 </div>
-                <button class="btn btn--secondary" @click="showRackPurchase = false">Cancel</button>
             </div>
         </div>
-        <!-- Order Overlay -->
-        <OrderOverlay 
-            v-if="selectedOrder" 
-            :order="selectedOrder" 
-            @close="gameStore.selectOrder(null)"
-        />
-        
+
+        <!-- MODAL_SYSTEM -->
+        <Transition name="fade">
+            <div v-if="showRackPurchase" class="industrial-overlay" @click.self="showRackPurchase = false">
+                <div class="industrial-modal" id="rack-purchase-modal">
+                    <header class="modal-h">
+                        <span class="h-title">PROVISION_RACK_UNIT</span>
+                        <button @click="showRackPurchase = false" class="close">×</button>
+                    </header>
+                    <div class="rack-options">
+                        <div 
+                            v-for="(specs, type) in rackTypes" 
+                            :key="type"
+                            class="rack-card"
+                            :id="'buy-rack-' + type"
+                            :class="{ 'disabled': !canAfford(specs.cost) || (player?.economy?.level || 1) < specs.level }"
+                            @click="purchaseRack(type)"
+                        >
+                            <div class="card-top">
+                                <span class="card-name">{{ specs.name.toUpperCase() }}</span>
+                                <span class="card-u">{{ specs.units }}U</span>
+                            </div>
+                            <div class="card-bottom">
+                                <span class="card-price">${{ specs.cost }}</span>
+                                <span v-if="(player?.economy?.level || 1) < specs.level" class="card-lock">LEVEL_{{ specs.level }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Transition>
+
         <EventOverlay />
+        <RoomCustomizationOverlay v-if="showCustomization" :room="selectedRoom" @close="showCustomization = false" />
     </div>
 </template>
 
@@ -103,17 +133,35 @@ import { useGameStore } from '../../stores/game';
 import { storeToRefs } from 'pinia';
 import RackComponent from '../Rack/RackComponent.vue';
 import OrderOverlay from '../Overlay/OrderOverlay.vue';
+import ContractNegotiationOverlay from '../Overlay/ContractNegotiationOverlay.vue';
 import EventOverlay from '../Overlay/EventOverlay.vue';
 import ResearchOverlay from '../Overlay/ResearchOverlay.vue';
+import RoomCustomizationOverlay from '../Overlay/RoomCustomizationOverlay.vue';
+import { WALLPAPERS } from '../../constants/wallpapers';
 import { useToastStore } from '../../stores/toast';
 
+const emit = defineEmits(['open-server-details']);
 const gameStore = useGameStore();
-const { selectedRoom, selectedRackId, player, selectedOrder } = storeToRefs(gameStore);
+
+// Replace storeToRefs with direct computed properties to avoid potential reactivity issues
+const selectedRoom = computed(() => gameStore.selectedRoom);
+const selectedRackId = computed(() => gameStore.selectedRackId);
+const player = computed(() => gameStore.player);
+const selectedOrder = computed(() => gameStore.selectedOrder);
+
+// Debug log to verify state
+console.log('[GameWorld] Initializing...', { 
+    hasRoom: !!selectedRoom.value, 
+    hasPlayer: !!player.value,
+});
 
 const worldContainer = ref(null);
 const gameCanvas = ref(null);
 const showRackPurchase = ref(false);
 const showResearchOverlay = ref(false);
+const showNegotiation = ref(false);
+const showCustomization = ref(false);
+const negotiatingOrder = ref(null);
 
 
 // Rack type configurations
@@ -141,8 +189,51 @@ const hasRoomWarnings = computed(() => {
     return w.powerOverload || w.overheating || w.bandwidthSaturated;
 });
 
+const rowLength = computed(() => {
+    const max = selectedRoom.value?.maxRacks || 10;
+    return Math.ceil(max / 2);
+});
+
+const row1Slots = computed(() => {
+    const len = rowLength.value;
+    return Array.from({ length: len }, (_, i) => i);
+});
+
+const row2Slots = computed(() => {
+    const len = rowLength.value;
+    const max = selectedRoom.value?.maxRacks || (len * 2);
+    return Array.from({ length: Math.max(0, max - len) }, (_, i) => i + len);
+});
+
+function getRackAtSlot(slotIdx) {
+    if (!selectedRoom.value?.racks) return null;
+    return selectedRoom.value.racks.find(r => r.position?.slot === slotIdx);
+}
+
+const aisleLabel = computed(() => {
+    const airflow = selectedRoom.value?.cooling?.airflow;
+    if (airflow === 'hot_aisle') return 'HOT AISLE';
+    if (airflow === 'cold_aisle_containment') return 'CRYO CONTAINMENT';
+    return 'SERVICE AISLE';
+});
+
+const aisleClass = computed(() => {
+    const airflow = selectedRoom.value?.cooling?.airflow;
+    return {
+        'aisle-divider--hot': airflow === 'hot_aisle',
+        'aisle-divider--cold': airflow === 'cold_aisle_containment',
+    };
+});
+
+const aisleIcon = computed(() => {
+    const airflow = selectedRoom.value?.cooling?.airflow;
+    if (airflow === 'hot_aisle') return '🔥';
+    if (airflow === 'cold_aisle_containment') return '❄️';
+    return '🛠';
+});
+
 function canAfford(cost) {
-    return player.value.economy.balance >= cost;
+    return (player.value?.economy?.balance || 0) >= cost;
 }
 
 async function purchaseRack(type) {
@@ -154,15 +245,45 @@ async function purchaseRack(type) {
     }
 }
 
-function formatPower(kw) {
-    if (kw === undefined || kw === null) return '0.0 kW';
-    if (kw >= 1000) {
-        return (kw / 1000).toFixed(1) + ' MW';
-    }
-    return kw.toFixed(1) + ' kW';
-}
+// Tooltip Helper
+const getRackTooltip = (rack) => {
+    if (!rack) return null;
+    const powerVal = rack.power?.current || 0;
+    const powerMax = rack.power?.max || 10;
+    const powerPct = Math.round((powerVal / powerMax) * 100);
+    const heat = Math.round(rack.temperature || 20);
+    const uUsed = rack.servers?.reduce((acc, s) => acc + (s.size_u || 1), 0) || 0;
+    
+    return {
+        title: `RACK ${rack.name || rack.id.substring(0,6)}`,
+        content: `Space: ${uUsed}/${rack.capacity}U Used\nPower: ${powerVal.toFixed(1)}kW / ${powerMax.toFixed(1)}kW (${powerPct}%)\nTemp: ${heat}°C`,
+        hint: heat > 45 ? '⚠️ High Temperature Warning' : 'Click to inspect rack'
+    };
+};
+
+const formatPower = (val) => {
+    return (val || 0).toFixed(1) + ' kW';
+};
 
 // Canvas setup and rendering
+const particles = ref([]);
+const particleCount = 40;
+
+function initParticles() {
+    particles.value = [];
+    if (!gameCanvas.value) return;
+    for (let i = 0; i < particleCount; i++) {
+        particles.value.push({
+            x: Math.random() * gameCanvas.value.width,
+            y: Math.random() * gameCanvas.value.height,
+            size: Math.random() * 2 + 1,
+            speedX: (Math.random() - 0.5) * 0.5,
+            speedY: (Math.random() - 0.5) * 0.2,
+            opacity: Math.random() * 0.5 + 0.2
+        });
+    }
+}
+
 let ctx = null;
 let animationFrame = null;
 
@@ -170,7 +291,11 @@ onMounted(() => {
     if (gameCanvas.value) {
         ctx = gameCanvas.value.getContext('2d');
         resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+        initParticles();
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            initParticles();
+        });
         render();
     }
     
@@ -200,11 +325,17 @@ function render() {
     const height = gameCanvas.value.height;
 
     // Clear canvas
-    ctx.fillStyle = '#0a0d14';
+    const wallpaperId = selectedRoom.value?.wallpaper || 'default';
+    const wp = WALLPAPERS[wallpaperId] || WALLPAPERS.default;
+    
+    ctx.fillStyle = wp.bgColor;
     ctx.fillRect(0, 0, width, height);
 
     // Draw isometric grid background
     drawIsometricGrid();
+
+    // Draw Particles
+    drawParticles();
 
     // Continue animation loop
     animationFrame = requestAnimationFrame(render);
@@ -216,7 +347,10 @@ function drawIsometricGrid() {
     const width = gameCanvas.value.width;
     const height = gameCanvas.value.height;
     
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+    const wallpaperId = selectedRoom.value?.wallpaper || 'default';
+    const wp = WALLPAPERS[wallpaperId] || WALLPAPERS.default;
+    
+    ctx.strokeStyle = wp.gridColor;
     ctx.lineWidth = 1;
 
     const gridSize = 40;
@@ -243,57 +377,88 @@ function handleCanvasClick(event) {
 function handleMouseMove(event) {
     // Handle mouse move for hover effects
 }
+
+function drawParticles() {
+    if (!ctx) return;
+    
+    const wallpaperId = selectedRoom.value?.wallpaper || 'default';
+    const wp = WALLPAPERS[wallpaperId] || WALLPAPERS.default;
+    
+    ctx.fillStyle = wp.accentColor;
+
+    particles.value.forEach(p => {
+        ctx.globalAlpha = p.opacity;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Move
+        p.x += p.speedX;
+        p.y += p.speedY;
+
+        // Wrap
+        if (p.x < 0) p.x = gameCanvas.value.width;
+        if (p.x > gameCanvas.value.width) p.x = 0;
+        if (p.y < 0) p.y = gameCanvas.value.height;
+        if (p.y > gameCanvas.value.height) p.y = 0;
+    });
+    
+    ctx.globalAlpha = 1.0;
+}
+
+const atmosphereStyle = computed(() => {
+    const wallpaperId = selectedRoom.value?.wallpaper || 'default';
+    const wp = WALLPAPERS[wallpaperId] || WALLPAPERS.default;
+    
+    const warnings = hasRoomWarnings.value;
+    const baseColor = warnings ? '#ef4444' : (wp.accentColor || '#2F6BFF');
+    
+    return {
+        boxShadow: `inset 0 0 100px ${baseColor}22`,
+        pointerEvents: 'none',
+        position: 'absolute',
+        inset: 0,
+        zIndex: 5,
+        opacity: warnings ? 0.6 : 1,
+        transition: 'all 0.5s ease'
+    };
+});
+
 const dayNightStyle = computed(() => {
+    // Basic day night overlay (Simplified to avoid crashes if gameTime is missing)
     const hour = player.value?.economy?.gameTime?.hour || 12;
     let color = 'transparent';
     let opacity = 0;
 
     if (hour >= 22 || hour < 4) {
-        // Night
         color = '#00051a';
         opacity = 0.4;
-    } else if (hour >= 4 && hour < 6) {
-        // Dawn
-        color = '#ff8c00';
+    } else if (hour >= 18 || hour < 22) {
+        color = '#ff6b35';
         opacity = 0.15;
-    } else if (hour >= 6 && hour < 18) {
-        // Day
-        opacity = 0;
-    } else if (hour >= 18 && hour < 20) {
-        // Sunset
-        color = '#ff4500';
-        opacity = 0.15;
-    } else if (hour >= 20 && hour < 22) {
-        // Evening
-        color = '#00051a';
-        opacity = 0.25;
     }
 
     return {
         backgroundColor: color,
         opacity: opacity,
-        transition: 'all 2s ease-in-out'
+        position: 'absolute',
+        inset: 0,
+        pointerEvents: 'none',
+        zIndex: 4,
+        transition: 'all 2s ease'
     };
 });
 </script>
 
 <style scoped>
 .game-world {
-    grid-area: game-world;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
     position: relative;
     overflow: hidden;
     background: var(--color-bg-deep);
-}
-
-.day-night-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 5;
-    pointer-events: none;
-    transition: all 2s ease-in-out;
 }
 
 .game-canvas {
@@ -302,223 +467,222 @@ const dayNightStyle = computed(() => {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1;
+    z-index: 0;
 }
 
-.room-view {
+.room-context {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 2;
-    padding: var(--space-lg);
+    top: 60px; /* Increased from 20px */
+    left: 24px;
+    right: 24px;
+    bottom: 24px;
+    pointer-events: none;
+    z-index: 10;
     display: flex;
     flex-direction: column;
-    pointer-events: none;
 }
 
-.room-view > * {
+.room-topbar {
     pointer-events: auto;
+    padding: 24px 32px; /* Increased padding */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--v3-radius);
+    margin-bottom: 40px; /* Force racks further down */
+    background: rgba(0,0,0,0.4);
+    border: var(--v3-border-heavy);
 }
 
-.room-header {
+.topbar-scan { position: absolute; left: 0; top: 0; width: 4px; height: 100%; background: var(--v3-accent); box-shadow: 0 0 15px var(--v3-accent); animation: scan-h 6s infinite ease-in-out; }
+@keyframes scan-h { 0%, 100% { left: 0%; } 50% { left: 100%; } }
+
+.sys-id { font-size: 0.5rem; font-weight: 900; color: var(--v3-text-ghost); letter-spacing: 0.1em; margin-bottom: 2px; }
+.room-name { font-size: 1.4rem; font-weight: 900; color: #fff; letter-spacing: 0.05em; }
+
+.room-telemetry { display: flex; gap: 60px; flex: 1; justify-content: center; }
+.tele-group { display: flex; flex-direction: column; gap: 8px; width: 180px; }
+.tele-item { display: flex; justify-content: space-between; align-items: baseline; }
+.t-label { font-size: 0.55rem; font-weight: 900; color: var(--v3-text-ghost); letter-spacing: 0.15em; }
+.t-val { font-size: 0.9rem; font-family: var(--font-family-mono); font-weight: 800; color: #fff; }
+
+.t-track { height: 3px; background: rgba(255,255,255,0.05); position: relative; overflow: hidden; }
+.t-fill { height: 100%; background: var(--v3-accent); transition: width 0.5s var(--v3-easing); }
+
+.rack-operations {
+    pointer-events: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; /* Changed from center to allow top-down flow */
+    padding: 20px 0;
+}
+.tele-item.danger .t-val { color: var(--color-danger); text-shadow: 0 0 10px rgba(255,0,0,0.3); }
+
+.ghost-btn {
+    padding: 6px 12px;
+    background: transparent;
+    border: var(--border-dim);
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: var(--color-muted);
+    border-radius: 2px;
+}
+.ghost-btn:hover { border-color: #fff; color: #fff; }
+
+.rack-operations {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 48px; /* High gap between aisles */
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.aisle {
+    display: grid;
+    gap: 32px;
+    padding: 32px;
+    background: rgba(255,255,255,0.01);
+    border: var(--v3-border-soft);
+    border-radius: 4px;
+}
+
+.aisle-meta {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    opacity: 0.3;
+}
+
+.aisle-line { flex: 1; height: 1px; background: var(--v3-border-soft); }
+.aisle-id { font-size: 0.55rem; font-weight: 800; font-family: var(--font-family-mono); letter-spacing: 0.4em; color: var(--v3-text-ghost); }
+
+.slot-wrapper { min-width: 220px; }
+
+.empty-slot {
+    width: 100%;
+    height: 300px;
+    border: 1px dashed rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.01);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: all 0.2s;
+    border-radius: 2px;
+}
+
+.empty-slot:hover { border-color: var(--color-accent); background: rgba(58, 134, 255, 0.05); }
+.empty-slot .plus { font-size: 1.5rem; color: var(--color-muted); opacity: 0.3; }
+.empty-slot .label { font-size: 0.55rem; font-weight: 800; color: var(--color-muted); letter-spacing: 0.1em; }
+
+/* MODAL STYLES */
+.industrial-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(10,13,20,0.8);
+    backdrop-filter: blur(10px);
+    z-index: 5005;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.industrial-modal {
+    width: 500px;
+    background: var(--color-elevated);
+    border: var(--border-ui);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+}
+
+.modal-h {
+    padding: var(--space-lg) var(--space-xl);
+    border-bottom: var(--border-dim);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
-    gap: var(--space-sm);
-    padding: var(--space-md) var(--space-lg);
-    background: rgba(15, 20, 25, 0.9);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    margin-bottom: var(--space-lg);
-    backdrop-filter: blur(8px);
 }
 
-.room-header__title {
-    font-size: var(--font-size-xl);
-    font-weight: 600;
-    margin: 0;
-}
-
-.room-header__stats {
-    display: flex;
-    gap: var(--space-lg);
-}
-
-.room-stat {
-    display: flex;
-    align-items: center;
-    gap: var(--space-xs);
-    font-family: var(--font-family-mono);
-    font-size: var(--font-size-sm);
-    transition: color 0.3s;
-}
-
-.room-stat--danger {
-    color: var(--color-danger, #ff4444);
-    text-shadow: 0 0 8px rgba(255, 68, 68, 0.5);
-}
-
-.room-stat__max {
-    color: var(--color-text-muted);
-}
-
-.room-header__warnings {
-    width: 100%;
-    display: flex;
-    gap: var(--space-sm);
-    margin-top: var(--space-xs);
-}
-
-.warning-badge {
-    font-size: var(--font-size-xs);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 2px 10px;
-    border-radius: var(--radius-sm);
-    animation: warningPulse 1.5s ease-in-out infinite;
-}
-
-.warning-badge--red {
-    background: rgba(255, 50, 50, 0.2);
-    border: 1px solid rgba(255, 50, 50, 0.5);
-    color: #ff5555;
-}
-
-.warning-badge--orange {
-    background: rgba(255, 160, 50, 0.2);
-    border: 1px solid rgba(255, 160, 50, 0.5);
-    color: #ffa032;
-}
-
-.warning-badge--blue {
-    background: rgba(50, 140, 255, 0.2);
-    border: 1px solid rgba(50, 140, 255, 0.5);
-    color: #328cff;
-}
-
-@keyframes warningPulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-.rack-grid {
-    flex: 1;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: var(--space-lg);
-    align-content: start;
-    overflow-y: auto;
-    padding: var(--space-sm);
-}
-
-.rack-slot-empty {
-    min-height: 300px;
-    border: 2px dashed var(--color-border);
-    border-radius: var(--radius-lg);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-}
-
-.rack-slot-empty:hover {
-    border-color: var(--color-primary);
-    background: var(--color-primary-dim);
-}
-
-.rack-slot-empty__icon {
-    font-size: 2rem;
-    color: var(--color-text-muted);
-    margin-bottom: var(--space-sm);
-}
-
-.rack-slot-empty__text {
-    color: var(--color-text-muted);
-    font-size: var(--font-size-sm);
-}
-
-/* Modal */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(10, 13, 20, 0.8);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 500;
-}
-
-.modal-card {
-    background: var(--color-bg-dark);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-xl);
-    padding: var(--space-xl);
-    max-width: 500px;
-    width: 90%;
-}
-
-.modal-card__title {
-    font-size: var(--font-size-xl);
-    margin-bottom: var(--space-lg);
-    text-align: center;
-}
+.h-title { font-size: 0.65rem; font-weight: 800; color: var(--color-muted); letter-spacing: 0.1em; }
+.modal-h .close { font-size: 1.5rem; color: var(--color-muted); }
 
 .rack-options {
+    padding: var(--space-xl);
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
-    margin-bottom: var(--space-lg);
+    gap: 12px;
 }
 
-.rack-option {
+.rack-card {
+    padding: var(--space-lg);
+    border: var(--border-dim);
+    background: rgba(255,255,255,0.01);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.rack-card:hover:not(.disabled) { border-color: var(--color-accent); background: rgba(58, 134, 255, 0.05); }
+
+.card-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.card-name { font-size: 0.8rem; font-weight: 800; color: #fff; }
+.card-u { font-size: 0.6rem; font-family: var(--font-mono); color: var(--color-accent); }
+
+.card-bottom { display: flex; justify-content: space-between; align-items: center; }
+.card-price { font-size: 0.9rem; font-family: var(--font-mono); color: var(--color-success); font-weight: 700; }
+.card-lock { font-size: 0.55rem; color: var(--color-warning); font-weight: 800; }
+
+.disabled { opacity: 0.4; cursor: not-allowed; }
+
+
+.empty-world-state {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
     display: flex;
-    flex-direction: column;
-    padding: var(--space-md);
-    background: var(--color-bg-elevated);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    text-align: left;
-    transition: all var(--transition-fast);
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 5;
 }
 
-.rack-option:hover:not(:disabled) {
-    border-color: var(--color-primary);
-    background: var(--color-primary-dim);
+.state-content {
+    background: rgba(0,0,0,0.6);
+    padding: 40px;
+    border: 1px solid var(--v3-accent);
+    text-align: center;
+    backdrop-filter: blur(5px);
+    border-radius: 4px;
 }
 
-.rack-option:disabled {
-    opacity: 0.5;
+.state-content h3 {
+    margin: 16px 0 8px;
+    font-size: 1rem;
+    letter-spacing: 0.2em;
+    color: var(--v3-accent);
+    font-weight: 900;
 }
 
-.rack-option__name {
-    font-weight: 600;
-    margin-bottom: var(--space-xs);
+.state-content p {
+    font-size: 0.7rem;
+    color: var(--v3-text-secondary);
 }
 
-.rack-option__specs {
-    font-size: var(--font-size-sm);
-    color: var(--color-text-secondary);
+.spinner {
+    width: 40px; height: 40px;
+    border: 3px solid rgba(255,255,255,0.1);
+    border-top-color: var(--v3-accent);
+    border-radius: 50%;
+    margin: 0 auto;
+    animation: spin 1s linear infinite;
 }
 
-.rack-option__cost {
-    font-family: var(--font-family-mono);
-    color: var(--color-success);
-    margin-top: var(--space-sm);
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-.rack-option__locked {
-    font-size: var(--font-size-xs);
-    color: var(--color-warning);
-    margin-top: var(--space-xs);
-}
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
 </style>
+
