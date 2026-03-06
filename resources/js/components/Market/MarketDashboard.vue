@@ -171,6 +171,36 @@
                 <HardwareAuctions />
             </div>
 
+            <div v-else-if="activeTab === 'components'" class="components-wrapper">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3>HARDWARE_COMPONENT_MARKET // [DIRECT_PROCUREMENT]</h3>
+                    </div>
+                    
+                    <div class="components-catalog-grid">
+                        <div v-for="(items, category) in infraStore.hardware.catalog" :key="category" class="catalog-category">
+                            <h4 class="cat-title l2-priority">{{ category.toUpperCase() }}</h4>
+                            <div class="cat-items">
+                                <div v-for="item in items" :key="item.id" class="component-buy-card">
+                                    <div class="c-info">
+                                        <span class="c-label l1-priority">{{ item.label }}</span>
+                                        <span class="c-meta l3-priority">
+                                            {{ item.cores ? item.cores + ' Cores' : '' }}
+                                            {{ item.capacity ? item.capacity + (category === 'ram' ? 'GB' : 'TB') : '' }}
+                                            {{ item.bandwidth ? item.bandwidth + ' Gbps' : '' }}
+                                        </span>
+                                    </div>
+                                    <div class="c-pricing">
+                                        <span class="c-price">${{ item.cost?.toLocaleString() }}</span>
+                                        <button class="btn-buy-part" :disabled="playerBalance < item.cost" @click="buyComponent(item, category)">BUY</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
         <PeeringNegotiationOverlay v-if="selectedPartner" :partner="selectedPartner" @close="selectedPartner = null"
             @success="handlePeeringSuccess" />
@@ -181,6 +211,8 @@
 import { ref, onMounted, computed } from 'vue';
 import api from '../../utils/api';
 import { useMarketStore } from '../../stores/useMarketStore';
+import { useInfrastructureStore } from '../../stores/infrastructure';
+import { useEconomyStore } from '../../stores/economy';
 import MarketShareChart from './MarketShareChart.vue';
 import UsedMarket from './UsedMarket.vue';
 import HardwareAuctions from './HardwareAuctions.vue';
@@ -194,15 +226,36 @@ const props = defineProps({
 const emit = defineEmits(['close']);
 
 const marketStore = useMarketStore();
+const infraStore = useInfrastructureStore();
+const economyStore = useEconomyStore();
 const activeTab = ref(props.initialTab);
 const peeringPartners = ref([]);
 const selectedPartner = ref(null);
+
+const playerBalance = computed(() => economyStore.player?.economy?.balance || 0);
+
+async function buyComponent(item, category) {
+    if (playerBalance.value < item.cost) return;
+    try {
+        const res = await api.post('/hardware/components/buy', {
+            component_id: item.id,
+            category: category
+        });
+        if (res.success) {
+            economyStore.loadGameState(); // Refresh balance
+            infraStore.loadGameState(); // Refresh inventory
+        }
+    } catch (e) {
+        console.error('Failed to buy component', e);
+    }
+}
 
 const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'competitors', label: 'Competitors' },
     { id: 'used', label: 'Used Hardware' },
     { id: 'auctions', label: 'Auctions' },
+    { id: 'components', label: 'Components' },
 ];
 
 onMounted(() => {
@@ -753,8 +806,87 @@ function formatArchetype(arch) {
     margin-left: var(--ds-space-4);
 }
 
-.close-btn:hover {
-    color: #fff;
-    transform: rotate(90deg);
+/* HARDWARE COMPONENTS */
+.components-catalog-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin-top: 16px;
+}
+
+.catalog-category {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.cat-title {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--ds-text-ghost);
+    border-bottom: 1px solid var(--ds-border-subtle);
+    padding-bottom: 4px;
+}
+
+.cat-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.component-buy-card {
+    background: var(--ds-bg-subtle);
+    border: 1px solid var(--ds-border-subtle);
+    border-radius: 6px;
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.c-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.c-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.c-meta {
+    font-size: 0.65rem;
+    color: var(--ds-text-muted);
+}
+
+.c-pricing {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.c-price {
+    font-family: var(--ds-font-mono);
+    font-weight: 800;
+    color: var(--ds-nominal);
+    font-size: 0.85rem;
+}
+
+.btn-buy-part {
+    background: var(--ds-primary);
+    color: #000;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.btn-buy-part:disabled {
+    opacity: 0.3;
+    filter: grayscale(1);
+    cursor: not-allowed;
 }
 </style>

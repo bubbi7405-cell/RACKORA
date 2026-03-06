@@ -42,6 +42,10 @@
                     <NOCDashboard />
                 </div>
 
+                <div v-else-if="activeView === 'hosting'" class="context-page">
+                    <HostingDashboard />
+                </div>
+
                 <!-- ═══ DOMAIN: BUSINESS ═══ -->
                 <div v-else-if="activeView === 'orders'" class="context-page">
                     <OrderList />
@@ -107,6 +111,14 @@
 
                 <div v-else-if="activeView === 'replay'" class="context-page">
                     <ReplayView />
+                </div>
+
+                <div v-else-if="activeView === 'automation'" class="context-page">
+                    <AutomationView />
+                </div>
+
+                <div v-else-if="activeView === 'admin'" class="context-page">
+                    <AdminPanel />
                 </div>
 
                 <!-- ═══ DOMAIN: KNOWLEDGE ═══ -->
@@ -195,6 +207,7 @@ import LeftPanel from '../HUD/LeftPanel.vue';
 // ─── DOMAIN: OPERATIONS ───
 import InfrastructureView from './InfrastructureView.vue';
 import LocationsView from './LocationsView.vue';
+import HostingDashboard from './HostingDashboard.vue';
 import NOCDashboard from './NOCDashboard.vue';
 
 // ─── DOMAIN: BUSINESS ───
@@ -217,6 +230,8 @@ import IncidentLog from './IncidentLog.vue';
 import AnalyticsDashboard from '../Market/AnalyticsDashboard.vue';
 import WorldView from './WorldView.vue';
 import ReplayView from './ReplayView.vue';
+import AutomationView from './AutomationView.vue';
+import AdminPanel from './AdminPanel.vue';
 
 // ─── DOMAIN: KNOWLEDGE ───
 import WikiSystem from '../Wiki/WikiSystem.vue';

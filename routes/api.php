@@ -477,6 +477,7 @@ Route::middleware(['auth:sanctum', 'activity', 'throttle:api'])->group(function 
         Route::post('/simulation/run-24h', [AdminController::class, 'run24hSimulation']);
         Route::post('/simulation/run', [AdminController::class, 'runSimulation']);
         Route::post('/simulation/trigger-crisis', [AdminController::class, 'triggerCrisis']);
+        Route::post('/simulation/qa-mega', [AdminController::class, 'runMegaQA']);
 
         // Game Data Management — Entity CRUD
         Route::get('/entity-counts', [AdminController::class, 'getEntityCounts']);

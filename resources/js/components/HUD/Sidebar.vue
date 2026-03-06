@@ -143,6 +143,7 @@ const expandedDomains = reactive({
     finance: false,
     strategy: false,
     knowledge: true,
+    maintenance: false,
 });
 
 // ─── DOMAIN DEFINITIONS ───────────────────────────────────────
@@ -156,6 +157,7 @@ const domains = [
             { id: 'overview', label: 'OVERVIEW', icon: '⧇', unlockLevel: 1 },
             { id: 'locations', label: 'NETWORK', icon: '◰', unlockLevel: 1 },
             { id: 'infrastructure', label: 'ASSETS', icon: '▣', unlockLevel: 1 },
+            { id: 'hosting', label: 'GAME_HOSTS', icon: '🧊', unlockLevel: 1 },
             { id: 'noc', label: 'FACILITY_OPS', icon: '📡', unlockLevel: 2 },
             { id: 'incidents', label: 'INCIDENT_LOGS', icon: '📟', unlockLevel: 8 },
             { id: 'replay', label: 'POST_AUDIT', icon: '⏮️', unlockLevel: 12 },
@@ -183,6 +185,7 @@ const domains = [
         items: [
             { id: 'research', label: 'ASSET_R&D', icon: '⌬', unlockLevel: 5 },
             { id: 'strategy', label: 'BOARD_STRATEGY', icon: '🎯', unlockLevel: 5 },
+            { id: 'automation', label: 'AUTO_PROTOCOLS', icon: '⚙️', unlockLevel: 10 },
             { id: 'market', label: 'MARKET_INDEX', icon: '📈', unlockLevel: 7 },
             { id: 'compliance', label: 'COMPLIANCE', icon: '🛡️', unlockLevel: 10 },
             { id: 'energy', label: 'ENERGY_GRID', icon: '⚡', unlockLevel: 7 },
@@ -202,6 +205,15 @@ const domains = [
             { id: 'wiki_economy', label: 'Economy', icon: '💰', unlockLevel: 1 },
             { id: 'wiki_strategy', label: 'Strategy', icon: '⌬', unlockLevel: 1 },
             { id: 'wiki_events', label: 'Events', icon: '🌪️', unlockLevel: 1 },
+        ]
+    },
+    {
+        id: 'maintenance',
+        label: 'MAINTENANCE',
+        icon: '🔧',
+        unlockLevel: 1,
+        items: [
+            { id: 'admin', label: 'ROOT_TERM', icon: '⌨️', unlockLevel: 1 },
         ]
     },
 ];

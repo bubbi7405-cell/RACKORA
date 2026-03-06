@@ -30,7 +30,6 @@ class User extends Authenticatable
         'company_logo',
         'email',
         'password',
-        'is_admin',
         'specialization',
         'specialization_updated_at',
         'tutorial_step',

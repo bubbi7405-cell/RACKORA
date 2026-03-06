@@ -32,7 +32,29 @@ export const useInfrastructureStore = defineStore('infrastructure', () => {
 
     const hardware = ref({
         inventory: [],
-        catalog: {},
+        catalog: {
+            cpus: [
+                { id: 'intel_xeon_e5', label: 'Intel Xeon E-5', cores: 8, power: 120, cost: 450, tier: 1 },
+                { id: 'amd_epyc_7002', label: 'AMD EPYC 7002', cores: 32, power: 225, cost: 2200, tier: 2 },
+                { id: 'intel_xeon_gold', label: 'Intel Xeon Gold', cores: 24, power: 150, cost: 3500, tier: 3 },
+                { id: 'h100_core', label: 'NVIDIA H100 Logic', cores: 64, power: 700, cost: 25000, tier: 4 },
+            ],
+            ram: [
+                { id: 'ddr4_16gb', label: '16GB DDR4 ECC', capacity: 16, cost: 80, tier: 1 },
+                { id: 'ddr4_64gb', label: '64GB DDR4 ECC', capacity: 64, cost: 320, tier: 2 },
+                { id: 'ddr5_128gb', label: '128GB DDR5 ECC', capacity: 128, cost: 950, tier: 3 },
+            ],
+            storage: [
+                { id: 'sata_ssd_1tb', label: '1TB SATA SSD', capacity: 1000, speed: 500, cost: 120, tier: 1 },
+                { id: 'nvme_ssd_2tb', label: '2TB NVMe Gen4', capacity: 2000, speed: 5000, cost: 450, tier: 2 },
+                { id: 'enterprise_u2_8tb', label: '8TB Enterprise U.2', capacity: 8000, speed: 7000, cost: 1800, tier: 3 },
+            ],
+            nics: [
+                { id: 'eth_1gb', label: '1GbE Quad Port', bandwidth: 1, cost: 50, tier: 1 },
+                { id: 'eth_10gb', label: '10GbE SFP+', bandwidth: 10, cost: 250, tier: 2 },
+                { id: 'eth_100gb', label: '100GbE QSFP28', bandwidth: 100, cost: 1200, tier: 3 },
+            ]
+        },
     });
 
     const brandDeals = ref({

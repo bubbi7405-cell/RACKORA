@@ -71,6 +71,30 @@
                 Execute Spike Test
               </button>
             </div>
+
+            <!-- MEGA QA SIMULATION -->
+            <div class="spike-panel qa-panel">
+              <div class="spike-header">
+                <span class="proto-name">QA Mega Simulation</span>
+                <span class="spike-val">{{ qaBots }} Bots / {{ qaTicks }} Ticks</span>
+              </div>
+              <div class="qa-controls">
+                 <div class="qa-control-group">
+                   <label>Bots</label>
+                   <input type="number" v-model.number="qaBots" min="1" max="50" class="qa-input" />
+                 </div>
+                 <div class="qa-control-group">
+                   <label>Ticks</label>
+                   <input type="number" v-model.number="qaTicks" min="5" max="100" class="qa-input" />
+                 </div>
+              </div>
+              <label class="clean-check">
+                <input type="checkbox" v-model="qaClean" /> Reset existing bots
+              </label>
+              <button @click="runQaMega" :disabled="running" class="spike-btn qa-btn">
+                Launch Mega QA Core
+              </button>
+            </div>
           </div>
         </div>
 
@@ -169,6 +193,9 @@ const { addToast, setGlobalLoading } = inject('adminContext');
 const running = ref(false);
 const logLines = ref([]);
 const spikeIntensity = ref(0.4);
+const qaBots = ref(5);
+const qaTicks = ref(10);
+const qaClean = ref(false);
 const report = ref(null);
 const terminal = ref(null);
 
@@ -217,6 +244,54 @@ const runProtocol = async (id) => {
     running.value = false;
   }
 };
+
+const runQaMega = async () => {
+  running.value = true;
+  report.value = null;
+  logLines.value = [];
+
+  addLog('INITIALIZING MEGA QA CLUSTER...');
+  addLog(`Provisioning ${qaBots.value} virtual bot instances...`);
+  if (qaClean.value) addLog('Purging existing QA test subjects...', 'warning');
+
+  try {
+    const res = await api.post('/admin/simulation/qa-mega', { 
+      bots: qaBots.value, 
+      ticks: qaTicks.value, 
+      clean: qaClean.value 
+    });
+    
+    if (res.success) {
+      addLog('Lattice simulation running...', 'info');
+      
+      // We simulate some delay to make it feel "mega"
+      setTimeout(() => {
+        if (res.log) {
+          const lines = res.log.split('\n');
+          lines.forEach(line => {
+            if (line.trim()) addLog(line.trim(), line.includes('Action Failed') ? 'warning' : 'info');
+          });
+        }
+        
+        addLog('────────────────────────────────────────');
+        addLog('MEGA QA SIMULATION COMPLETE.', 'success');
+        if (res.report_path) {
+          addLog(`Report generated: ${res.report_path}`, 'success');
+        }
+        running.value = false;
+        
+        addToast({
+          title: 'Simulation Complete',
+          message: 'Mega QA run finished. Check terminal for report path.',
+          type: 'success'
+        });
+      }, 2000);
+    }
+  } catch (e) {
+    addLog('CRITICAL FAILURE: QA Core interrupted — ' + e.message, 'error');
+    running.value = false;
+  }
+};
 </script>
 
 <style scoped>
@@ -261,7 +336,7 @@ const runProtocol = async (id) => {
 .proto-name { font-size: 0.72rem; font-weight: 800; color: #e4e4e7; display: block; }
 .proto-desc { font-size: 0.55rem; color: #52525b; font-weight: 600; display: block; margin-top: 2px; }
 
-.spike-panel { background: #111; border: 1px solid #1c1c1e; border-radius: 12px; padding: 16px; }
+.spike-panel { background: #111; border: 1px solid #1c1c1e; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
 .spike-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .spike-val { font-size: 0.7rem; font-weight: 900; color: #3b82f6; font-family: 'JetBrains Mono', monospace; }
 .spike-range { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; background: #18181b; border-radius: 99px; outline: none; margin-bottom: 12px; }
@@ -269,6 +344,17 @@ const runProtocol = async (id) => {
 .spike-btn { width: 100%; height: 36px; border-radius: 10px; background: #0c1222; border: 1px solid #1e3a5f; color: #60a5fa; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s; }
 .spike-btn:hover:not(:disabled) { background: #1e3a5f; }
 .spike-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.qa-panel { margin-top: 16px; border-color: #3f3f46; }
+.qa-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.qa-control-group { display: flex; flex-direction: column; gap: 4px; }
+.qa-control-group label { font-size: 0.55rem; color: #52525b; font-weight: 800; text-transform: uppercase; }
+.qa-input { background: #050505; border: 1px solid #1c1c1e; border-radius: 6px; color: #fafafa; padding: 6px 10px; font-size: 0.7rem; font-family: 'JetBrains Mono', monospace; outline: none; }
+.qa-input:focus { border-color: #3b82f6; }
+.clean-check { display: flex; align-items: center; gap: 8px; font-size: 0.6rem; color: #52525b; font-weight: 700; margin-bottom: 12px; cursor: pointer; }
+.clean-check input { accent-color: #3b82f6; }
+.qa-btn { background: #1a1a1a; border-color: #52525b; color: #e4e4e7; }
+.qa-btn:hover:not(:disabled) { background: #27272a; border-color: #a1a1aa; }
 
 /* PARAMS */
 .param-list { display: flex; flex-direction: column; gap: 8px; }

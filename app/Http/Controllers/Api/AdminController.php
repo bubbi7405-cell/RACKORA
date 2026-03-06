@@ -18,6 +18,7 @@ use App\Services\Game\WorldEventService;
 use App\Services\Game\AuctionService;
 use App\Models\HardwareAuction;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Artisan;
 
 class AdminController extends Controller
 {
@@ -479,6 +480,50 @@ class AdminController extends Controller
             'success' => true,
             'message' => "Simulation protocol '{$protocol}' executed across {$count} sectors.",
             'affected' => $count
+        ]);
+    }
+
+    /**
+     * Run the Mega QA Simulation Command.
+     */
+    public function runMegaQA(Request $request): JsonResponse
+    {
+        $request->validate([
+            'bots' => 'integer|min:1|max:50',
+            'ticks' => 'integer|min:1|max:200',
+            'clean' => 'boolean'
+        ]);
+
+        $bots = $request->input('bots', 5);
+        $ticks = $request->input('ticks', 10);
+        $clean = $request->boolean('clean', false);
+
+        // Run in the background or use Artisan::call if small enough
+        // For a web request, we'll run it and return the output path
+        Artisan::call('qa:mega', [
+            '--bots' => $bots,
+            '--ticks' => $ticks,
+            '--clean' => $clean
+        ]);
+
+        $output = Artisan::output();
+        
+        // Extract the report path from output if possible
+        preg_match('/REPORT GENERATED: (.*\.md)/', $output, $matches);
+        $reportPath = $matches[1] ?? null;
+
+        AdminLogService::log('run_qa_mega', null, [
+            'bots' => $bots,
+            'ticks' => $ticks,
+            'clean' => $clean,
+            'report' => $reportPath
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Mega QA Simulation completed.',
+            'report_path' => $reportPath,
+            'log' => $output
         ]);
     }
 

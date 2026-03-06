@@ -11,6 +11,7 @@ import { useResearchStore } from './research';
 import { useUiStore } from './ui';
 import { useNewsStore } from './news';
 import { useLogStore } from './logs';
+import { useAutomationStore } from './automation';
 import { initEcho, subscribeToGameChannel, subscribeToWorldEvents, disconnectEcho } from '../services/echo';
 import SoundManager from '../services/SoundManager';
 
@@ -34,6 +35,7 @@ export const useGameStore = defineStore('game', () => {
     const uiStore = useUiStore();
     const newsStore = useNewsStore();
     const logStore = useLogStore();
+    const automationStore = useAutomationStore();
     const toast = useToastStore();
 
     // ─── Global State ───────────────────────────────────
@@ -85,6 +87,7 @@ export const useGameStore = defineStore('game', () => {
         infraStore.applyState(data);
         eventStore.applyState(data);
         researchStore.applyState(data);
+        automationStore.applyState(data);
 
         // Network has its own dedicated handler in its store
         if (data.network) {

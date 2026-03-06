@@ -894,8 +894,8 @@ class CustomerOrderService
     public function assignOrder(User $user, CustomerOrder $order, \App\Models\Server $server): void
     {
         // Check ownership
-        if ($server->rack->room->user_id !== $user->id) { // Not quite right, room->rack belongs to user?
-             // Room belongs to user ideally. Or verify via query.
+        if ($server->rack->room->user_id !== $user->id) {
+            throw new \Exception("Access denied: You do not own this server.");
         }
 
         // Check if order is pending

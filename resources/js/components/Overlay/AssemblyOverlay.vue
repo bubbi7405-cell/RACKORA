@@ -157,13 +157,24 @@
                             </select>
                         </div>
 
-                        <button 
-                            class="btn-assemble-final animate-glow" 
-                            :disabled="!isReadyToAssemble"
-                            @click="handleAssemble"
-                        >
-                            {{ isReadyToAssemble ? '🚀 Initialize Assembly' : 'Waiting for configuration...' }}
-                        </button>
+                        <div class="assembly-actions-v3">
+                            <button 
+                                class="btn-assemble-final animate-glow" 
+                                :disabled="!isReadyToAssemble"
+                                @click="handleAssemble"
+                            >
+                                {{ isReadyToAssemble ? '🚀 Initialize Assembly' : 'Waiting for configuration...' }}
+                            </button>
+
+                            <button 
+                                class="btn-auto-config l2-priority" 
+                                @click="handleAutoConfig"
+                                :disabled="simulationPending"
+                                title="Automatically pick best components from inventory"
+                            >
+                                🤖 AUTO_CONFIG
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -316,6 +327,26 @@ async function handleAssemble() {
         await gameStore.loadGameState();
         emit('close');
     }
+}
+
+function handleAutoConfig() {
+    const mb = inventoryByType('motherboard')[0];
+    if (!mb) {
+        useToastStore().error('NO_MOTHERBOARD_IN_INVENTORY');
+        return;
+    }
+    selection.motherboard = mb;
+    
+    const sortedCpus = [...inventoryByType('cpu')].sort((a,b) => (b.config.tier || 0) - (a.config.tier || 0));
+    selection.cpus = sortedCpus.slice(0, mb.config.cpu_slots);
+    
+    const sortedRams = [...inventoryByType('ram')].sort((a,b) => (b.config.tier || 0) - (a.config.tier || 0));
+    selection.rams = sortedRams.slice(0, mb.config.ram_slots);
+    
+    const sortedStorages = [...inventoryByType('storage')].sort((a,b) => (b.config.tier || 0) - (a.config.tier || 0));
+    selection.storages = sortedStorages.slice(0, mb.config.storage_slots);
+
+    useToastStore().success('AUTO_CONFIG_GENERATED: High-density profile selected.');
 }
 
 async function sellComponentItem(item) {
@@ -591,6 +622,31 @@ async function sellComponentItem(item) {
     opacity: 0.2;
     filter: grayscale(1);
     cursor: not-allowed;
+}
+
+.assembly-actions-v3 {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: auto;
+}
+
+.btn-auto-config {
+    background: rgba(0,0,0,0.3);
+    border: 1px dashed var(--v3-border-soft);
+    color: var(--v3-text-ghost);
+    padding: 12px;
+    border-radius: var(--v3-radius);
+    font-size: 0.65rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-auto-config:hover:not(:disabled) {
+    border-color: var(--v3-accent);
+    color: var(--v3-accent);
+    background: var(--v3-accent-soft);
 }
 
 .empty-hint {
