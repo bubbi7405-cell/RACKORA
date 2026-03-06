@@ -91,6 +91,8 @@ class GlobalCrisisService
 
     public function tick(User $user): void
     {
+        if (!$user->economy) return;
+
         $activeCrisis = GlobalCrisis::where('user_id', $user->id)
             ->whereNull('resolved_at')
             ->first();

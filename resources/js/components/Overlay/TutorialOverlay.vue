@@ -91,16 +91,16 @@ const updateInterval = ref(null);
 const steps = [
     {
         id: 'welcome',
-        title: 'Welcome, CEO!',
-        text: 'Welcome to your first data center! I\'m <b>RackBot</b>, your AI facility manager. Let\'s get this basement facility online before the utility bills eat your savings.',
+        title: 'EXECUTIVE_ONBOARDING',
+        text: 'Welcome to the network, Director. I am your <b>EXECUTIVE_ADVISOR</b>. Let\'s bring this facility online and secure your first service contract.',
         highlightSelector: null,
         manualNext: true,
         check: () => true
     },
     {
         id: 'buy_rack',
-        title: '1. Build a Rack',
-        text: 'Every server needs a home. Click an <b>empty slot</b> (the plus icon) in the room to install your first 42U Server Rack.',
+        title: '1. DEPLOY_INFRASTRUCTURE',
+        text: 'Infrastructure is capital. Select an <b>available site segment</b> to deploy your first hardware rack.',
         getHighlight: () => document.getElementById('rack-purchase-modal') || document.querySelector('#tutorial-first-slot'),
         check: () => {
              const room = Object.values(rooms.value || {})[0];
@@ -109,15 +109,15 @@ const steps = [
     },
     {
         id: 'select_rack',
-        title: '2. Access the Rack',
-        text: 'Great. Now **Click on the Rack** you just built to open its slot view. This is where you\'ll manage individual server blades.',
+        title: '2. INSPECT_SITE',
+        text: 'Site segment secured. Now **Select the Rack** to manage individual asset slots.',
         highlightSelector: '[id^="rack-unit-"]', 
         check: () => gameStore.selectedRackId
     },
     {
         id: 'buy_server',
-        title: '3. Deploy Hardware',
-        text: 'Open the <b>Shop</b> (click the shopping cart or press "S") and drag a <b>VServer Node</b> into an empty slot in your rack.',
+        title: '3. PROVISION_HARDWARE',
+        text: 'Access the <b>Hardware Catalog</b> (click the icon) and provision a <b>Standard Server</b> into an empty slot in your rack.',
         highlightSelector: '#nav-market',
         check: () => {
             const room = Object.values(rooms.value || {})[0];
@@ -126,8 +126,8 @@ const steps = [
     },
     {
         id: 'power_on',
-        title: '4. Power Up',
-        text: 'Hardware is useless without electricity. Select your server and click the <b>POWER ON</b> button in the Detail Panel.',
+        title: '4. AUTHORIZE_OPERATIONS',
+        text: 'Passive assets generate no revenue. Select your unit and click <b>AUTHORIZE_OPERATIONS</b> in the control panel to bring it online.',
         highlightSelector: '[id^="server-"]',
         check: () => {
              const room = Object.values(rooms.value || {})[0];
@@ -137,16 +137,16 @@ const steps = [
     },
     {
         id: 'monitor',
-        title: '5. Thermal Watch',
-        text: 'Power generates heat! Keep an eye on the <b>Temperature</b> gauge in the top bar. If it hits 55°C, your hardware will melt.',
+        title: '5. MONITOR_THERMAL_LOAD',
+        text: 'Operations generate heat. Monitor the <b>Thermal Load</b> gauge in the top bar. If it exceeds 55°C, hardware damage is imminent.',
         highlightSelector: '#hud-stats-thermal',
         manualNext: true,
         check: () => true
     },
     {
         id: 'accept_order',
-        title: '6. Sign a Contract',
-        text: 'Contracts are your lifeblood. Open <b>Entity Control</b> (the handshake icon) and <b>ACCEPT</b> an incoming customer request.',
+        title: '6. SECURE_CONTRACT',
+        text: 'Contracts drive your cash flow. Open the <b>CAPITAL</b> panel and <b>AUTHORIZE</b> an incoming service request.',
         highlightSelector: '#nav-management',
         check: () => {
             const hasAccepted = customers.value?.list?.some(c => c.activeOrdersCount > 0);
@@ -155,10 +155,10 @@ const steps = [
     },
     {
         id: 'complete',
-        title: 'Systems GO!',
-        text: 'You\'re officially a Data Center Operator! Monitor your margins, research new tech, and don\'t let the UPS explode. Good luck.',
+        title: 'ONBOARDING_COMPLETE!',
+        text: 'You now have full executive authority. Monitor your margins, expand the network, and secure market dominance. Lead on.',
         manualNext: true,
-        nextLabel: 'Start Empire',
+        nextLabel: 'COMMENCE_OPERATIONS',
         check: () => true
     }
 ];
@@ -297,12 +297,12 @@ function updateHighlightedLoop() {
 <style scoped>
 .tutorial-overlay {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    z-index: 5000; pointer-events: none;
+    z-index: var(--zi-tutorial-mask); pointer-events: none;
 }
 
 .spotlight-mask {
     position: absolute; top: 0; left: 0; pointer-events: none;
-    z-index: 5001;
+    z-index: calc(var(--zi-tutorial-mask) + 1);
 }
 
 .glow-border {
@@ -326,7 +326,7 @@ function updateHighlightedLoop() {
     pointer-events: auto; /* Enable interaction */
     color: #fff;
     transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
-    z-index: 5002;
+    z-index: calc(var(--zi-tutorial-mask) + 2);
     backdrop-filter: blur(10px);
 }
 

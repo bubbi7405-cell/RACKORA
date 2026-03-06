@@ -39,6 +39,7 @@ class PlayerNetwork extends Model
         'last_ddos_at',
         'ddos_events_total',
         'sla_compliance_rate',
+        'has_orbital_redundancy',
     ];
 
     protected $casts = [

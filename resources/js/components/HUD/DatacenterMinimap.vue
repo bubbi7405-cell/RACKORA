@@ -1,28 +1,29 @@
 <template>
-    <div class="minimap-panel glass-panel">
-        <div class="minimap-header">
-            <span class="minimap-title">GLOBAL_FACILITY_GRID</span>
+    <div class="minimap-v2 glass-v2">
+        <div class="minimap-header-v2">
+            <span class="minimap-title-v2 l2-priority">GLOBAL_FACILITY_GRID</span>
+            <div class="minimap-status-icon l1-priority">⧇</div>
         </div>
-        <div class="minimap-grid">
-            <div v-for="room in sortedRooms" :key="room.id" class="minimap-node" :class="{
-                'active': selectedRoomId === room.id,
-                'warning': room.warnings?.powerOverload || room.warnings?.bandwidthSaturated,
-                'danger': room.warnings?.overheating || room.warnings?.powerOutage
-            }" @click="gameStore.selectRoom(room.id)" v-tooltip="getRoomTooltip(room)">
-                <div class="node-id">{{ (room.name || 'NOD').substring(0, 3).toUpperCase() }}</div>
-                <div class="node-bars">
-                    <div class="n-bar">
-                        <div class="fill power" :style="{ height: Math.min(100, (room.power?.percent || 0)) + '%' }">
-                        </div>
+        <div class="minimap-grid-v2">
+            <div v-for="room in sortedRooms" :key="room.id" class="minimap-node-v2" :class="{
+                'is-active': selectedRoomId === room.id,
+                'is-warning': room.warnings?.powerOverload || room.warnings?.bandwidthSaturated,
+                'is-critical': room.warnings?.overheating || room.warnings?.powerOutage
+            }" @click="gameStore.selectRoom(room.id)" 
+               @mouseenter="tooltipStore.show($event, getRoomTooltip(room))"
+               @mouseleave="tooltipStore.hide()">
+                <div class="node-id-v2 l3-priority">{{ (room.name || 'NOD').substring(0, 3).toUpperCase() }}</div>
+                <div class="node-bars-v2">
+                    <div class="v-bar-bg">
+                        <div class="v-bar-fill pwr" :style="{ height: Math.min(100, (room.power?.percent || 0)) + '%' }"></div>
                     </div>
-                    <div class="n-bar">
-                        <div class="fill heat" :style="{ height: Math.min(100, (room.cooling?.percent || 0)) + '%' }">
-                        </div>
+                    <div class="v-bar-bg">
+                        <div class="v-bar-fill heat" :style="{ height: Math.min(100, (room.cooling?.percent || 0)) + '%' }"></div>
                     </div>
                 </div>
             </div>
-            <div v-if="sortedRooms.length === 0" class="empty-minimap">
-                NO LINK
+            <div v-if="sortedRooms.length === 0" class="empty-minimap-v2 l3-priority">
+                SIGNAL_LOSS: NO_FACILITY_UPLINK
             </div>
         </div>
     </div>
@@ -31,163 +32,149 @@
 <script setup>
 import { computed } from 'vue';
 import { useGameStore } from '../../stores/game';
+import { useTooltipStore } from '../../stores/tooltip';
 
 const gameStore = useGameStore();
+const tooltipStore = useTooltipStore();
 
 const selectedRoomId = computed(() => gameStore.selectedRoomId);
 
 const sortedRooms = computed(() => {
     if (!gameStore.rooms) return [];
-    return Object.values(gameStore.rooms).sort((a, b) => {
-        // Sort active room first, or just alphabetically
-        return a.name.localeCompare(b.name);
-    });
+    return Object.values(gameStore.rooms).sort((a, b) => a.name.localeCompare(b.name));
 });
 
 function getRoomTooltip(room) {
     if (!room) return null;
     let status = 'NOMINAL';
-    if (room.warnings?.powerOutage) status = 'CRITICAL: BLACKOUT';
-    else if (room.warnings?.overheating) status = 'CRITICAL: OVERHEATING';
-    else if (room.warnings?.powerOverload) status = 'WARNING: POWER CAPACITY EXCEEDED';
-    else if (room.warnings?.bandwidthSaturated) status = 'WARNING: BANDWIDTH SATURATED';
+    if (room.warnings?.powerOutage) status = 'CRITICAL: TOTAL_BLACKOUT';
+    else if (room.warnings?.overheating) status = 'CRITICAL: THERMAL_RUNAWAY';
+    else if (room.warnings?.powerOverload) status = 'WARNING: POWER_CAP_EXCEEDED';
+    else if (room.warnings?.bandwidthSaturated) status = 'WARNING: SIGNAL_SATURATION';
 
     return {
         title: (room.name || 'Unknown Node').toUpperCase(),
-        content: `Power: ${Math.round(room.power?.percent || 0)}%\nHeat: ${Math.round(room.cooling?.percent || 0)}%\nStatus: ${status}`,
-        hint: 'Click to switch focus'
+        content: `Energy: ${Math.round(room.power?.percent || 0)}% Load\nThermal: ${Math.round(room.cooling?.percent || 0)}% Sat\nStatus: ${status}`,
+        hint: 'Click to re-orient command focus'
     };
 }
 </script>
 
 <style scoped>
-.minimap-panel {
-    background: rgba(0, 0, 0, 0.2) !important;
-    border: 1px solid rgba(255, 255, 255, 0.05) !important;
-    border-radius: var(--v3-radius);
-    padding: 12px;
+.minimap-v2 {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 16px;
+    border-radius: 2px;
 }
 
-.minimap-header {
+.minimap-header-v2 {
     display: flex;
+    justify-content: space-between;
     align-items: center;
+    margin-bottom: 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    padding-bottom: 6px;
-    margin-bottom: 10px;
+    padding-bottom: 8px;
 }
 
-.minimap-title {
-    font-size: 0.55rem;
-    font-weight: 900;
-    color: var(--v3-text-ghost);
-    letter-spacing: 0.2em;
+.minimap-title-v2 {
+    font-size: 0.5rem;
+    font-weight: 950;
+    color: var(--ds-text-ghost);
+    letter-spacing: 0.25em;
 }
 
-.minimap-grid {
+.minimap-status-icon {
+    font-size: 0.6rem;
+    color: var(--ds-accent);
+    opacity: 0.5;
+}
+
+.minimap-grid-v2 {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
 }
 
-.empty-minimap {
-    font-size: 0.5rem;
-    color: var(--v3-text-ghost);
-    letter-spacing: 0.1em;
-}
-
-.minimap-node {
-    width: 36px;
-    height: 36px;
-    background: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 2px;
+.minimap-node-v2 {
+    width: 40px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     cursor: pointer;
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    padding: 3px 2px;
-    transition: all var(--v3-transition-fast);
+    padding: 4px;
+    transition: all 0.2s var(--ds-ease-spring);
 }
 
-.minimap-node:hover {
-    border-color: rgba(255, 255, 255, 0.5);
-    background: rgba(255, 255, 255, 0.1);
+.minimap-node-v2:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
-.minimap-node.active {
-    border-color: var(--v3-accent);
-    box-shadow: 0 0 10px rgba(58, 134, 255, 0.2);
-    background: rgba(58, 134, 255, 0.05);
+.minimap-node-v2.is-active {
+    background: rgba(88, 166, 255, 0.05);
+    border-color: var(--ds-accent);
+    box-shadow: inset 0 0 10px rgba(88, 166, 255, 0.1);
 }
 
-.minimap-node.warning {
-    border-color: var(--v3-warning);
+.minimap-node-v2.is-warning { border-color: var(--ds-warning); }
+.minimap-node-v2.is-critical {
+    border-color: var(--ds-critical);
+    background: rgba(248, 81, 73, 0.1);
+    animation: ds-critical-pulse 1s infinite alternate;
 }
 
-.minimap-node.danger {
-    border-color: var(--v3-danger);
-    background: rgba(255, 77, 79, 0.1);
-    animation: minimap-pulse 1.2s infinite ease-in-out;
+@keyframes ds-critical-pulse {
+    0% { background: rgba(248, 81, 73, 0.05); border-color: rgba(248, 81, 73, 0.3); }
+    100% { background: rgba(248, 81, 73, 0.2); border-color: var(--ds-critical); }
 }
 
-@keyframes minimap-pulse {
-
-    0%,
-    100% {
-        border-color: rgba(255, 77, 79, 0.4);
-    }
-
-    50% {
-        border-color: rgba(255, 77, 79, 1);
-        box-shadow: 0 0 8px rgba(255, 77, 79, 0.5);
-    }
+.node-id-v2 {
+    font-size: 0.45rem;
+    font-weight: 950;
+    font-family: var(--ds-font-mono);
+    color: var(--ds-text-ghost);
 }
 
-.node-id {
-    font-size: 0.5rem;
-    font-family: var(--font-family-mono);
-    font-weight: 900;
-    color: var(--v3-text-secondary);
-    margin-top: 2px;
-}
+.is-active .node-id-v2 { color: #fff; }
 
-.active .node-id {
-    color: var(--v3-accent);
-}
-
-.danger .node-id {
-    color: var(--v3-danger);
-}
-
-.node-bars {
+.node-bars-v2 {
     display: flex;
     gap: 2px;
-    height: 12px;
+    height: 16px;
     width: 100%;
-    justify-content: center;
-    align-items: flex-end;
 }
 
-.n-bar {
-    width: 8px;
+.v-bar-bg {
+    flex: 1;
     height: 100%;
     background: rgba(255, 255, 255, 0.05);
     display: flex;
     align-items: flex-end;
 }
 
-.n-bar .fill {
+.v-bar-fill {
     width: 100%;
-    transition: height 0.5s;
+    transition: height 0.8s var(--ds-ease-spring);
 }
 
-.n-bar .fill.power {
-    background: var(--v3-warning);
-}
+.v-bar-fill.pwr { background: var(--ds-warning); opacity: 0.7; }
+.v-bar-fill.heat { background: var(--ds-critical); opacity: 0.7; }
 
-.n-bar .fill.heat {
-    background: var(--v3-danger);
+.is-critical .v-bar-fill { opacity: 1; }
+
+.empty-minimap-v2 {
+    font-size: 0.45rem;
+    font-weight: 950;
+    color: var(--ds-text-ghost);
+    padding: 20px 0;
+    width: 100%;
+    text-align: center;
 }
 </style>
+

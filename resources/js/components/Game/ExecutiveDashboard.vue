@@ -2,12 +2,18 @@
     <div class="executive-dashboard">
         <!-- TOP KPI GRID -->
         <div class="kpi-grid">
-            <div class="kpi-card" v-for="kpi in kpis" :key="kpi.label">
+            <div class="kpi-card glass-panel" v-for="kpi in kpis" :key="kpi.label">
                 <div class="kpi-icon">{{ kpi.icon }}</div>
                 <div class="kpi-data">
-                    <span class="label">{{ kpi.label }}</span>
+                    <span class="label l3-priority">
+                        {{ kpi.label }}
+                        <span class="v3-info-trigger" 
+                            @mouseenter="tooltipStore.show($event, { title: kpi.label, content: kpi.tooltip, hint: kpi.hint })"
+                            @mouseleave="tooltipStore.hide()"
+                        >ⓘ</span>
+                    </span>
                     <div class="value-row">
-                        <span class="value" :class="kpi.trend">{{ kpi.value }}</span>
+                        <span class="value l1-priority" :class="kpi.trend">{{ kpi.value }}</span>
                         <span class="trend-indicator" v-if="kpi.trend === 'up'">▲</span>
                         <span class="trend-indicator" v-if="kpi.trend === 'down'">▼</span>
                     </div>
@@ -20,24 +26,30 @@
             <div class="status-column">
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h4>INFRASTRUCTURE_OVERVIEW</h4>
+                        <h4 class="l2-priority">
+                            NETWORK_PORTFOLIO
+                            <span class="v3-info-trigger" 
+                                @mouseenter="tooltipStore.show($event, { title: 'NETWORK_PORTFOLIO', content: 'Aggregated status of all regional infrastructure sites.', hint: 'Access the Network tab for site-level management.' })"
+                                @mouseleave="tooltipStore.hide()"
+                            >ⓘ</span>
+                        </h4>
                     </div>
                     <div class="room-status-list">
                         <div v-for="room in playerRooms" :key="room.id" class="mini-room-card">
                             <div class="room-info">
-                                <span class="room-name">{{ room.name }}</span>
-                                <span class="room-region">{{ room.region.toUpperCase() }}</span>
+                                <span class="room-name l2-priority">{{ room.name }}</span>
+                                <span class="room-region l3-priority">{{ room.region.toUpperCase() }} // [ACTIVE]</span>
                             </div>
                             <div class="room-metrics">
                                 <div class="metric">
-                                    <label>LOAD</label>
+                                    <label class="l3-priority">LOAD</label>
                                     <div class="mini-bar">
                                         <div class="fill" :style="{ width: (room.currentPower / room.maxPower * 100) + '%' }"></div>
                                     </div>
                                 </div>
                                 <div class="metric">
-                                    <label>TEMP</label>
-                                    <span :class="getTempClass(room.temperature)">{{ room.temperature }}°C</span>
+                                    <label class="l3-priority">TEMP</label>
+                                    <span class="l2-priority" :class="getTempClass(room.temperature)">{{ room.temperature }}°C</span>
                                 </div>
                             </div>
                         </div>
@@ -46,12 +58,18 @@
 
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h4>ACTIVE_STRATEGIC_POLICIES</h4>
+                        <h4 class="l2-priority">
+                            BOARD_DIRECTIVES
+                            <span class="v3-info-trigger" 
+                                @mouseenter="tooltipStore.show($event, { title: 'BOARD_DIRECTIVES', content: 'Global directives that modify company efficiency, growth, and market positioning.', hint: 'Develop new strategies in the ASSET_R&D lab.' })"
+                                @mouseleave="tooltipStore.hide()"
+                            >ⓘ</span>
+                        </h4>
                     </div>
                     <div class="policy-list">
                         <div v-for="(val, key) in economy.strategic_policies" :key="key" class="policy-item">
-                            <span class="p-key">{{ key.replace('_', ' ').toUpperCase() }}</span>
-                            <span class="p-val">{{ val.toUpperCase() }}</span>
+                            <span class="p-key l3-priority">{{ key.replace('_', ' ').toUpperCase() }}</span>
+                            <span class="p-val l2-priority">{{ val.toUpperCase() }}</span>
                         </div>
                         <div v-if="Object.keys(economy.strategic_policies || {}).length === 0" class="no-policies">
                             NO ACTIVE POLICIES DEFINED
@@ -64,13 +82,13 @@
             <div class="intel-column">
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h4>RECENT_INCIDENTS</h4>
-                        <span class="sub">LAST_24_TICK</span>
+                        <h4 class="l2-priority">CRITICAL_EVENT_LOG</h4>
+                        <span class="sub l3-priority">LAST_24_CYCLES</span>
                     </div>
                     <div class="incident-summary">
                         <div v-for="log in recentLogs" :key="log.id" class="mini-log-item" :class="log.type">
-                            <span class="t-stamp">[{{ formatTime(log.created_at) }}]</span>
-                            <span class="msg">{{ log.message }}</span>
+                            <span class="t-stamp l3-priority">[{{ formatTime(log.created_at) }}]</span>
+                            <span class="msg l2-priority">{{ log.message }}</span>
                         </div>
                         <div v-if="recentLogs.length === 0" class="no-incidents">
                             SYSTEMS_STABLE: NO RECENT INCIDENTS
@@ -80,7 +98,13 @@
 
                 <div class="dashboard-section">
                     <div class="section-header">
-                        <h4>SLA_PERFORMANCE</h4>
+                        <h4 class="l2-priority">
+                            SERVICE_STABILITY
+                            <span class="v3-info-trigger" 
+                                @mouseenter="tooltipStore.show($event, { title: 'UPTIME_INDEX', content: 'Global service reliability metric. Maintaining stability is critical for client retention.', hint: '99.9% is the industry standard for high-tier assets.' })"
+                                @mouseleave="tooltipStore.hide()"
+                            >ⓘ</span>
+                        </h4>
                     </div>
                     <div class="sla-container">
                         <div class="sla-circle">
@@ -88,11 +112,11 @@
                                 <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                                 <path class="circle" :stroke-dasharray="uptimePercent + ', 100'" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                             </svg>
-                            <div class="percentage">{{ uptimePercent }}%</div>
+                            <div class="percentage l1-priority">{{ uptimePercent }}%</div>
                         </div>
                         <div class="sla-meta">
-                            <div class="sla-label">GLOBAL_UPTIME</div>
-                            <div class="sla-desc">Target: 99.9%</div>
+                            <div class="sla-label l2-priority">GLOBAL_STABILITY_INDEX</div>
+                            <div class="sla-desc l3-priority">Target: 99.9% // [SLA_ACTIVE]</div>
                         </div>
                     </div>
                 </div>
@@ -105,20 +129,50 @@
 import { computed, ref, onMounted } from 'vue';
 import { useGameStore } from '../../stores/game';
 import { useNetworkStore } from '../../stores/network';
+import { useTooltipStore } from '../../stores/tooltip';
 import api from '../../utils/api';
 
 const gameStore = useGameStore();
 const networkStore = useNetworkStore();
+const tooltipStore = useTooltipStore();
 const logs = ref([]);
 
 const economy = computed(() => gameStore.player?.economy || {});
 const playerRooms = computed(() => gameStore.rooms || []);
 
 const kpis = computed(() => [
-    { label: 'NET_INCOM_EST', value: '$' + formatValue(economy.value.hourlyIncome - economy.value.hourlyExpenses), icon: '💰', trend: economy.value.hourlyIncome > economy.value.hourlyExpenses ? 'up' : 'down' },
-    { label: 'REPUTATION', value: Math.round(economy.value.reputation || 0) + '%', icon: '📈', trend: 'neutral' },
-    { label: 'ENTITY_LEVEL', value: 'RANK_' + (economy.value.level || 1), icon: '🏆', trend: 'neutral' },
-    { label: 'CASH_RESERVE', value: '$' + formatValue(economy.value.balance), icon: '🏛️', trend: 'neutral' }
+    { 
+        label: 'NET_YIELD', 
+        value: '$' + formatValue(economy.value.hourlyIncome - economy.value.hourlyExpenses), 
+        icon: '💰', 
+        trend: economy.value.hourlyIncome > economy.value.hourlyExpenses ? 'up' : 'down',
+        tooltip: 'Estimated hourly profit or loss after all operating expenses.',
+        hint: 'High power costs and personnel salaries are your primary overhead.'
+    },
+    { 
+        label: 'MARKET_REPUTATION', 
+        value: Math.round(economy.value.reputation || 0) + '%', 
+        icon: '📈', 
+        trend: 'neutral',
+        tooltip: 'Market perception of the brand. Affects client acquisition and contract quality.',
+        hint: 'Service failures lead to rapid reputation decay.'
+    },
+    { 
+        label: 'ASSET_UTILIZATION', 
+        value: Math.round((gameStore.stats?.totalServers / (gameStore.stats?.totalRacks * 42 || 1)) * 100) + '%', 
+        icon: '▣', 
+        trend: 'neutral',
+        tooltip: 'Efficiency of hardware deployment across all active sites.',
+        hint: 'Higher utilization scales your capital yield.'
+    },
+    { 
+        label: 'SERVICE_RELIABILITY', 
+        value: uptimePercent.value + '%', 
+        icon: '🛡️', 
+        trend: 'neutral',
+        tooltip: 'Historical uptime performance. Critical for enterprise SLA compliance.',
+        hint: 'Maintain 99.9% to avoid penalty fees.'
+    }
 ]);
 
 const uptimePercent = computed(() => networkStore.metrics.slaCompliance.toFixed(2));
@@ -390,5 +444,29 @@ onMounted(async () => {
     opacity: 0.5;
     text-align: center;
     padding: 20px;
+}
+
+.v3-info-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(88, 166, 255, 0.15);
+    color: #58a6ff;
+    font-size: 10px;
+    font-weight: 800;
+    cursor: help;
+    margin-left: 6px;
+    vertical-align: middle;
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    transition: all 0.2s;
+}
+
+.v3-info-trigger:hover {
+    background: #58a6ff;
+    color: #05070a;
+    box-shadow: 0 0 10px rgba(88, 166, 255, 0.4);
 }
 </style>

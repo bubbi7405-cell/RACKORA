@@ -5,22 +5,40 @@
             <div class="header-main">
                 <div class="header-icon">👥</div>
                 <div class="header-text">
-                    <h2>HUMAN_RESOURCES_DIVISION</h2>
-                    <p class="subtitle">STAFF OPERATIONS & EFFICIENCY MANAGEMENT</p>
+                    <h2 class="l1-priority">HUMAN_CAPITAL_LOGISTICS // [USER_STRICT]</h2>
+                    <p class="subtitle l3-priority">STAFF_OPERATIONS_CONTROL_&_EFFICIENCY_MATRIX</p>
                 </div>
             </div>
             <div class="header-stats">
                 <div class="stat-box">
-                    <span class="label">TOTAL_PAYROLL</span>
-                    <span class="value mono text-warning">-${{ totalHourlySalary.toFixed(2) }}/hr</span>
+                    <span class="label l3-priority">
+                        TOTAL_OPERATIONAL_PAYROLL
+                        <span class="v3-info-trigger" 
+                            @mouseenter="tooltipStore.show($event, { title: 'TOTAL_PAYROLL', content: 'Aggregated hourly salary of all active personnel.', hint: 'High-level employees cost significantly more but work faster.' })"
+                            @mouseleave="tooltipStore.hide()"
+                        >ⓘ</span>
+                    </span>
+                    <span class="value mono text-warning l1-priority">-${{ totalHourlySalary.toFixed(2) }}/hr</span>
                 </div>
                 <div class="stat-box">
-                    <span class="label">HEADCOUNT</span>
-                    <span class="value mono">{{ employees.length }} / {{ maxEmployees }}</span>
+                    <span class="label l3-priority">
+                        PERSONNEL_HEADCOUNT
+                        <span class="v3-info-trigger" 
+                            @mouseenter="tooltipStore.show($event, { title: 'HEADCOUNT', content: 'Current number of active employees vs. total available roster slots.', hint: 'Upgrade your DC tier to increase limits.' })"
+                            @mouseleave="tooltipStore.hide()"
+                        >ⓘ</span>
+                    </span>
+                    <span class="value mono l1-priority">{{ employees.length }} / {{ maxEmployees }}</span>
                 </div>
                 <div class="stat-box">
-                    <span class="label">AVG_EFFICIENCY</span>
-                    <span class="value mono" :class="avgEfficiency > 1.0 ? 'text-success' : ''">{{ (avgEfficiency * 100).toFixed(0) }}%</span>
+                    <span class="label l3-priority">
+                        AGGREGATE_EFFICIENCY_INDEX
+                        <span class="v3-info-trigger" 
+                            @mouseenter="tooltipStore.show($event, { title: 'AVG_EFFICIENCY', content: 'Current workforce operational speed. Affected by level, happiness, and infrastructure quality.', hint: 'Keep staff happy to maintain high productivity.' })"
+                            @mouseleave="tooltipStore.hide()"
+                        >ⓘ</span>
+                    </span>
+                    <span class="value mono l1-priority" :class="avgEfficiency > 1.0 ? 'text-success' : ''">{{ (avgEfficiency * 100).toFixed(0) }}%</span>
                 </div>
             </div>
         </header>
@@ -29,7 +47,13 @@
             <!-- RECRUITMENT SECTION -->
             <aside class="recruitment-panel">
                 <div class="panel-header">
-                    <h3>RECRUITMENT_CHANNEL</h3>
+                    <h3 class="l2-priority">
+                        TALENT_PROCUREMENT_HUB
+                        <span class="v3-info-trigger" 
+                            @mouseenter="tooltipStore.show($event, { title: 'RECRUITMENT', content: 'Hire new specialists. Each role automates different aspects of your data center.', hint: 'Review signing bonuses before hiring.' })"
+                            @mouseleave="tooltipStore.hide()"
+                        >ⓘ</span>
+                    </h3>
                     <div class="header-line"></div>
                 </div>
                 
@@ -38,8 +62,8 @@
                         <div class="card-header">
                             <div class="role-icon">{{ key === 'sys_admin' ? '🛠️' : '🎧' }}</div>
                             <div class="role-info">
-                                <h4>{{ type.name }}</h4>
-                                <span class="role-tag">{{ key.replace('_', ' ').toUpperCase() }}</span>
+                                <h4 class="l2-priority">{{ type.name }}</h4>
+                                <span class="role-tag l3-priority">{{ key.replace('_', ' ').toUpperCase() }}</span>
                             </div>
                         </div>
                         
@@ -67,12 +91,41 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- ACTIVE SYNERGIES SECTION -->
+                <div class="synergy-panel" v-if="empStore.activeSynergies.length > 0">
+                    <div class="panel-header">
+                        <h3 class="l2-priority">
+                            TEAM_SYNERGY_MATRICES
+                            <span class="v3-info-trigger" 
+                                @mouseenter="tooltipStore.show($event, { title: 'SYNERGIES', content: 'Passive bonuses activated by specific employee combinations.', hint: 'Synergies stack and affect global datacenter performance.' })"
+                                @mouseleave="tooltipStore.hide()"
+                            >ⓘ</span>
+                        </h3>
+                        <div class="header-line"></div>
+                    </div>
+                    <div class="synergy-list">
+                        <div v-for="syn in empStore.activeSynergies" :key="syn.name" class="synergy-badge"
+                            @mouseenter="tooltipStore.show($event, { title: syn.name, content: formatSynergyEffects(syn.effects) })"
+                            @mouseleave="tooltipStore.hide()"
+                        >
+                            <span class="syn-icon">⚡</span>
+                            <span class="syn-name">{{ syn.name }}</span>
+                        </div>
+                    </div>
+                </div>
             </aside>
 
             <!-- STAFF MANAGEMENT SECTION -->
             <main class="staff-panel">
                 <div class="panel-header">
-                    <h3>ACTIVE_PERSONNEL</h3>
+                    <h3 class="l2-priority">
+                        OPERATIONAL_SPECIALIST_COORDINATES
+                        <span class="v3-info-trigger" 
+                            @mouseenter="tooltipStore.show($event, { title: 'STAFF_MANAGEMENT', content: 'Monitor and manage the health and productivity of your current team.', hint: 'Use the training action to improve efficiency permanently.' })"
+                            @mouseleave="tooltipStore.hide()"
+                        >ⓘ</span>
+                    </h3>
                     <div class="header-line"></div>
                 </div>
 
@@ -83,7 +136,17 @@
                 </div>
 
                 <div v-else class="staff-grid">
-                    <div v-for="emp in employees" :key="emp.id" class="staff-card" :class="{ 'stressed': emp.stress > 70, 'burnout': emp.stress >= 98 }">
+                    <div v-for="emp in employees" :key="emp.id" class="staff-card" :class="{ 
+                        'stressed': emp.stress > 70, 
+                        'burnout': emp.metadata && emp.metadata.burnout_until,
+                        'sabbatical': emp.current_task?.includes('Sabbatical'),
+                        'resigning': emp.is_resigning
+                    }">
+                        <!-- RESIGNATION NOTICE OVERLAY -->
+                        <div v-if="emp.is_resigning" class="resignation-notice">
+                            <span class="pulse-warning">⚠️</span>
+                            <span>RESIGNING_NOTICE: {{ formatDeadline(emp.resignation_deadline) }}</span>
+                        </div>
                         <!-- Card Header -->
                         <div class="card-top">
                             <div class="avatar-block">
@@ -91,34 +154,65 @@
                                 <div class="status-dot" :class="getHealthStatus(emp)"></div>
                             </div>
                             <div class="identity-block">
-                                <div class="name">{{ emp.name }}</div>
-                                <div class="sub-role">{{ formatType(emp.type) }} <span class="lvl-badge">LVL {{ emp.level }}</span></div>
+                                <div class="name l1-priority">{{ emp.name }}</div>
+                                <div class="sub-role l3-priority">
+                                    {{ formatType(emp.type) }} 
+                                    <span class="lvl-badge">LVL {{ emp.level }}</span>
+                                    <span class="loyalty-badge" 
+                                        @mouseenter="tooltipStore.show($event, { title: 'LOYALTY_SCORE', content: 'Employee commitment to the company. Low loyalty increases the risk of being poached or resigning.', hint: 'Boost by granting raises, sabbaticals, or bonuses.' })"
+                                        @mouseleave="tooltipStore.hide()"
+                                    >LOYALTY: {{ parseFloat(emp.loyalty).toFixed(0) }}%</span>
+                                </div>
                             </div>
-                            <div class="efficiency-badge" :title="'Efficiency Multiplier'">
-                                {{ (emp.efficiency * 100).toFixed(0) }}%
+                            <div class="efficiency-block"
+                                @mouseenter="tooltipStore.show($event, { title: 'EFFICIENCY_MODIFIER', content: 'Cumulative multiplier for task completion speed.', hint: 'Affected by level, morale, and training.' })"
+                                @mouseleave="tooltipStore.hide()"
+                            >
+                                <div class="efficiency-val">{{ (emp.efficiency * 100).toFixed(0) }}%</div>
+                                <div class="efficiency-label">EFF</div>
                             </div>
                         </div>
 
                         <!-- Telemetry -->
                         <div class="telemetry-rows">
-                            <div class="t-row">
+                            <div class="t-row" 
+                                @mouseenter="tooltipStore.show($event, { title: 'STAMINA_LEVEL', content: 'Remaining physical and mental energy. Low energy causes staff to take breaks.', hint: 'Automatic breaks happen at <15 energy.' })"
+                                @mouseleave="tooltipStore.hide()"
+                            >
                                 <div class="t-label">Stamina</div>
                                 <div class="t-bar-bg">
                                     <div class="t-bar-fill" :style="{ width: emp.energy + '%', background: getEnergyColor(emp.energy) }"></div>
                                 </div>
                             </div>
-                            <div class="t-row">
+                            <div class="t-row"
+                                @mouseenter="tooltipStore.show($event, { title: 'STRESS_LEVEL', content: 'Accumulated mental load from heavy workloads and outages.', hint: 'High stress (>95) leads to sudden burnout events.' })"
+                                @mouseleave="tooltipStore.hide()"
+                            >
                                 <div class="t-label">Stress</div>
                                 <div class="t-bar-bg">
                                     <div class="t-bar-fill" :style="{ width: emp.stress + '%', background: getStressColor(emp.stress) }"></div>
                                 </div>
                             </div>
+                            <div v-if="emp.stress > 80" class="t-row risk-row"
+                                @mouseenter="tooltipStore.show($event, { title: 'BURNOUT_RISK', content: 'Critical stress levels detected. High probability of immediate medical leave!', hint: 'Grant a sabbatical or raise immediately!' })"
+                                @mouseleave="tooltipStore.hide()"
+                            >
+                                <div class="t-label">Risk</div>
+                                <div class="t-bar-bg risk-bg">
+                                    <div class="t-bar-fill risk-fill" :style="{ width: ((emp.stress - 80) * 5) + '%' }"></div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Current Task -->
-                        <div class="task-status-box" :class="{ 'active': emp.task_progress > 0 }">
+                        <div class="task-status-box" :class="{ 'active': emp.task_progress > 0 || emp.current_task }">
                             <div class="task-icon">{{ getTaskIcon(emp) }}</div>
-                            <div class="task-text">{{ emp.current_task || 'IDLE' }}</div>
+                            <div class="task-main">
+                                <div class="task-text">{{ emp.current_task || 'IDLE' }}</div>
+                                <div class="task-timer" v-if="getRemainingTime(emp)">
+                                    ETA: {{ getRemainingTime(emp) }}
+                                </div>
+                            </div>
                             <div class="task-progress-bar" v-if="emp.task_progress > 0">
                                 <div class="tp-fill" :style="{ width: emp.task_progress + '%' }"></div>
                             </div>
@@ -129,9 +223,15 @@
                             <div class="salary-display">${{ parseFloat(emp.salary).toFixed(2) }}/hr</div>
                             
                             <div class="action-buttons">
-                                <button class="btn-icon" @click="train(emp)" title="Train (+Efficiency, +Stress)">🎓</button>
-                                <button class="btn-icon" @click="promote(emp)" title="Raise (+Salary, -Stress)">💰</button>
-                                <button class="btn-icon danger" @click="fire(emp)" title="Terminate">✕</button>
+                                <button v-if="emp.is_resigning" 
+                                    class="btn-icon special pulse" @click="persuade(emp)" title="Persuade to stay (Lump-sum bonus + 15% Raise)">🤝</button>
+
+                                <button class="btn-icon" @click="train(emp)" title="Basic Training (+XP, +Stress)">📖</button>
+                                <button v-if="emp.level >= 5 && emp.stress > 60 && !emp.current_task?.includes('Sabbatical')" 
+                                    class="btn-icon" @click="sabbatical(emp)" title="Paid Sabbatical (Cost: 1mo salary, Resets stress to 0%, 2h duration)">🏖️</button>
+                                <button class="btn-icon" @click="seminar(emp)" title="Advanced Seminar (+10% Permanent Efficiency boost, 12h duration)">🏛️</button>
+                                <button class="btn-icon" @click="promote(emp)" title="Grant Raise (+Salary, -Stress)">💰</button>
+                                <button class="btn-icon danger" @click="fire(emp)" title="Terminate Personnel">✕</button>
                             </div>
                         </div>
                     </div>
@@ -157,11 +257,13 @@
 import { onMounted, computed, ref, reactive } from 'vue';
 import { useEmployeesStore } from '../../stores/employees';
 import { useEconomyStore } from '../../stores/economy';
+import { useTooltipStore } from '../../stores/tooltip';
 import ConfirmationModal from '../UI/ConfirmationModal.vue';
 import api from '../../utils/api';
 
 const empStore = useEmployeesStore();
 const ecoStore = useEconomyStore();
+const tooltipStore = useTooltipStore();
 
 const isLoading = ref(false);
 const loadingKey = ref(null);
@@ -226,7 +328,8 @@ async function hire(typeKey) {
 async function fire(emp) {
     modal.title = 'TERMINATE_EMPLOYEE';
     modal.message = `Are you sure you want to terminate ${emp.name}?`;
-    modal.warning = `Severance pay of $${emp.salary} will be deducted from your balance.`;
+    const severance = (parseFloat(emp.salary) * (5 + parseInt(emp.level))).toFixed(2);
+    modal.warning = `Severance pay of $${severance} will be deducted from your balance.`;
     modal.confirmLabel = 'TERMINATE';
     modal.type = 'danger';
     modal.onConfirm = async () => {
@@ -266,7 +369,7 @@ async function promote(emp) {
     const raise = 0.10; // 10%
     
     modal.title = 'PROMOTION_REVIEW';
-    modal.message = `Offer ${emp.name} a ${(raise*100).toFixed(0)}% salary raise?`;
+    modal.message = `Offer ${emp.name} a ${(raise * 100).toFixed(0)}% salary raise?`;
     modal.warning = "This will increase hourly overhead but reduce employee stress.";
     modal.confirmLabel = 'GRANT_RAISE';
     modal.type = 'info';
@@ -281,6 +384,72 @@ async function promote(emp) {
         } finally {
             isLoading.value = false;
         }
+    };
+    modal.show = true;
+}
+
+async function seminar(emp) {
+    const cost = 7500;
+    
+    modal.title = 'ADVANCED_OFFSITE_SEMINAR';
+    modal.message = `Send ${emp.name} to a 12-hour advanced professional development seminar?`;
+    modal.warning = `Cost: $${cost.toLocaleString()} | Benefit: +10% Permanent Efficiency boost upon return.`;
+    modal.confirmLabel = 'ENROLL_IN_SEMINAR';
+    modal.type = 'info';
+    modal.onConfirm = async () => {
+        modal.show = false;
+        try {
+            isLoading.value = true;
+            const res = await api.post(`/employees/${emp.id}/seminar`);
+            if (res.success) {
+                await empStore.loadEmployees();
+                ecoStore.loadEconomy();
+            }
+        } finally {
+            isLoading.value = false;
+        }
+    };
+    modal.show = true;
+}
+
+async function sabbatical(emp) {
+    const cost = parseFloat(emp.salary) * 30; // Matches backend
+    
+    modal.title = 'PAID_SABBATICAL_GRANT';
+    modal.message = `Grant ${emp.name} a 2-hour paid sabbatical?`;
+    modal.warning = `Grant bonus: $${cost.toLocaleString()} | Benefit: Total stress reset and loyalty boost.`;
+    modal.confirmLabel = 'GRANT_SABBATICAL';
+    modal.type = 'info';
+    modal.onConfirm = async () => {
+        modal.show = false;
+        try {
+            isLoading.value = true;
+            const res = await api.post(`/employees/${emp.id}/sabbatical`); // Calling API directly or via store
+            if (res.success) {
+                await empStore.loadEmployees();
+                ecoStore.loadEconomy();
+            }
+        } catch (e) {
+            alert(e.response?.data?.error || e.message || "Sabbatical failed");
+        } finally {
+            isLoading.value = false;
+        }
+    };
+    modal.show = true;
+}
+
+async function persuade(emp) {
+    const cost = parseFloat(emp.salary) * 25;
+    
+    modal.title = 'CONTRACT_NEGOTIATION';
+    modal.message = `Persuade ${emp.name} to withdraw their resignation?`;
+    modal.warning = `Requires a lump-sum bonus of $${cost.toLocaleString()} and a mandatory 15% salary increase.`;
+    modal.confirmLabel = 'SIGN_NEW_CONTRACT';
+    modal.type = 'success';
+    modal.onConfirm = async () => {
+        modal.show = false;
+        await empStore.persuadeToStay(emp.id);
+        ecoStore.loadEconomy();
     };
     modal.show = true;
 }
@@ -309,9 +478,47 @@ function getStressColor(val) {
     return 'var(--v3-success)'; // Low stress is good
 }
 
+function getRemainingTime(emp) {
+    const target = emp.sabbatical_until || 
+                   emp.metadata?.seminar_until || 
+                   emp.metadata?.burnout_until ||
+                   emp.resignation_deadline;
+    
+    if (!target) return null;
+    
+    const diff = new Date(target) - new Date();
+    if (diff <= 0) return null;
+    
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+}
+
+function formatSynergyEffects(effects) {
+    return Object.entries(effects).map(([key, val]) => {
+        const sign = val > 0 ? '+' : '';
+        const pct = (val * 100).toFixed(0) + '%';
+        return `${key.replace(/_/g, ' ').toUpperCase()}: ${sign}${pct}`;
+    }).join(' | ');
+}
+
+function formatDeadline(deadline) {
+    if (!deadline) return '';
+    try {
+        const d = new Date(deadline);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch(e) { return deadline; }
+}
+
 function getTaskIcon(emp) {
     if (emp.energy < 15) return '💤';
     if (emp.stress > 95) return '🤯';
+    if (emp.current_task?.includes('Seminar')) return '🎓';
+    if (emp.current_task?.includes('Sabbatical')) return '🏖️';
+    if (emp.current_task?.includes('Medical Leave')) return '⚕️';
+    if (emp.current_task?.includes('Burnout')) return '🚑';
     if (emp.current_task?.includes('Repair')) return '🔧';
     if (emp.current_task?.includes('Customer')) return '🤝';
     return '👁️';
@@ -415,6 +622,47 @@ function getTaskIcon(emp) {
 .btn-hire:hover:not(:disabled) { filter: brightness(1.1); }
 .btn-hire:disabled { opacity: 0.5; cursor: not-allowed; background: var(--v3-bg-surface); color: var(--v3-text-ghost); }
 
+/* SYNERGY PANEL */
+.synergy-panel { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--v3-border-soft); }
+.synergy-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.synergy-badge {
+    background: rgba(88,166,255,0.1);
+    border: 1px solid rgba(88,166,255,0.2);
+    padding: 6px 10px;
+    border-radius: 4px;
+    display: flex; align-items: center; gap: 6px;
+    cursor: help;
+    transition: all 0.2s;
+}
+.synergy-badge:hover { background: rgba(88,166,255,0.2); border-color: var(--v3-accent); transform: translateY(-1px); }
+.syn-icon { font-size: 0.8rem; }
+.syn-name { font-size: 0.6rem; font-weight: 800; color: #fff; letter-spacing: 0.05em; text-transform: uppercase; }
+
+/* RESIGNATION */
+.staff-card.resigning { border: 1px solid var(--v3-status-error); background: rgba(239, 68, 68, 0.05); }
+.resignation-notice {
+    background: var(--v3-status-error);
+    color: white;
+    font-size: 0.55rem;
+    font-weight: 900;
+    text-align: center;
+    padding: 2px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+.pulse-warning { animation: v3-pulse 1s infinite; }
+@keyframes v3-pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
+}
+.btn-icon.special { background: rgba(52, 211, 153, 0.2); border: 1px solid #34d399; }
+.btn-icon.pulse { animation: v3-bounce 2s infinite; }
+@keyframes v3-bounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
 /* STAFF GRID */
 .staff-panel {
     padding: 24px;
@@ -444,6 +692,8 @@ function getTaskIcon(emp) {
 .staff-card.stressed::before { background: var(--v3-warning); }
 .staff-card.burnout { border-color: var(--v3-danger); opacity: 0.8; }
 .staff-card.burnout::before { background: var(--v3-danger); }
+.staff-card.sabbatical { border-color: var(--v3-success); opacity: 0.95; }
+.staff-card.sabbatical::before { background: var(--v3-success); }
 
 .card-top { display: flex; gap: 12px; align-items: center; }
 .avatar-block { position: relative; }
@@ -453,31 +703,47 @@ function getTaskIcon(emp) {
 .status-dot.warning { background: var(--v3-warning); }
 .status-dot.critical { background: var(--v3-danger); }
 
-.identity-block { flex: 1; overflow: hidden; }
-.name { font-size: 0.8rem; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sub-role { font-size: 0.6rem; color: var(--v3-text-secondary); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
-.lvl-badge { background: rgba(255,255,255,0.1); padding: 1px 4px; border-radius: 2px; font-size: 0.5rem; color: #fff; }
+.identity-block { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 4px; }
+.name { font-size: 0.85rem; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sub-role { font-size: 0.6rem; color: var(--v3-text-secondary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lvl-badge { background: rgba(255,255,255,0.08); padding: 1px 4px; border-radius: 2px; font-size: 0.55rem; color: var(--v3-text-ghost); border: 1px solid rgba(255,255,255,0.1); }
+.loyalty-badge { font-size: 0.55rem; color: var(--v3-text-primary); font-weight: 700; }
 
-.efficiency-badge {
-    font-size: 0.8rem; font-weight: 900; color: var(--v3-text-ghost); font-family: var(--font-family-mono);
+.efficiency-block {
+    text-align: right;
+    background: rgba(0,0,0,0.2);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.05);
 }
+.efficiency-val { font-size: 0.9rem; font-weight: 900; color: var(--v3-accent); font-family: var(--font-family-mono); line-height: 1; }
+.efficiency-label { font-size: 0.45rem; color: var(--v3-text-ghost); font-weight: 800; text-transform: uppercase; margin-top: 2px; }
 
-.t-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.t-label { width: 50px; font-size: 0.55rem; color: var(--v3-text-secondary); text-transform: uppercase; font-weight: 700; }
-.t-bar-bg { flex: 1; height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; }
-.t-bar-fill { height: 100%; transition: width 0.5s; }
+.t-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.t-label { width: 50px; font-size: 0.55rem; color: var(--v3-text-ghost); text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em; }
+.t-bar-bg { flex: 1; height: 5px; background: rgba(0,0,0,0.3); border-radius: 2px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.5); }
+.t-bar-fill { height: 100%; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+
+.risk-row { margin-top: 4px; }
+.risk-bg { background: rgba(248,81,73,0.1); }
+.risk-fill { background: linear-gradient(90deg, #f85149, #ff7b72) !important; box-shadow: 0 0 10px rgba(248,81,73,0.5); }
 
 .task-status-box {
-    background: rgba(0,0,0,0.2);
-    padding: 8px;
-    border-radius: 4px;
-    display: flex; align-items: center; gap: 8px;
+    background: rgba(0,0,0,0.3);
+    padding: 10px;
+    border-radius: 6px;
+    display: flex; align-items: center; gap: 12px;
     font-size: 0.65rem;
     color: var(--v3-text-ghost);
+    border: 1px solid transparent;
 }
-.task-status-box.active { color: var(--v3-text-primary); border: 1px solid rgba(255,255,255,0.1); }
-.task-progress-bar { flex: 1; height: 2px; background: rgba(255,255,255,0.1); position: relative; }
-.tp-fill { height: 100%; background: var(--v3-accent); }
+.task-status-box.active { color: var(--v3-text-primary); border-color: rgba(255,255,255,0.05); background: rgba(255,255,255,0.03); }
+.task-main { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.task-text { font-weight: 700; }
+.task-timer { font-size: 0.55rem; color: var(--v3-accent); font-family: var(--font-family-mono); font-weight: 800; }
+.task-icon { font-size: 1.1rem; }
+.task-progress-bar { width: 60px; height: 3px; background: rgba(255,255,255,0.05); position: relative; border-radius: 2px; overflow: hidden; }
+.tp-fill { height: 100%; background: var(--v3-accent); box-shadow: 0 0 5px var(--v3-accent); }
 
 .card-actions {
     display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--v3-border-soft);
@@ -500,4 +766,28 @@ function getTaskIcon(emp) {
     padding: 60px; color: var(--v3-text-ghost);
 }
 .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
+
+.v3-info-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(88, 166, 255, 0.15);
+    color: #58a6ff;
+    font-size: 10px;
+    font-weight: 800;
+    cursor: help;
+    margin-left: 6px;
+    vertical-align: middle;
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    transition: all 0.2s;
+}
+
+.v3-info-trigger:hover {
+    background: #58a6ff;
+    color: #05070a;
+    box-shadow: 0 0 10px rgba(88, 166, 255, 0.4);
+}
 </style>

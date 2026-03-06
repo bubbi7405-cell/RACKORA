@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\HqController;
 use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\AuctionController;
 use App\Http\Controllers\Api\SoftwareController;
+use App\Http\Controllers\Api\BenchmarkingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -168,6 +169,10 @@ Route::middleware(['auth:sanctum', 'activity', 'throttle:api'])->group(function 
             return response()->json($result, $result['success'] ? 200 : 400);
         });
 
+        // Benchmarking Labs
+        Route::get('/hardware/benchmarks', [BenchmarkingController::class, 'index']);
+        Route::post('/hardware/benchmarks/run', [BenchmarkingController::class, 'run']);
+
         // Network & NOC Actions
         Route::post('/network/purchase-asn', [NetworkController::class, 'purchaseASN']);
         Route::post('/network/upgrade-peering', [NetworkController::class, 'upgradePeering']);
@@ -197,8 +202,11 @@ Route::middleware(['auth:sanctum', 'activity', 'throttle:api'])->group(function 
         Route::post('/employees/unlock-perk', [EmployeeController::class, 'unlockPerk']);
         Route::post('/employees/respec', [EmployeeController::class, 'respec']);
         Route::post('/employees/{id}/sabbatical', [EmployeeController::class, 'sendOnSabbatical']);
+        Route::post('/employees/{id}/assign-room', [EmployeeController::class, 'assignToRoom']);
         Route::post('/employees/{id}/retention-bonus', [EmployeeController::class, 'giveRetentionBonus']); // F128
         Route::post('/employees/{id}/counter-headhunter', [EmployeeController::class, 'counterHeadhunter']); // F69
+        Route::post('/employees/{id}/seminar', [EmployeeController::class, 'sendToSeminar']); // F161
+        Route::post('/employees/{id}/persuade-to-stay', [EmployeeController::class, 'persuadeToStay']); // F232
 
         // Room Management
         Route::post('/rooms/purchase', [RoomController::class, 'purchase']);

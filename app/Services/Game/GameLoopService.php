@@ -10,12 +10,17 @@ use App\Models\GameRoom;
 use App\Models\Customer;
 use App\Models\CustomerOrder;
 use App\Models\PlayerEconomy;
+use App\Models\UserComponent;
+use App\Models\GameEvent;
+use App\Models\GlobalCrisis;
+use App\Models\WorldEvent;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Services\Game\StatsService;
 use App\Services\Game\MarketingService;
 use App\Services\Game\PlayerSkillService;
 use App\Services\Game\GlobalCrisisService;
+use App\Services\Game\NewsService;
 use App\Services\Market\MarketSimulationService;
 
 class GameLoopService
@@ -42,10 +47,12 @@ class GameLoopService
         protected MarketSimulationService $marketSimulationService,
         protected FormulaService $formulaService,
         protected ServerRentalService $rentalService,
-        protected NewsService $newsService,
-        protected HardwareMaintenanceService $maintenanceService,
         protected AuctionService $auctionService,
-        protected RankingService $rankingService
+        protected RankingService $rankingService,
+        protected TrafficOrchestratorService $trafficOrchestratorService,
+        protected ModernizationService $modernizationService,
+        protected HardwareMaintenanceService $maintenanceService,
+        protected NewsService $newsService
     ) {}
 
     public function processTick(): void
@@ -143,6 +150,7 @@ class GameLoopService
 
             // 3. Research Progress
             $this->researchService->tick($user);
+            $this->modernizationService->tick($user);
 
             // 4. Server Processing (Provisioning, Health Decay, Maintenance)
             $this->maintenanceService->tick($user);
@@ -151,6 +159,7 @@ class GameLoopService
             
             // 5. Temperature Simulation (CRITICAL: makes cooling meaningful)
             $this->processTemperature($user);
+            $this->processHumidity($user);
 
             // 6. Customer Satisfaction & Churn
             $this->processCustomerSatisfaction($user, $modifiers);
@@ -248,6 +257,9 @@ class GameLoopService
 
             // 30. FEATURE 206: Bribery & Moral Decisions
             app(\App\Services\Game\BriberyService::class)->generateBribeOffer($user);
+
+            // FEATURE 53: Smart Traffic Orchestrator
+            $this->trafficOrchestratorService->tick($user);
 
             // 31. FEATURE 202: Darknet Operations Marketplace
             app(\App\Services\Game\DarknetService::class)->tick($user);
@@ -596,7 +608,22 @@ class GameLoopService
                 $pdu = $rack->pdu_status ?? [];
                 $fanHealth = $pdu['fan_health'] ?? 100.0;
                 $fanMod = max(0.5, $fanHealth / 100.0); // Min 50% cooling even with dead fans (passive airflow)
-                $rackCooling = $effectiveCoolingPerRack * $fanMod;
+
+                // FEATURE 47: Cooling Zone Management (Positional puzzle)
+                // Center of the room gets -5% cooling, edges get +5%
+                $maxRacks = max(1, $room->max_racks);
+                $slotCount = $maxRacks - 1; // 0-indexed slots
+                $centerPoint = $slotCount / 2;
+                $slotPos = $rack->position['slot'] ?? 0;
+                
+                // Distance from center (0 = at exact center, max = at edges)
+                $distanceFromCenter = abs($slotPos - $centerPoint);
+                $maxDistance = max(1, $centerPoint);
+                
+                // Scale modifier: -0.05 at center, +0.05 at edges
+                $positionModifier = 1.0 - 0.05 + ($distanceFromCenter / $maxDistance) * 0.10;
+                
+                $rackCooling = $effectiveCoolingPerRack * $fanMod * $positionModifier;
 
                 // Calculate heat from online servers
                 $heatOutput = 0;
@@ -823,6 +850,73 @@ class GameLoopService
         // Recalculate power/heat
         $rack->recalculatePowerAndHeat();
     }
+
+    // ─────────────────────────────────────────────────────────
+    // 5.5 HUMIDITY SIMULATION
+    //     Rooms need to be between 40-60%.
+    //     <40% = Static Discharge risk
+    //     >60% = Corrosion risk
+    // ─────────────────────────────────────────────────────────
+
+    private function processHumidity(User $user): void
+    {
+        $rooms = GameRoom::where('user_id', $user->id)
+            ->with(['racks.servers'])
+            ->get();
+
+        $eventService = app(\App\Services\Game\GameEventService::class);
+
+        foreach ($rooms as $room) {
+            // Drift towards natural ambient humidity based on region
+            $weather = \Illuminate\Support\Facades\Cache::get('regional_weather', []);
+            $ambientHumidity = (float) ($weather[$room->region]['humidity'] ?? 50.0);
+            
+            // Basic stabilization: HVAC systems naturally try to pull towards 50%
+            // But if ambient is extreme, it tugs it away
+            $targetHumidity = ($ambientHumidity + 50.0) / 2;
+            
+            // Random fluctuations
+            $drift = (rand(-15, 15) / 100); // +/- 0.15% per tick
+            
+            // Move humidity towards target slowly
+            if ($room->humidity < $targetHumidity) {
+                $room->humidity += 0.05 + $drift;
+            } else {
+                $room->humidity -= 0.05 + $drift;
+            }
+            
+            $room->humidity = max(20, min(90, $room->humidity));
+            $room->save();
+
+            // Check for extreme conditions
+            if ($room->humidity < 35.0) {
+                // Static risk
+                if (rand(1, 1000) === 1) {
+                    $eventService->triggerRoomEvent($room, \App\Enums\EventType::STATIC_DISCHARGE, "Extreme dry air caused a massive static discharge in {$room->name}");
+                }
+            } elseif ($room->humidity > 65.0) {
+                // Corrosion risk
+                if (rand(1, 1000) === 1) {
+                    $eventService->triggerRoomEvent($room, \App\Enums\EventType::CORROSION, "Moisture condensation caused a short-circuit in {$room->name}");
+                }
+            }
+            
+            // Continuous minor damage on extremes
+            if ($room->humidity < 30.0 || $room->humidity > 70.0) {
+                foreach ($room->racks as $rack) {
+                    foreach ($rack->servers as $server) {
+                        if ($server->status === \App\Enums\ServerStatus::ONLINE) {
+                            if (rand(1, 100) === 1) { // 1% chance per server per tick to take 1 damage
+                                $server->health = max(0, $server->health - 1);
+                                $server->save();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 
     // ─────────────────────────────────────────────────────────
     // 6. CUSTOMER SATISFACTION & CHURN
@@ -1181,6 +1275,16 @@ class GameLoopService
         // Convert monthly income to hourly (720h per month)
         $hourlyIncome = ($activeOrders->sum('price_per_month') / 720) * $incomeMod;
 
+        // --- FEATURE 61: HYBRID CLOUD BURSTING ---
+        $cloudHourlyExpense = 0;
+        foreach ($activeOrders as $order) {
+            $isCloud = ($order->metadata ?? [])['is_cloud'] ?? false;
+            if ($isCloud) {
+                // Cloud operational cost 5x the normal value
+                $cloudHourlyExpense += ($order->getHourlyValue() * 5.0);
+            }
+        }
+
         // Apply Difficulty Modifier
         $diffModifiers = $economy->getDifficultyModifiers();
         $hourlyIncome *= ($diffModifiers['income_mod'] ?? 1.0);
@@ -1351,6 +1455,10 @@ class GameLoopService
 
         // Unified Grid Usage
         $netPowerKw = $totalPowerKw; 
+        
+        // --- FEATURE 56: ENERGY FUTURES ---
+        $this->energyService->processFutures($user, $netPowerKw);
+
         // Process Battery Storage (Grid Stabilization)
         $this->energyService->processStorage($user, $netPowerKw, $rooms);
 
@@ -1554,6 +1662,11 @@ class GameLoopService
 
         // Regional Taxes
         $hourlyExpenses += $totalTax;
+
+        // Cloud Bursting (Emergency Capacity)
+        if (isset($cloudHourlyExpense)) {
+            $hourlyExpenses += $cloudHourlyExpense;
+        }
 
         // Apply Difficulty Modifier (Expense)
         $hourlyExpenses *= ($diffModifiers['expense_mod'] ?? 1.0);
@@ -1774,7 +1887,35 @@ class GameLoopService
             }
 
             // Power overload → trigger power outage event
-            if ($totalPowerUsed > $room->max_power_kw) {
+            $effectiveMaxPower = $room->getEffectiveMaxPowerKw();
+            if ($totalPowerUsed > $effectiveMaxPower) {
+                // Check for Regional Blackout (Rationing)
+                $isRationing = \App\Models\GameEvent::where('affected_region', $room->region)
+                    ->where('type', \App\Enums\EventType::REGIONAL_BLACKOUT)
+                    ->whereIn('status', [\App\Enums\EventStatus::ACTIVE, \App\Enums\EventStatus::ESCALATED])
+                    ->exists();
+
+                if ($isRationing) {
+                     // Automated Rationing Enforcement: Shut down servers with lowest power_priority
+                     // until we are below the limit.
+                     $serversToKill = Server::whereHas('rack.room', fn($q) => $q->where('id', $room->id))
+                         ->whereIn('status', [ServerStatus::ONLINE, ServerStatus::DEGRADED])
+                         ->orderBy('power_priority', 'asc') // Lowest priority first
+                         ->get();
+
+                     foreach ($serversToKill as $server) {
+                         if ($totalPowerUsed <= $effectiveMaxPower) break;
+
+                         $draw = (float) $server->power_draw_kw * $drawMod;
+                         $server->status = ServerStatus::OFFLINE;
+                         $server->current_fault = 'Power Rationing Shutdown';
+                         $server->save();
+
+                         $totalPowerUsed -= $draw;
+                         \App\Models\GameLog::log($user, "RATIONING: Server {$server->nickname} ({$server->model_name}) shutdown due to regional blackout priority.", 'warning', 'infrastructure');
+                     }
+                }
+
                 // FEATURE 83: Circuit Breaker Logic
                 if (!$room->has_circuit_breaker_tripped && rand(1, 100) <= 20) { // 20% chance per minute approx to pop
                     $room->has_circuit_breaker_tripped = true;
@@ -1834,7 +1975,11 @@ class GameLoopService
             ->get();
 
         foreach ($servers as $server) {
-            $intervalMinutes = ($server->backup_plan === \App\Enums\BackupPlan::HOURLY) ? 60 : 1440;
+            $intervalMinutes = match($server->backup_plan) {
+                \App\Enums\BackupPlan::HOURLY => 60,
+                \App\Enums\BackupPlan::OFFSITE => 120, // slightly slower than hourly, but more robust
+                default => 1440,
+            };
             
             // If never backed up, or time for next backup
             if (!$server->last_backup_at || $server->last_backup_at->addMinutes($intervalMinutes)->isPast()) {
@@ -2410,6 +2555,12 @@ class GameLoopService
                 $lifespanUsage *= 1.5; // Effective aging boost
             }
 
+            // FEATURE 67: Physical Rack Integrity (Weight Load)
+            // Overloaded racks increase hardware failure rate (frame warping)
+            if ($server->rack && $server->rack->isOverloadedByWeight()) {
+                $lifespanUsage *= 1.25; // 25% faster degradation due to structural stress
+            }
+
             // Random health drop (aging corrosion)
             // 80-100%: 0.2% chance per check to lose 1-3 health
             // >100%: 1% chance per check to lose 2-5 health
@@ -2436,6 +2587,21 @@ class GameLoopService
                     $server->health = max(0, $server->health - $damage);
                     $server->save();
                 }
+            }
+        }
+
+        // FEATURE 93: Regional Power Rationing Trigger
+        // If regional price is extreme (> $0.40/kWh), there's a 2% chance per tick to trigger rationing
+        $price = app(\App\Services\Game\EnergyService::class)->getSpotPrice($room->region);
+        if ($price > 0.40) {
+            $existingBlackout = \App\Models\GameEvent::where('user_id', $user->id)
+                ->where('type', \App\Enums\EventType::REGIONAL_BLACKOUT)
+                ->where('affected_region', $room->region)
+                ->whereIn('status', ['active', 'escalated'])
+                ->exists();
+
+            if (!$existingBlackout && rand(1, 100) <= 2) {
+                $this->eventService->createRegionalBlackout($user, $room->region);
             }
         }
     }

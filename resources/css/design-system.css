@@ -1,98 +1,165 @@
 /* ═══════════════════════════════════════════════════════════════
-   RACKORA DESIGN SYSTEM v2.0 — CONTROL_ROOM
-   Bloomberg Terminal × Datacenter Control Room
+   RACKORA DESIGN SYSTEM v4.0
+   ═══════════════════════════════════════════════════════════════
+   AESTHETIC: Tech Strategy Dark Theme
+   INSPIRATION: Stripe Dashboard × AWS Console × Factorio × Steam
+   FEEL: Powerful · Clean · Strategic · Technical · Immersive
    ═══════════════════════════════════════════════════════════════ */
 
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
 :root {
-    /* ─── BASE PALETTE ────────────────────────────────────── */
-    --ds-bg-void: hsl(222, 30%, 4%);
-    --ds-bg-base: hsl(222, 25%, 7%);
-    --ds-bg-elevated: hsl(222, 22%, 10%);
-    --ds-bg-overlay: hsl(222, 20%, 13%);
-    --ds-bg-subtle: hsl(222, 18%, 16%);
-    --ds-bg-hover: hsl(222, 16%, 18%);
+    /* ═══════════════════════════════════════════════════════════
+       SECTION 1 — COLOR PALETTE: DEEP NEUTRAL TECH
+       ═══════════════════════════════════════════════════════════
+       Not cyberpunk. Not pure black.
+       Deep, warm slate tones that feel like a premium control room.
+    */
 
-    /* ─── TEXT HIERARCHY ──────────────────────────────────── */
-    --ds-text-primary: hsl(210, 20%, 92%);
-    --ds-text-secondary: hsl(215, 15%, 58%);
-    --ds-text-muted: hsl(220, 12%, 38%);
-    --ds-text-ghost: hsl(220, 10%, 24%);
-    --ds-text-inverse: hsl(222, 25%, 7%);
+    /* ─── BACKGROUND LAYERS ──────────────────────────────────── */
+    --ds-bg-void: #0C111B;
+    /* Deepest layer, page canvas */
+    --ds-bg-base: #111827;
+    /* Base surface (Sidebar, containers) */
+    --ds-bg-surface: #1A2233;
+    /* Panel backgrounds */
+    --ds-bg-elevated: #1E293B;
+    /* Cards, popped-up layers */
+    --ds-bg-overlay: #243044;
+    /* Dropdowns, modals */
+    --ds-bg-subtle: #162032;
+    /* Subtle differentiation */
+    --ds-bg-hover: rgba(255, 255, 255, 0.04);
+    /* Hover highlight */
+    --ds-bg-active: rgba(59, 130, 246, 0.10);
+    /* Active/selected */
 
-    /* ─── ACCENT (Primary Blue) ───────────────────────────── */
-    --ds-accent: hsl(220, 85%, 58%);
-    --ds-accent-hover: hsl(220, 85%, 65%);
-    --ds-accent-soft: hsla(220, 85%, 58%, 0.06);
-    --ds-accent-medium: hsla(220, 85%, 58%, 0.12);
-    --ds-accent-glow: hsla(220, 85%, 58%, 0.20);
+    /* ─── SIDEBAR ────────────────────────────────────────────── */
+    --ds-sidebar-bg: #0B0F1A;
+    --ds-sidebar-text: #8896AB;
+    --ds-sidebar-text-active: #E5E7EB;
+    --ds-sidebar-hover: rgba(255, 255, 255, 0.04);
+    --ds-sidebar-active: rgba(59, 130, 246, 0.12);
+    --ds-sidebar-border: rgba(255, 255, 255, 0.06);
 
-    /* ─── SEMANTIC: SEVERITY SPECTRUM ─────────────────────── */
-    --ds-nominal: hsl(152, 55%, 48%);
-    --ds-nominal-soft: hsla(152, 55%, 48%, 0.06);
-    --ds-nominal-medium: hsla(152, 55%, 48%, 0.12);
-    --ds-nominal-glow: hsla(152, 55%, 48%, 0.18);
+    /* ─── TOPBAR ─────────────────────────────────────────────── */
+    --ds-topbar-bg: #111827;
+    --ds-topbar-border: rgba(255, 255, 255, 0.06);
 
-    --ds-caution: hsl(42, 80%, 52%);
-    --ds-caution-soft: hsla(42, 80%, 52%, 0.06);
-    --ds-caution-medium: hsla(42, 80%, 52%, 0.12);
-    --ds-caution-glow: hsla(42, 80%, 52%, 0.18);
+    /* ─── TEXT HIERARCHY ─────────────────────────────────────── */
+    --ds-text-primary: #E5E7EB;
+    /* Titles, values, primary info */
+    --ds-text-secondary: #9CA3AF;
+    /* Descriptions, labels */
+    --ds-text-muted: #6B7280;
+    /* Tertiary, timestamps */
+    --ds-text-ghost: #4B5563;
+    /* Hints, placeholders */
+    --ds-text-inverse: #111827;
+    /* Text on light backgrounds */
 
-    --ds-warning: hsl(28, 85%, 52%);
-    --ds-warning-soft: hsla(28, 85%, 52%, 0.06);
-    --ds-warning-medium: hsla(28, 85%, 52%, 0.12);
-    --ds-warning-glow: hsla(28, 85%, 52%, 0.18);
+    /* ─── PRIMARY ACCENT (Strategic Blue) ────────────────────── */
+    --ds-accent: #3B82F6;
+    --ds-accent-hover: #2563EB;
+    --ds-accent-soft: rgba(59, 130, 246, 0.12);
+    --ds-accent-medium: rgba(59, 130, 246, 0.20);
+    --ds-accent-glow: rgba(59, 130, 246, 0.30);
 
-    --ds-critical: hsl(0, 70%, 52%);
-    --ds-critical-soft: hsla(0, 70%, 52%, 0.06);
-    --ds-critical-medium: hsla(0, 70%, 52%, 0.12);
-    --ds-critical-glow: hsla(0, 70%, 52%, 0.18);
+    /* Scale */
+    --ds-primary-50: #EFF6FF;
+    --ds-primary-100: #DBEAFE;
+    --ds-primary-200: #BFDBFE;
+    --ds-primary-300: #93C5FD;
+    --ds-primary-400: #60A5FA;
+    --ds-primary-500: #3B82F6;
+    --ds-primary-600: #2563EB;
+    --ds-primary-700: #1D4ED8;
+    --ds-primary-800: #1E40AF;
+    --ds-primary-900: #1E3A8A;
 
-    --ds-info: hsl(195, 70%, 52%);
-    --ds-info-soft: hsla(195, 70%, 52%, 0.06);
-    --ds-info-medium: hsla(195, 70%, 52%, 0.12);
-    --ds-info-glow: hsla(195, 70%, 52%, 0.18);
+    /* ─── SECONDARY (Operational Cyan) ───────────────────────── */
+    --ds-cyan: #06B6D4;
+    --ds-cyan-soft: rgba(6, 182, 212, 0.12);
+    --ds-cyan-glow: rgba(6, 182, 212, 0.25);
 
-    /* ─── BORDERS ─────────────────────────────────────────── */
-    --ds-border-subtle: 1px solid hsla(220, 20%, 28%, 0.25);
-    --ds-border-default: 1px solid hsla(220, 20%, 28%, 0.40);
-    --ds-border-strong: 1px solid hsla(220, 20%, 28%, 0.60);
-    --ds-border-accent: 1px solid hsla(220, 85%, 58%, 0.25);
-    --ds-border-color: hsla(220, 20%, 28%, 0.40);
+    /* ─── SEMANTIC STATUS COLORS ─────────────────────────────── */
+    --ds-nominal: #22C55E;
+    --ds-nominal-soft: rgba(34, 197, 94, 0.10);
+    --ds-nominal-medium: rgba(34, 197, 94, 0.18);
+    --ds-nominal-glow: rgba(34, 197, 94, 0.25);
 
-    /* ─── TYPOGRAPHY ──────────────────────────────────────── */
-    --ds-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --ds-font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --ds-caution: #F59E0B;
+    --ds-caution-soft: rgba(245, 158, 11, 0.10);
+    --ds-caution-medium: rgba(245, 158, 11, 0.18);
+    --ds-caution-glow: rgba(245, 158, 11, 0.25);
 
-    --ds-text-xs: 0.625rem;
-    /* 10px */
-    --ds-text-sm: 0.725rem;
-    /* 11.6px */
-    --ds-text-base: 0.8125rem;
-    /* 13px */
-    --ds-text-md: 0.875rem;
-    /* 14px */
-    --ds-text-lg: 1rem;
-    /* 16px */
-    --ds-text-xl: 1.25rem;
-    /* 20px */
+    --ds-warning: #F59E0B;
+    --ds-warning-soft: rgba(245, 158, 11, 0.10);
+    --ds-warning-medium: rgba(245, 158, 11, 0.18);
+    --ds-warning-glow: rgba(245, 158, 11, 0.25);
+
+    --ds-critical: #EF4444;
+    --ds-critical-soft: rgba(239, 68, 68, 0.10);
+    --ds-critical-medium: rgba(239, 68, 68, 0.18);
+    --ds-critical-glow: rgba(239, 68, 68, 0.25);
+
+    --ds-info: #3B82F6;
+    --ds-info-soft: rgba(59, 130, 246, 0.10);
+    --ds-info-medium: rgba(59, 130, 246, 0.15);
+    --ds-info-glow: transparent;
+
+    /* ─── STRATEGY / GAME ACCENT (Gold / Purple) ─────────────── */
+    --ds-gold: #F59E0B;
+    --ds-gold-soft: rgba(245, 158, 11, 0.10);
+    --ds-purple: #8B5CF6;
+    --ds-purple-soft: rgba(139, 92, 246, 0.10);
+
+    /* ─── BORDERS ────────────────────────────────────────────── */
+    --ds-border-subtle: 1px solid rgba(255, 255, 255, 0.04);
+    --ds-border-default: 1px solid rgba(255, 255, 255, 0.08);
+    --ds-border-strong: 1px solid rgba(255, 255, 255, 0.12);
+    --ds-border-accent: 1px solid rgba(59, 130, 246, 0.30);
+    --ds-border-color: rgba(255, 255, 255, 0.08);
+
+    /* ═══════════════════════════════════════════════════════════
+       SECTION 8 — TYPOGRAPHY
+       ═══════════════════════════════════════════════════════════ */
+    --ds-font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ds-font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+
+    /* Size Scale */
+    --ds-text-xs: 0.6875rem;
+    /* 11px – micro labels */
+    --ds-text-sm: 0.75rem;
+    /* 12px – small labels */
+    --ds-text-base: 0.875rem;
+    /* 14px – body text */
+    --ds-text-md: 0.9375rem;
+    /* 15px – prominent body */
+    --ds-text-lg: 1.125rem;
+    /* 18px – section titles */
+    --ds-text-xl: 1.375rem;
+    /* 22px – metric values */
     --ds-text-2xl: 1.5rem;
-    /* 24px */
+    /* 24px – page titles */
     --ds-text-3xl: 2rem;
-    /* 32px */
+    /* 32px – hero values */
     --ds-text-display: 2.5rem;
-    /* 40px */
+    /* 40px – big displays */
 
     --ds-leading-tight: 1.2;
     --ds-leading-normal: 1.5;
     --ds-leading-relaxed: 1.7;
 
-    --ds-tracking-tight: -0.01em;
+    --ds-tracking-tight: -0.02em;
     --ds-tracking-normal: 0;
-    --ds-tracking-wide: 0.05em;
-    --ds-tracking-wider: 0.10em;
-    --ds-tracking-widest: 0.15em;
+    --ds-tracking-wide: 0.02em;
+    --ds-tracking-wider: 0.04em;
+    --ds-tracking-widest: 0.08em;
 
-    /* ─── SPACING SCALE ───────────────────────────────────── */
+    /* ═══════════════════════════════════════════════════════════
+       SPACING
+       ═══════════════════════════════════════════════════════════ */
     --ds-space-0: 0;
     --ds-space-1: 2px;
     --ds-space-2: 4px;
@@ -108,32 +175,44 @@
     --ds-space-24: 48px;
     --ds-space-32: 64px;
 
-    /* ─── RADII ───────────────────────────────────────────── */
-    --ds-radius-sm: 2px;
-    --ds-radius-md: 4px;
-    --ds-radius-lg: 6px;
-    --ds-radius-xl: 8px;
+    /* ═══════════════════════════════════════════════════════════
+       RADII
+       ═══════════════════════════════════════════════════════════ */
+    --ds-radius-sm: 4px;
+    --ds-radius-md: 6px;
+    --ds-radius-lg: 8px;
+    --ds-radius-xl: 12px;
     --ds-radius-full: 9999px;
 
-    /* ─── SHADOWS ─────────────────────────────────────────── */
-    --ds-shadow-sm: 0 1px 3px hsla(0, 0%, 0%, 0.25);
-    --ds-shadow-md: 0 2px 8px hsla(0, 0%, 0%, 0.35);
-    --ds-shadow-lg: 0 4px 20px hsla(0, 0%, 0%, 0.40);
-    --ds-shadow-xl: 0 8px 40px hsla(0, 0%, 0%, 0.50);
-    --ds-shadow-inset: inset 0 1px 3px hsla(0, 0%, 0%, 0.20);
+    /* ═══════════════════════════════════════════════════════════
+       SHADOWS (Deep, ambient)
+       ═══════════════════════════════════════════════════════════ */
+    --ds-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.20);
+    --ds-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.25);
+    --ds-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.30);
+    --ds-shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.40);
+    --ds-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
+    --ds-shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.15);
 
-    /* ─── ANIMATION ───────────────────────────────────────── */
+    /* Focus glow for interactive elements */
+    --ds-shadow-focus: 0 0 0 2px rgba(59, 130, 246, 0.30);
+
+    /* ═══════════════════════════════════════════════════════════
+       ANIMATION
+       ═══════════════════════════════════════════════════════════ */
     --ds-ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
     --ds-ease-in-out: cubic-bezier(0.42, 0, 0.58, 1);
     --ds-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     --ds-ease-bounce: cubic-bezier(0.68, -0.55, 0.27, 1.55);
 
     --ds-duration-fast: 120ms;
-    --ds-duration-normal: 250ms;
-    --ds-duration-slow: 500ms;
-    --ds-duration-slower: 800ms;
+    --ds-duration-normal: 200ms;
+    --ds-duration-slow: 400ms;
+    --ds-duration-slower: 600ms;
 
-    /* ─── Z-INDEX ─────────────────────────────────────────── */
+    /* ═══════════════════════════════════════════════════════════
+       Z-INDEX
+       ═══════════════════════════════════════════════════════════ */
     --ds-z-base: 1;
     --ds-z-dropdown: 100;
     --ds-z-sticky: 200;
@@ -142,96 +221,156 @@
     --ds-z-toast: 500;
     --ds-z-tooltip: 600;
 
-    /* ─── V3 COMPATIBILITY LAYER (High-Tech Theme) ─── */
-    --v3-bg-surface: var(--ds-bg-overlay);
+    /* ═══════════════════════════════════════════════════════════
+       V2/V3 COMPATIBILITY LAYER
+       ═══════════════════════════════════════════════════════════ */
+    --v3-bg-surface: var(--ds-bg-elevated);
     --v3-bg-elevated: var(--ds-bg-subtle);
     --v3-border-soft: var(--ds-border-subtle);
-    --v3-border-heavy: 1px solid var(--ds-text-ghost);
+    --v3-border-heavy: var(--ds-border-default);
     --v3-text-primary: var(--ds-text-primary);
     --v3-text-secondary: var(--ds-text-secondary);
-    --v3-text-ghost: var(--ds-text-muted);
-    
+    --v3-text-ghost: var(--ds-text-ghost);
     --v3-accent: var(--ds-accent);
-    --v3-accent-dim: var(--ds-accent-medium);
-    
+    --v3-accent-dim: var(--ds-accent-soft);
+    --v3-accent-soft: var(--ds-accent-soft);
     --v3-success: var(--ds-nominal);
     --v3-warning: var(--ds-caution);
     --v3-danger: var(--ds-critical);
-    
     --v3-radius: var(--ds-radius-lg);
+
+    /* Visual Priority Opacity */
+    --priority-l1: 1.0;
+    --priority-l2: 0.85;
+    --priority-l3: 0.60;
+    --priority-l4: 0.40;
+
+    /* Glow tokens (subtle, not neon) */
+    --glow-l1: 0 0 8px rgba(59, 130, 246, 0.15);
+    --glow-l2: 0 0 4px rgba(59, 130, 246, 0.08);
+
+    --ds-power-font: var(--ds-font-mono);
+    --ds-glow-power: var(--glow-l2);
+    --ds-glow-gold: 0 0 6px rgba(245, 158, 11, 0.15);
 }
 
 
 /* ═══════════════════════════════════════════════════════════════
-   SEVERITY-BASED ANIMATIONS
+   GLOBAL RESETS & BASE
    ═══════════════════════════════════════════════════════════════ */
 
-@keyframes ds-pulse-nominal {
-
-    0%,
-    100% {
-        box-shadow: 0 0 0 0 var(--ds-nominal-glow);
-    }
-
-    50% {
-        box-shadow: 0 0 8px 1px var(--ds-nominal-glow);
-    }
+html {
+    font-family: var(--ds-font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-@keyframes ds-pulse-caution {
-
-    0%,
-    100% {
-        box-shadow: 0 0 0 0 var(--ds-caution-glow);
-    }
-
-    50% {
-        box-shadow: 0 0 10px 2px var(--ds-caution-glow);
-    }
+body {
+    background: var(--ds-bg-void);
+    color: var(--ds-text-primary);
 }
 
-@keyframes ds-pulse-warning {
 
-    0%,
-    100% {
-        box-shadow: 0 0 0 0 var(--ds-warning-glow);
-    }
+/* ═══════════════════════════════════════════════════════════════
+   VISUAL PRIORITY CLASSES
+   ═══════════════════════════════════════════════════════════════ */
 
-    50% {
-        box-shadow: 0 0 12px 2px var(--ds-warning-glow);
-    }
+.tier-1-anchor {
+    font-family: var(--ds-font-mono);
+    font-weight: 700;
+    letter-spacing: -0.02em;
 }
 
-@keyframes ds-pulse-critical {
-
-    0%,
-    100% {
-        box-shadow: 0 0 0 0 var(--ds-critical-glow);
-    }
-
-    50% {
-        box-shadow: 0 0 14px 3px var(--ds-critical-glow);
-    }
+.l1-priority {
+    opacity: var(--priority-l1);
+    color: var(--ds-text-primary) !important;
+    font-weight: 700;
 }
 
-@keyframes ds-flash {
+.l2-priority {
+    opacity: var(--priority-l2);
+    color: var(--ds-text-secondary) !important;
+}
+
+.l3-priority {
+    opacity: var(--priority-l3);
+    color: var(--ds-text-muted) !important;
+}
+
+.l4-priority {
+    opacity: var(--priority-l4);
+    color: var(--ds-text-ghost) !important;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   ENFORCE LAYOUT BACKGROUNDS
+   ═══════════════════════════════════════════════════════════════ */
+
+.v2-sidebar,
+.v2-left-panel {
+    background: var(--ds-sidebar-bg) !important;
+    border-color: var(--ds-sidebar-border) !important;
+    color: var(--ds-sidebar-text) !important;
+}
+
+.v2-topbar {
+    background: var(--ds-topbar-bg) !important;
+    border-color: var(--ds-topbar-border) !important;
+    color: var(--ds-text-primary) !important;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.growth-pulse {
+    animation: ds-growth-flash 0.6s var(--ds-ease-out);
+}
+
+@keyframes ds-growth-flash {
     0% {
-        opacity: 1;
+        transform: scale(1);
     }
 
     50% {
-        opacity: 0.6;
+        transform: scale(1.04);
+        color: var(--ds-nominal);
     }
 
     100% {
-        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.decay-pulse {
+    animation: ds-decay-flash 0.6s var(--ds-ease-in-out);
+}
+
+@keyframes ds-decay-flash {
+    0% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-2px);
+        color: var(--ds-critical);
+    }
+
+    50% {
+        transform: translateX(2px);
+    }
+
+    100% {
+        transform: translateX(0);
     }
 }
 
 @keyframes ds-fade-in {
     from {
         opacity: 0;
-        transform: translateY(4px);
+        transform: translateY(6px);
     }
 
     to {
@@ -243,22 +382,12 @@
 @keyframes ds-slide-in-right {
     from {
         opacity: 0;
-        transform: translateX(12px);
+        transform: translateX(8px);
     }
 
     to {
         opacity: 1;
         transform: translateX(0);
-    }
-}
-
-@keyframes ds-grid-pulse {
-    0% {
-        opacity: 0.25;
-    }
-
-    100% {
-        opacity: 0.45;
     }
 }
 
@@ -268,7 +397,7 @@
     }
 
     50% {
-        transform: scale(1.06);
+        transform: scale(1.04);
     }
 
     100% {
@@ -276,9 +405,84 @@
     }
 }
 
+@keyframes ds-pulse-nominal {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 transparent;
+    }
+
+    50% {
+        box-shadow: 0 0 0 3px var(--ds-nominal-soft);
+    }
+}
+
+@keyframes ds-pulse-caution {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 transparent;
+    }
+
+    50% {
+        box-shadow: 0 0 0 3px var(--ds-caution-soft);
+    }
+}
+
+@keyframes ds-pulse-warning {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 transparent;
+    }
+
+    50% {
+        box-shadow: 0 0 0 3px var(--ds-warning-soft);
+    }
+}
+
+@keyframes ds-pulse-critical {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 transparent;
+    }
+
+    50% {
+        box-shadow: 0 0 0 3px var(--ds-critical-soft);
+    }
+}
+
+@keyframes ds-flash {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Subtle ambient pulse for game feel */
+@keyframes ds-ambient-pulse {
+
+    0%,
+    100% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
 
 /* ═══════════════════════════════════════════════════════════════
-   SEVERITY UTILITY CLASSES
+   SEVERITY UTILITIES
    ═══════════════════════════════════════════════════════════════ */
 
 .severity-nominal {
@@ -335,51 +539,39 @@
 
 
 /* ═══════════════════════════════════════════════════════════════
-   CONTROL ROOM BACKGROUND
-   ═══════════════════════════════════════════════════════════════ */
-
-.control-room-bg {
-    position: relative;
-}
-
-.control-room-bg::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image:
-        radial-gradient(circle at 1px 1px,
-            hsla(220, 20%, 30%, 0.12) 1px,
-            transparent 0);
-    background-size: 20px 20px;
-    animation: ds-grid-pulse 5s ease-in-out infinite alternate;
-    pointer-events: none;
-    z-index: 0;
-}
-
-
-/* ═══════════════════════════════════════════════════════════════
-   BASE RESET FOR DESIGN SYSTEM COMPONENTS
+   SECTION 3 — COMPONENT SYSTEM: CARDS
    ═══════════════════════════════════════════════════════════════ */
 
 .ds-card {
     background: var(--ds-bg-elevated);
-    border: var(--ds-border-subtle);
-    border-radius: var(--ds-radius-md);
-    padding: var(--ds-space-8);
+    border: 1px solid var(--ds-border-color);
+    border-radius: var(--ds-radius-lg);
+    padding: var(--ds-space-10);
+    box-shadow: var(--ds-shadow-card);
     transition: border-color var(--ds-duration-normal) var(--ds-ease-out),
         box-shadow var(--ds-duration-normal) var(--ds-ease-out);
 }
 
 .ds-card:hover {
-    border-color: var(--ds-border-color);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: var(--ds-shadow-md);
 }
 
+.ds-card-accent {
+    border-left: 3px solid var(--ds-accent);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 3 — LABELS, VALUES, BADGES
+   ═══════════════════════════════════════════════════════════════ */
+
 .ds-label {
-    font-family: var(--ds-font-mono);
+    font-family: var(--ds-font-sans);
     font-size: var(--ds-text-xs);
-    font-weight: 700;
-    color: var(--ds-text-muted);
-    letter-spacing: var(--ds-tracking-widest);
+    font-weight: 600;
+    color: var(--ds-text-ghost);
+    letter-spacing: var(--ds-tracking-wider);
     text-transform: uppercase;
     line-height: var(--ds-leading-tight);
 }
@@ -387,7 +579,7 @@
 .ds-value {
     font-family: var(--ds-font-mono);
     font-size: var(--ds-text-xl);
-    font-weight: 800;
+    font-weight: 700;
     color: var(--ds-text-primary);
     letter-spacing: var(--ds-tracking-tight);
     line-height: 1;
@@ -396,7 +588,7 @@
 .ds-value-sm {
     font-family: var(--ds-font-mono);
     font-size: var(--ds-text-md);
-    font-weight: 700;
+    font-weight: 600;
     color: var(--ds-text-primary);
     letter-spacing: var(--ds-tracking-tight);
 }
@@ -404,16 +596,246 @@
 .ds-badge {
     display: inline-flex;
     align-items: center;
-    padding: var(--ds-space-1) var(--ds-space-3);
-    border-radius: var(--ds-radius-sm);
-    font-family: var(--ds-font-mono);
+    padding: 2px 8px;
+    border-radius: var(--ds-radius-full);
+    font-family: var(--ds-font-sans);
     font-size: var(--ds-text-xs);
-    font-weight: 800;
+    font-weight: 600;
     letter-spacing: var(--ds-tracking-wide);
-    text-transform: uppercase;
-    border: 1px solid currentColor;
     line-height: var(--ds-leading-tight);
 }
+
+.ds-badge-success {
+    background: var(--ds-nominal-soft);
+    color: var(--ds-nominal);
+}
+
+.ds-badge-warning {
+    background: var(--ds-warning-soft);
+    color: var(--ds-warning);
+}
+
+.ds-badge-danger {
+    background: var(--ds-critical-soft);
+    color: var(--ds-critical);
+}
+
+.ds-badge-info {
+    background: var(--ds-accent-soft);
+    color: var(--ds-accent);
+}
+
+.ds-badge-neutral {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--ds-text-secondary);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 3 — BUTTONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.ds-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-family: var(--ds-font-sans);
+    font-size: var(--ds-text-base);
+    font-weight: 600;
+    border-radius: var(--ds-radius-md);
+    border: none;
+    cursor: pointer;
+    transition: all var(--ds-duration-normal) var(--ds-ease-out);
+}
+
+.ds-btn-primary {
+    background: var(--ds-accent);
+    color: #fff;
+}
+
+.ds-btn-primary:hover {
+    background: var(--ds-accent-hover);
+    box-shadow: var(--ds-shadow-md), 0 0 12px var(--ds-accent-glow);
+    transform: translateY(-1px);
+}
+
+.ds-btn-secondary {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--ds-text-primary);
+    border: 1px solid var(--ds-border-color);
+}
+
+.ds-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.10);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.ds-btn-danger {
+    background: var(--ds-critical-soft);
+    color: var(--ds-critical);
+}
+
+.ds-btn-danger:hover {
+    background: var(--ds-critical-medium);
+}
+
+.ds-btn-ghost {
+    background: transparent;
+    color: var(--ds-text-secondary);
+}
+
+.ds-btn-ghost:hover {
+    background: var(--ds-bg-hover);
+    color: var(--ds-text-primary);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 3 — INPUTS
+   ═══════════════════════════════════════════════════════════════ */
+
+.ds-input {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--ds-bg-void);
+    border: 1px solid var(--ds-border-color);
+    border-radius: var(--ds-radius-md);
+    color: var(--ds-text-primary);
+    font-family: var(--ds-font-sans);
+    font-size: var(--ds-text-base);
+    transition: border-color var(--ds-duration-fast), box-shadow var(--ds-duration-fast);
+}
+
+.ds-input:focus {
+    outline: none;
+    border-color: var(--ds-accent);
+    box-shadow: var(--ds-shadow-focus);
+}
+
+.ds-input::placeholder {
+    color: var(--ds-text-ghost);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 5 — ECONOMY: PROGRESS BARS
+   ═══════════════════════════════════════════════════════════════ */
+
+.ds-progress-track {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: var(--ds-radius-full);
+    overflow: hidden;
+}
+
+.ds-progress-fill {
+    height: 100%;
+    border-radius: var(--ds-radius-full);
+    transition: width 0.6s var(--ds-ease-out);
+}
+
+.ds-progress-fill-accent {
+    background: var(--ds-accent);
+}
+
+.ds-progress-fill-success {
+    background: var(--ds-nominal);
+}
+
+.ds-progress-fill-warning {
+    background: var(--ds-warning);
+}
+
+.ds-progress-fill-danger {
+    background: var(--ds-critical);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 6 — STRATEGY / GAME FEEL COMPONENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+.ds-metric-card {
+    background: var(--ds-bg-elevated);
+    border: 1px solid var(--ds-border-color);
+    border-radius: var(--ds-radius-lg);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ds-metric-label {
+    font-size: var(--ds-text-xs);
+    font-weight: 600;
+    color: var(--ds-text-ghost);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.ds-metric-value {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-text-2xl);
+    font-weight: 700;
+    color: var(--ds-text-primary);
+    letter-spacing: -0.02em;
+}
+
+.ds-metric-delta {
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-text-sm);
+    font-weight: 600;
+}
+
+.ds-metric-delta.is-positive {
+    color: var(--ds-nominal);
+}
+
+.ds-metric-delta.is-negative {
+    color: var(--ds-critical);
+}
+
+.ds-metric-delta.is-neutral {
+    color: var(--ds-text-muted);
+}
+
+/* Dominance / Strategy Score */
+.ds-dominance-bar {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--ds-radius-full);
+    overflow: hidden;
+    position: relative;
+}
+
+.ds-dominance-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--ds-accent), var(--ds-cyan));
+    border-radius: var(--ds-radius-full);
+    transition: width 1.5s var(--ds-ease-out);
+    box-shadow: 0 0 8px var(--ds-accent-glow);
+}
+
+/* Tier / Level Badge */
+.ds-tier-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, var(--ds-accent), var(--ds-primary-700));
+    border-radius: var(--ds-radius-md);
+    color: #fff;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-text-sm);
+    font-weight: 700;
+    box-shadow: 0 2px 8px var(--ds-accent-glow);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   UTILITY CLASSES
+   ═══════════════════════════════════════════════════════════════ */
 
 .ds-divider {
     width: 100%;
@@ -437,4 +859,47 @@
 
 .ds-animate-slide-in {
     animation: ds-slide-in-right var(--ds-duration-normal) var(--ds-ease-out) both;
+}
+
+.ds-text-accent {
+    color: var(--ds-accent) !important;
+}
+
+.ds-text-nominal {
+    color: var(--ds-nominal) !important;
+}
+
+.ds-text-warning {
+    color: var(--ds-warning) !important;
+}
+
+.ds-text-critical {
+    color: var(--ds-critical) !important;
+}
+
+.ds-text-gold {
+    color: var(--ds-gold) !important;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SCROLLBAR (Dark Theme)
+   ═══════════════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.10);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.18);
 }

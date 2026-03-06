@@ -213,6 +213,10 @@ class AuctionService
             'duration_min' => 5,
             'duration_max' => 15
         ]);
+        
+        if (is_string($settings)) {
+            $settings = json_decode($settings, true) ?? [];
+        }
 
         // Types: server, rack, component
         $rand = rand(1, 100);

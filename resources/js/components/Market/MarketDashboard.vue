@@ -8,14 +8,16 @@
                     <span class="status-dot" :class="economyStateClass"></span>
                     {{ marketStore.economy.label }}
                 </div>
+                <button class="close-btn" @click="$emit('close')">&times;</button>
             </div>
-            
+
             <div class="market-ticker-container">
                 <div class="ticker-scroll">
                     <span class="ticker-item">GDP: {{ formatPercent(marketStore.economy.gdp_growth) }}</span>
                     <span class="ticker-item">Inflation: {{ formatPercent(marketStore.economy.inflation) }}</span>
                     <span class="ticker-item">Energy Index: {{ marketStore.economy.energy_cost.toFixed(2) }}x</span>
-                    <span class="ticker-item">Global Demand: {{ marketStore.economy.global_demand_index.toFixed(1) }}</span>
+                    <span class="ticker-item">Global Demand: {{ marketStore.economy.global_demand_index.toFixed(1)
+                        }}</span>
                     <span class="ticker-item">Credit: {{ marketStore.economy.credit_cost.toFixed(2) }}x</span>
                 </div>
             </div>
@@ -23,20 +25,15 @@
 
         <!-- Navigation -->
         <nav class="market-tabs">
-            <button 
-                v-for="tab in tabs" 
-                :key="tab.id"
-                class="tab-btn"
-                :class="{ active: activeTab === tab.id }"
-                @click="activeTab = tab.id"
-            >
+            <button v-for="tab in tabs" :key="tab.id" class="tab-btn" :class="{ active: activeTab === tab.id }"
+                @click="activeTab = tab.id">
                 {{ tab.label }}
             </button>
         </nav>
 
         <!-- Content Area -->
         <div class="market-content scroll-container">
-            
+
             <!-- OVERVIEW TAB -->
             <div v-if="activeTab === 'overview'" class="overview-layout">
                 <!-- Left: Market Share -->
@@ -46,21 +43,18 @@
                         <span class="card-badge">LIVE</span>
                     </div>
                     <div class="chart-container">
-                        <MarketShareChart 
-                            :segments="marketShareData" 
-                            :size="280" 
-                            :thickness="40"
-                            show-total
-                            :total-label="totalMarketCapLabel"
-                        />
+                        <MarketShareChart :segments="marketShareData" :size="280" :thickness="40" show-total
+                            :total-label="totalMarketCapLabel" />
                         <div class="legend">
-                            <div v-for="item in marketShareData" :key="item.label" class="legend-item" :style="{ '--comp-color': item.color }">
+                            <div v-for="item in marketShareData" :key="item.label" class="legend-item"
+                                :style="{ '--comp-color': item.color }">
                                 <div class="legend-header">
                                     <span class="legend-label">{{ item.label }}</span>
                                     <span class="legend-value">{{ item.value.toFixed(1) }}%</span>
                                 </div>
                                 <div class="legend-bar-track">
-                                    <div class="legend-bar-fill" :style="{ width: item.value + '%', background: item.color }"></div>
+                                    <div class="legend-bar-fill"
+                                        :style="{ width: item.value + '%', background: item.color }"></div>
                                 </div>
                             </div>
                         </div>
@@ -71,32 +65,13 @@
                 <div class="dashboard-right-col">
                     <!-- KPIs -->
                     <div class="kpi-grid">
-                        <KpiGauge 
-                            label="Your Share" 
-                            :value="marketStore.player.globalShare" 
-                            unit="%" 
-                            :trend="shareTrend"
-                        />
-                        <KpiGauge 
-                            label="ARPU" 
-                            :value="marketStore.player.arpu" 
-                            unit="$" 
-                            :decimals="2"
-                        />
-                        <KpiGauge 
-                            label="Innovation" 
-                            :value="marketStore.player.innovationIndex" 
-                            :max="100"
-                            show-bar
-                            :bar-percent="marketStore.player.innovationIndex"
-                        />
-                         <KpiGauge 
-                            label="CAC" 
-                            :value="marketStore.player.customerAcquisitionCost" 
-                            unit="$" 
-                            inverted
-                            :decimals="2"
-                        />
+                        <KpiGauge label="Your Share" :value="marketStore.player.globalShare" unit="%"
+                            :trend="shareTrend" />
+                        <KpiGauge label="ARPU" :value="marketStore.player.arpu" unit="$" :decimals="2" />
+                        <KpiGauge label="Innovation" :value="marketStore.player.innovationIndex" :max="100" show-bar
+                            :bar-percent="marketStore.player.innovationIndex" />
+                        <KpiGauge label="CAC" :value="marketStore.player.customerAcquisitionCost" unit="$" inverted
+                            :decimals="2" />
                     </div>
 
                     <!-- Sectors -->
@@ -114,13 +89,15 @@
                                     <div class="bar-group">
                                         <label>Demand</label>
                                         <div class="mini-bar-track">
-                                            <div class="mini-bar-fill" :style="{ width: Math.min(100, sector.baseDemand / 2) + '%' }"></div>
+                                            <div class="mini-bar-fill"
+                                                :style="{ width: Math.min(100, sector.baseDemand / 2) + '%' }"></div>
                                         </div>
                                     </div>
-                                     <div class="bar-group">
+                                    <div class="bar-group">
                                         <label>Innovation</label>
                                         <div class="mini-bar-track">
-                                            <div class="mini-bar-fill innovation" :style="{ width: Math.min(100, sector.innovation * 20) + '%' }"></div>
+                                            <div class="mini-bar-fill innovation"
+                                                :style="{ width: Math.min(100, sector.innovation * 20) + '%' }"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -135,25 +112,26 @@
                 <div class="competitor-grid">
                     <div v-for="comp in marketStore.competitors" :key="comp.id" class="competitor-card">
                         <div class="comp-header">
-                             <div class="comp-ident">
-                                <div class="comp-logo" :style="{ background: comp.color_primary }">{{ comp.name[0] }}</div>
+                            <div class="comp-ident">
+                                <div class="comp-logo" :style="{ background: comp.color_primary }">{{ comp.name[0] }}
+                                </div>
                                 <div>
                                     <div class="comp-name">{{ comp.name }}</div>
                                     <div class="comp-tagline">{{ comp.tagline }}</div>
                                 </div>
-                             </div>
-                             <div class="comp-share">{{ comp.marketShare.toFixed(1) }}%</div>
+                            </div>
+                            <div class="comp-share">{{ comp.marketShare.toFixed(1) }}%</div>
                         </div>
                         <div class="comp-stats">
                             <div class="stat">
                                 <label>Behavior</label>
                                 <span class="behavior-val">{{ formatArchetype(comp.archetype) }}</span>
                             </div>
-                             <div class="stat">
+                            <div class="stat">
                                 <label>Price</label>
                                 <span>{{ comp.pricing }}</span>
                             </div>
-                             <div class="stat">
+                            <div class="stat">
                                 <label>Reputation</label>
                                 <span>{{ (comp.reputation || 0).toFixed(0) }}</span>
                             </div>
@@ -168,18 +146,15 @@
                                 <span class="m-label">LATENCY</span>
                                 <span class="m-val">{{ (comp.latencyScore || 20).toFixed(0) }}ms</span>
                             </div>
-                             <div class="mini-metric">
+                            <div class="mini-metric">
                                 <span class="m-label">INNOVATION</span>
                                 <span class="m-val">{{ (comp.innovationIndex || 0).toFixed(0) }}%</span>
                             </div>
                         </div>
 
                         <div class="comp-actions" v-if="comp.id !== 'player'">
-                            <button 
-                                class="peering-btn" 
-                                :disabled="!isEligible(comp.id)"
-                                @click="openPeeringNegotiation(comp)"
-                            >
+                            <button class="peering-btn" :disabled="!isEligible(comp.id)"
+                                @click="openPeeringNegotiation(comp)">
                                 {{ getPeeringLabel(comp.id) }}
                             </button>
                         </div>
@@ -197,12 +172,8 @@
             </div>
 
         </div>
-        <PeeringNegotiationOverlay 
-            v-if="selectedPartner" 
-            :partner="selectedPartner" 
-            @close="selectedPartner = null"
-            @success="handlePeeringSuccess"
-        />
+        <PeeringNegotiationOverlay v-if="selectedPartner" :partner="selectedPartner" @close="selectedPartner = null"
+            @success="handlePeeringSuccess" />
     </div>
 </template>
 
@@ -216,8 +187,14 @@ import HardwareAuctions from './HardwareAuctions.vue';
 import KpiGauge from '../Feedback/KpiGauge.vue';
 import PeeringNegotiationOverlay from '../Overlay/PeeringNegotiationOverlay.vue';
 
+const props = defineProps({
+    initialTab: { type: String, default: 'overview' }
+});
+
+const emit = defineEmits(['close']);
+
 const marketStore = useMarketStore();
-const activeTab = ref('overview');
+const activeTab = ref(props.initialTab);
 const peeringPartners = ref([]);
 const selectedPartner = ref(null);
 
@@ -245,19 +222,19 @@ async function fetchPeeringPartners() {
 }
 
 const isEligible = (id) => {
-    const p = peeringPartners.value.find(p => p.id === id);
+    const p = peeringPartners.value?.find(p => p.id === id);
     return p ? p.isEligible : false;
 };
 
 const getPeeringLabel = (id) => {
-    const p = peeringPartners.value.find(p => p.id === id);
+    const p = peeringPartners.value?.find(p => p.id === id);
     if (!p) return 'CHECKING...';
     if (!p.isEligible) return 'NOT ELIGIBLE';
     return 'REQUEST PEERING';
 };
 
 const openPeeringNegotiation = (comp) => {
-    const p = peeringPartners.value.find(p => p.id === comp.id);
+    const p = peeringPartners.value?.find(p => p.id === comp.id);
     if (p) {
         selectedPartner.value = { ...p, color: comp.color_primary };
     }
@@ -359,9 +336,20 @@ function formatArchetype(arch) {
     border-radius: 50%;
     background: var(--ds-text-muted);
 }
-.state-good { background: var(--ds-nominal); box-shadow: 0 0 8px var(--ds-nominal-glow); }
-.state-bad { background: var(--ds-critical); box-shadow: 0 0 8px var(--ds-critical-glow); }
-.state-neutral { background: var(--ds-warning); }
+
+.state-good {
+    background: var(--ds-nominal);
+    box-shadow: 0 0 8px var(--ds-nominal-glow);
+}
+
+.state-bad {
+    background: var(--ds-critical);
+    box-shadow: 0 0 8px var(--ds-critical-glow);
+}
+
+.state-neutral {
+    background: var(--ds-warning);
+}
 
 .market-ticker-container {
     background: #000;
@@ -387,8 +375,13 @@ function formatArchetype(arch) {
 }
 
 @keyframes ticker {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-100%); }
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-100%);
+    }
 }
 
 .market-tabs {
@@ -746,5 +739,22 @@ function formatArchetype(arch) {
     color: var(--ds-text-ghost);
     cursor: not-allowed;
     border: 1px dashed var(--ds-border-subtle);
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: var(--ds-text-ghost);
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 8px;
+    transition: all 0.2s;
+    margin-left: var(--ds-space-4);
+}
+
+.close-btn:hover {
+    color: #fff;
+    transform: rotate(90deg);
 }
 </style>

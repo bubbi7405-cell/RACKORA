@@ -1,53 +1,56 @@
 <template>
     <div class="tab-content rollout-tab provision-lab">
         <div class="rollout-dashboard">
-            <div class="proc-header">
-                <div class="proc-title">
-                    <h3>BLUEPRINT_MANAGEMENT</h3>
-                    <p>Sichern Sie die aktuelle Konfiguration (OS + Apps) als Vorlage für Cluster-Deployments.</p>
-                </div>
-            </div>
-
-            <div class="template-creation-zone">
-                <div class="v3-info-box">
-                    <label>KONFIGURATION_SICHERN</label>
+            <div class="summary-group-v3 mb-4">
+                <label class="section-label-industrial">SYSTEM_SNAPSHOT_ERSTELLEN</label>
+                <div class="template-creation-zone" style="margin-top: 10px;">
                     <div class="template-save-card-v3">
-                        <input 
-                            v-model="localTemplateName" 
-                            class="v3-input-sm" 
-                            placeholder="Name des Blueprints..."
-                            :disabled="processing"
-                        >
-                        <button class="btn-template-save-v3" @click="createTemplate" :disabled="!localTemplateName || processing">
-                            SYSTEM_SNAPSHOT_ERSTELLEN
-                        </button>
+                        <div class="input-group">
+                            <input v-model="localTemplateName" class="v3-input" placeholder="Name des Blueprints..."
+                                :disabled="processing">
+                            <button class="btn-deployment" @click="createTemplate"
+                                :disabled="!localTemplateName || processing">
+                                SPEICHERN
+                            </button>
+                        </div>
+                        <p class="mt-2 text-muted" style="font-size: 0.8rem;">
+                            Speichern Sie den aktuellen Zustand (OS & Apps) als wiederverwendbares Blueprint für
+                            1-Klick-Deployments in Ihrem Cluster.
+                        </p>
                     </div>
                 </div>
             </div>
 
-            <div class="blueprints-section">
-                <label>VERFÜGBARE_BLUEPRINTS (CLUSTER-WEIT)</label>
-                <div class="blueprint-grid-v3" v-if="templates.length > 0">
+            <div class="summary-group-v3">
+                <label class="section-label-industrial">VERFÜGBARE_BLUEPRINTS (CLUSTER-WEIT)</label>
+                <div class="blueprint-grid-v3" v-if="templates.length > 0" style="margin-top: 10px;">
                     <div v-for="tpl in templates" :key="tpl.id" class="blueprint-card-v3">
                         <div class="bp-info">
-                            <div class="bp-name">{{ tpl.name }}</div>
+                            <div class="bp-name">
+                                <span class="os-icon">💾</span> {{ tpl.name }}
+                            </div>
                             <div class="bp-specs">
-                                <span>{{ getOsName(tpl.os_type) }} v{{ tpl.os_version }}</span>
-                                <span class="dot-sep">•</span>
-                                <span>{{ tpl.installed_applications?.length || 0 }} Applikationen</span>
+                                <span class="badge version">{{ getOsName(tpl.os_type) }} v{{ tpl.os_version }}</span>
+                                <span class="badge arch">{{ tpl.installed_applications?.length || 0 }} Apps</span>
                             </div>
                         </div>
                         <div class="bp-actions">
-                            <button class="btn-bp-deploy" @click="applyTemplate(tpl.id)" :disabled="processing || server.os?.status === 'installing'">
+                            <button class="btn-on btn-xs" @click="applyTemplate(tpl.id)"
+                                :disabled="processing || server.os?.status === 'installing'"
+                                title="Blueprint auf diesen Server anwenden">
                                 DEPLOY
                             </button>
-                            <button class="btn-bp-del" @click="deleteTemplate(tpl.id)">×</button>
+                            <button class="btn-off btn-xs" @click="deleteTemplate(tpl.id)"
+                                title="Blueprint löschen">×</button>
                         </div>
                     </div>
                 </div>
-                <div v-else class="empty-blueprints-v3">
-                    <div class="empty-icon">📂</div>
-                    <p>Keine Blueprints gefunden. Erstellen Sie einen Snapshot Ihrer aktuellen Konfiguration, um die Skalierung zu automatisieren.</p>
+                <div v-else class="empty-blueprints-v3"
+                    style="text-align: center; padding: 30px; border: 1px dashed var(--ds-border); border-radius: 8px; margin-top: 10px;">
+                    <div class="empty-icon" style="font-size: 2rem; opacity: 0.5;">📂</div>
+                    <p style="color: var(--ds-text-muted); font-size: 0.9rem; margin-top: 10px;">
+                        Keine Blueprints gefunden.<br />Erstellen Sie zuerst einen Snapshot der aktuellen Konfiguration.
+                    </p>
                 </div>
             </div>
         </div>

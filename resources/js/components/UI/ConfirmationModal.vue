@@ -1,5 +1,5 @@
 <template>
-    <div class="v2-modal-backdrop" @click.self="$emit('cancel')">
+    <div v-if="show" class="v2-modal-backdrop" @click.self="$emit('cancel')">
         <div class="v2-modal">
             <div class="v2-modal-header" :class="type">
                 <h3>{{ title }}</h3>
@@ -21,6 +21,7 @@
 <script setup>
 import { computed } from 'vue';
 const props = defineProps({
+    show: { type: Boolean, default: false },
     title: { type: String, default: 'Confirm Action' },
     message: { type: String, required: true },
     warning: { type: String, default: '' },

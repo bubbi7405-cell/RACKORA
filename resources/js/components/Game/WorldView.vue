@@ -1,17 +1,17 @@
 <template>
     <div class="v2-main-viewport world-v2">
         <header class="v2-content-header">
-            <div class="v2-breadcrumb">
-                <span class="v2-path">GLOBAL_OPERATIONS</span>
+            <div class="v2-breadcrumb l3-priority">
+                <span class="v2-path">GLOBAL_THEATER_CMD</span>
                 <span class="v2-sep">//</span>
-                <span class="v2-node">{{ activeTab.toUpperCase() }}</span>
+                <span class="v2-node">{{ activeTab.toUpperCase() }} // [SENSORS_SYNCHRONIZED]</span>
             </div>
             
             <div class="v2-room-tabs">
                 <button 
                     v-for="tab in tabs" 
                     :key="tab.id"
-                    class="v2-room-tab"
+                    class="v2-room-tab l2-priority"
                     :class="{ 'is-active': activeTab === tab.id }"
                     @click="activeTab = tab.id"
                 >
@@ -22,21 +22,26 @@
 
         <div class="v2-content-scroll">
             <transition name="v2-fade" mode="out-in">
-                <div :key="activeTab">
+                <div :key="activeTab" style="height: 100%">
+                    <!-- Global Map -->
+                    <div v-if="activeTab === 'map'" class="v2-tab-pane" style="height: 100%; padding: 0;">
+                        <WorldMap />
+                    </div>
+
                     <!-- Global Leaderboard -->
                     <div v-if="activeTab === 'leaderboard'" class="v2-tab-pane">
                         <div class="v2-card">
-                            <div class="v2-title">RANKING_AUTHORITY</div>
+                            <div class="v2-title l2-priority">EMPIRE_HIERARCHY_LEDGER // [RANKING_AUTHORITY]</div>
                             <LeaderboardOverlay inline />
                         </div>
                     </div>
 
                     <!-- Market Intel -->
-                    <div v-else-if="activeTab === 'market'" class="v2-tab-pane">
+                    <div v-if="activeTab === 'market'" class="v2-tab-pane">
                         <div class="v2-stats-row">
                             <MarketHeatmap :market-data="marketSharedData" style="flex: 1" />
                             <div class="v2-card market-stats" style="flex: 1">
-                                <div class="v2-title">MARKET_DISTRIBUTION</div>
+                                <div class="v2-title l2-priority">MARKET_DOMINANCE_DISTRIBUTION</div>
                                 <div class="v2-market-chart">
                                     <div 
                                         v-for="p in (marketSharedData?.participants || [])" 
@@ -44,31 +49,31 @@
                                         class="v2-market-bar"
                                         :style="{ height: (p.marketShare * 2) + 'px', background: p.color }"
                                     >
-                                        <div class="v2-bar-label">{{ Math.round(p.marketShare) }}%</div>
-                                        <div class="v2-bar-name">{{ p.name.split(' ')[0] }}</div>
+                                        <div class="v2-bar-label l1-priority">{{ Math.round(p.marketShare) }}%</div>
+                                        <div class="v2-bar-name l3-priority">{{ p.name.split(' ')[0] }}</div>
                                     </div>
                                     <div v-if="marketSharedData?.player" class="v2-market-bar player" :style="{ height: (marketSharedData.player.marketShare * 2) + 'px' }">
-                                        <div class="v2-bar-label">{{ Math.round(marketSharedData.player.marketShare) }}%</div>
-                                        <div class="v2-bar-name">YOU</div>
+                                        <div class="v2-bar-label l1-priority">{{ Math.round(marketSharedData.player.marketShare) }}%</div>
+                                        <div class="v2-bar-name l1-priority">YOU</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="v2-section">
-                            <div class="v2-title">ACTIVE_COMPETITOR_INTEL</div>
+                            <div class="v2-title l2-priority">ADVERSARY_LANDSCAPE_ANALYSIS // [SIGINT_FEED_ACTIVE]</div>
                             <div class="v2-intel-grid">
                                 <div v-for="npc in (marketSharedData?.participants || [])" :key="npc.id" class="v2-card npc-card">
                                     <div class="npc-header">
                                         <div class="v2-status-dot" :class="{ 'is-online': npc.status === 'active' }"></div>
-                                        <span class="npc-name">{{ npc.name }}</span>
-                                        <span class="npc-personality" :class="npc.personality">{{ npc.personality }}</span>
+                                        <span class="npc-name l1-priority">{{ npc.name }}</span>
+                                        <span class="npc-personality l3-priority" :class="npc.personality">{{ npc.personality }}</span>
                                     </div>
                                     <div class="npc-tagline">{{ npc.tagline }}</div>
                                     <div class="npc-stats-grid">
                                         <div class="npc-stat">
-                                            <span class="v2-label">SHARE</span>
-                                            <span class="npc-val">{{ npc.marketShare }}%</span>
+                                            <span class="v2-label l3-priority">DOMINANCE</span>
+                                            <span class="npc-val l1-priority">{{ npc.marketShare }}%</span>
                                         </div>
                                         <div class="npc-stat">
                                             <span class="v2-label">SECTOR</span>
@@ -93,24 +98,55 @@
                         </div>
                     </div>
 
+                    <!-- Live Traffic -->
+                    <div v-else-if="activeTab === 'traffic'" class="v2-tab-pane">
+                        <div class="v2-section">
+                            <div class="v2-title l2-priority">GLOBAL_SIGNAL_PROPAGATION // [REAL_TIME_TRAFFIC]</div>
+                            <div class="v2-intel-grid">
+                                <div v-for="(data, key) in gameStore.regions" :key="key" class="v2-card traffic-region-card">
+                                    <div class="region-header">
+                                        <span class="region-flag">{{ data.flag }}</span>
+                                        <span class="region-name l1-priority">{{ data.name }}</span>
+                                    </div>
+                                    <div class="traffic-metrics">
+                                        <div class="t-metric">
+                                            <label>THROUGHPUT</label>
+                                            <span class="t-val">{{ (Math.random() * 200).toFixed(1) }} Gbps</span>
+                                            <div class="t-bar"><div class="t-fill" :style="{ width: (Math.random() * 80 + 20) + '%', background: '#3b82f6' }"></div></div>
+                                        </div>
+                                        <div class="t-metric">
+                                            <label>LATENCY</label>
+                                            <span class="t-val">{{ (Math.random() * 100 + 10).toFixed(0) }} ms</span>
+                                            <div class="t-bar"><div class="t-fill" :style="{ width: (Math.random() * 50 + 10) + '%', background: '#22c55e' }"></div></div>
+                                        </div>
+                                        <div class="t-metric">
+                                            <label>REQUESTS/S</label>
+                                            <span class="t-val">{{ (Math.random() * 50000).toFixed(0) }} req/s</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- World Events -->
                     <div v-else-if="activeTab === 'events'" class="v2-tab-pane">
-                        <div class="v2-title">AKTIVE_EREIGNISSE</div>
+                        <div class="v2-title l2-priority">GEOPOLITICAL_FLASHPOINTS // [EVENT_WATCH_ACTIVE]</div>
                         <div class="v2-intel-grid" v-if="activeWorldEvents.length > 0">
                             <div v-for="event in activeWorldEvents" :key="event.id" class="v2-card event-live-card" :class="event.type">
                                 <div class="event-live-header">
-                                    <span class="event-type-badge" :class="event.type">
+                                    <span class="event-type-badge l2-priority" :class="event.type">
                                         {{ event.type === 'crisis' ? '⚠️' : event.type === 'boom' ? '🚀' : 'ℹ️' }}
                                         {{ event.type.toUpperCase() }}
                                     </span>
-                                    <span class="event-scope" :class="{ global: event.is_global }">
-                                        <template v-if="event.is_global">🌍 GLOBAL</template>
+                                    <span class="event-scope l3-priority" :class="{ global: event.is_global }">
+                                        <template v-if="event.is_global">🌍 GLOBAL_THEATER</template>
                                         <template v-else>
                                             📍 <span v-for="r in event.affected_regions" :key="r" class="region-tag">{{ r.toUpperCase() }}</span>
                                         </template>
                                     </span>
                                 </div>
-                                <div class="event-live-title">{{ event.title }}</div>
+                                <div class="event-live-title l1-priority">{{ event.title }}</div>
                                 <div class="event-live-desc">{{ event.description }}</div>
                                 <div class="event-live-footer">
                                     <span class="modifier-info">
@@ -144,15 +180,16 @@
 
                     <!-- Regional Analytics -->
                     <div v-else-if="activeTab === 'regions'" class="v2-tab-pane">
+                        <div class="v2-title l2-priority">GEOPOLITICAL_REGIONAL_MATRICES // [STABILITY_INDEX: ALPHA]</div>
                         <div class="v2-intel-grid">
                             <div v-for="(data, key) in gameStore.regions" :key="key" class="v2-card region-card" :class="{ 'is-locked': !isRegionUnlocked(data) }">
                                 <div class="region-header">
                                     <span class="region-flag">{{ data.flag }}</span>
                                     <div class="region-meta">
-                                        <div class="region-name">{{ data.name }}</div>
-                                        <div class="region-slug text-mono">{{ key.toUpperCase() }}</div>
+                                        <div class="region-name l1-priority">{{ data.name }}</div>
+                                        <div class="region-slug text-mono l3-priority">{{ key.toUpperCase() }} // [SECURED]</div>
                                     </div>
-                                    <span v-if="!isRegionUnlocked(data)" class="lock-badge">🔒 LVL {{ data.level_required }}</span>
+                                    <span v-if="!isRegionUnlocked(data)" class="lock-badge l3-priority">ACCESS_RESTRICTED // REQ: LVL_{{ data.level_required }}</span>
                                 </div>
                                 <div class="region-desc">{{ data.description }}</div>
                                 
@@ -349,6 +386,7 @@ import { useMultiplayerStore } from '../../stores/multiplayer';
 import { storeToRefs } from 'pinia';
 import LeaderboardOverlay from '../Overlay/LeaderboardOverlay.vue';
 import MarketHeatmap from './MarketHeatmap.vue';
+import WorldMap from './WorldMap.vue';
 
 const gameStore = useGameStore();
 const multiplayerStore = useMultiplayerStore();
@@ -388,10 +426,12 @@ const filteredRentals = computed(() => {
 const marketShare = computed(() => gameStore.marketShare);
 const worldEvents = computed(() => gameStore.worldEvents);
 
-const activeTab = ref('market');
+const activeTab = ref('map');
 
 const tabs = [
+    { id: 'map', label: 'GLOBAL_MAP' },
     { id: 'market', label: 'MARKET_INTEL' },
+    { id: 'traffic', label: 'LIVE_TRAFFIC' },
     { id: 'regions', label: 'REGIONAL_ANALYTICS' },
     { id: 'exchange', label: 'CAPACITY_EXCHANGE' },
     { id: 'leaderboard', label: 'LEADERBOARD' },
@@ -903,5 +943,61 @@ onMounted(() => {
 .region-event-chip.info {
     border-left-color: #58a6ff;
     color: #58a6ff;
+}
+.traffic-region-card {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.traffic-region-card .region-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.traffic-region-card .region-name {
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: #fff;
+}
+
+.traffic-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.t-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.t-metric label {
+    font-size: 0.6rem;
+    font-weight: 900;
+    color: #8b949e;
+    letter-spacing: 0.1em;
+}
+
+.t-val {
+    font-family: monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.t-bar {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.t-fill {
+    height: 100%;
+    transition: width 1s ease;
 }
 </style>

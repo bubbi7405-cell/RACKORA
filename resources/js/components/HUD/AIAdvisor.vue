@@ -139,7 +139,7 @@ onUnmounted(() => {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    z-index: 9999;
+    z-index: var(--zi-interaction);
     display: flex;
     flex-direction: column;
     align-items: flex-end;

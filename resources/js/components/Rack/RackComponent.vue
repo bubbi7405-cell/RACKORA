@@ -1,75 +1,110 @@
 <template>
-    <div class="rack-container" :class="{
-        'rack-container--selected': isSelected,
-        'rack-container--thermal': showHeatmap,
-        'rack--high-load': ((rack.power?.current || 0) / (rack.power?.max || 1)) > 0.7,
-        'rack--thermal-risk': rack.temperature > 30,
-        'rack--critical': rack.temperature > 40 || ((rack.power?.current || 0) / (rack.power?.max || 1)) > 0.9
-    }" @click="$emit('select')"
-        :style="rack.ledColor ? { '--rack-led': rack.ledColor, 'box-shadow': `0 0 15px ${rack.ledColor}22` } : {}">
-        <!-- LED Status Strips -->
-        <div class="rack-led-strip left" :style="{ backgroundColor: rack.ledColor || '#00ff00' }"
-            :class="`mode-${rack.ledMode || 'static'}`"></div>
-        <div class="rack-led-strip right" :style="{ backgroundColor: rack.ledColor || '#00ff00' }"
-            :class="`mode-${rack.ledMode || 'static'}`"></div>
-        <div class="rack-summary">
-            <span class="rack-label">UNIT_ID: {{ rack.id?.toString().slice(-4) || '----' }}</span>
-            <div class="summary-actions">
-                <button class="colo-toggle-btn" :class="{ 'is-active': rack.isColocationMode }"
-                    @click.stop="gameStore.toggleColocation(rack.id)" title="Toggle Colocation Mode">
-                    🏢
-                </button>
-                <span class="rack-specs">{{ rack.units?.used || 0 }}/{{ rack.units?.total || 0 }} U</span>
+    <div class="v2-rack-unit" :class="{
+        'is-selected': isSelected,
+        'thermal-view': showHeatmap,
+        'high-load': ((rack.power?.current || 0) / (rack.power?.max || 1)) > 0.75,
+        'thermal-critical': rack.temperature > 50
+    }" @click="$emit('select')">
+
+
+
+        <div class="rack-header">
+            <div class="rack-title">RACK SM-{{ rack.id?.toString().slice(-4).toUpperCase() }}</div>
+            <div class="rack-sub-info">
+                <span>Cap: {{ rack.units?.used || 0 }} / {{ rack.units?.total || 0 }}U</span>
+                <span>Stat: <span class="text-nominal">Stable</span></span>
             </div>
         </div>
 
-        <div class="rack-structure">
-            <div class="power-zone-overlay"></div>
-            <div class="slots-area">
-                <div v-for="slot in slotDisplay" :key="slot.number" class="slot-u" :class="{
-                    'slot--empty': slot.empty,
-                    'slot--occupy': !slot.empty,
-                    'slot--start': slot.isServerStart,
-                    'slot--target': isDropTarget(slot.number),
-                    'slot--invalid': isDropInvalid(slot.number),
+        <div class="rack-main">
+            <div class="u-slots">
+                <div v-for="slot in slotDisplay" :key="slot.number" class="u-row" :class="{
+                    'is-empty': slot.empty,
+                    'is-target': isDropTarget(slot.number),
+                    'is-invalid': isDropInvalid(slot.number)
                 }" :style="[
-                        slot.isServerStart ? { height: `calc(${slot.serverSize} * 22px)` } : {},
-                        getThermalStyle(slot.number)
-                    ]" @dragover="onDragOver($event, slot)" @dragleave="onDragLeave" @drop="onDrop($event, slot)">
-                    <span class="u-index">{{ slot.number }}</span>
+                    { height: slot.empty ? '24px' : `calc(${slot.serverSize || 1} * 54px + ${(slot.serverSize || 1) - 1} * 2px)` },
+                    getThermalStyle(slot.number)
+                ]" @dragover="onDragOver($event, slot)" @dragleave="onDragLeave" @drop="onDrop($event, slot)">
 
+                    <span v-if="slot.empty || slot.isServerStart" class="u-index l4-priority">U{{
+                        String(slot.number).padStart(2, '0') }}</span>
+
+                    <!-- Empty Slot -->
+                    <div v-if="slot.empty" class="empty-slot-indicator" @click.stop="emit('openInventory', rack.id)">
+                        <span class="empty-text">+ Deploy Server</span>
+                    </div>
+
+                    <!-- Server Slot -->
                     <template v-if="slot.isServerStart && slot.server">
-                        <div class="server-blade" :class="[
-                            `type--${slot.server.type}`,
-                            `status--${slot.server.status}`,
-                            { 'is-thermal-glass': showHeatmap, 'is-colo': slot.isColo }
-                        ]" draggable="true" :id="'server-' + slot.server.id"
-                            @dragstart="onServerDragStart($event, slot.server)"
+                        <div class="asset-blade" :class="[
+                            `type-${slot.server.type}`,
+                            `status-${slot.server.status}`,
+                            { 'tenant-unit': slot.isColo }
+                        ]" draggable="true" @dragstart="onServerDragStart($event, slot.server)"
                             @click.stop="$emit('selectServer', slot.server.id)">
-                            <div v-if="showHeatmap" class="thermal-shimmer" :style="getShimmerStyle(slot.number)"></div>
-                            <div class="blade-edge"></div>
-                            <div class="blade-body">
-                                <div class="blade-meta">
-                                    <span class="blade-name">{{ slot.server.modelName || 'Tenant Area' }}</span>
-                                    <span v-if="slot.isColo" class="rental-badge is-colo">TENANT</span>
-                                    <span v-if="slot.server.tenantId" class="rental-badge">RENTED_OUT</span>
-                                    <span v-if="slot.server.isLeased" class="rental-badge is-inbound">LEASED</span>
-                                    <div class="blade-status-dot"></div>
-                                </div>
-                                <div class="activity-pip" v-for="n in 3" :key="n"
-                                    :class="{ 'active': slot.server.status === 'online' || slot.server.status === 'degraded' }">
-                                </div>
 
-                                <!-- Battery Level Overlay (Only for type battery) -->
-                                <div v-if="slot.server.type === 'battery'" class="battery-status">
-                                    <div class="battery-level-bar"
-                                        :style="{ width: `${slot.server.battery?.percent || 0}%` }"></div>
-                                    <div class="battery-label">{{ Math.round(slot.server.battery?.percent || 0) }}%
+                            <!-- Hardware Grip Handles -->
+                            <div class="blade-grip">
+                                <div class="grip-line"></div>
+                                <div class="grip-line"></div>
+                                <div class="grip-line"></div>
+                            </div>
+
+                            <!-- Main Server Faceplate -->
+                            <div class="blade-body">
+                                <div class="blade-header">
+                                    <span class="icon" :class="`text-${getServerColor(slot.server.type)}`">{{
+                                        getServerIcon(slot.server.type) }}</span>
+                                    <span class="model-name">[{{ getServerTypeLabel(slot.server.type) }} {{
+                                        slot.server.modelName }}]</span>
+                                    <span v-if="slot.isColo" class="tenant-tag">EXT_TENANT</span>
+                                </div>
+                                <div class="blade-metrics">
+                                    <div class="metric-row">
+                                        <span class="lbl">CPU</span>
+                                        <div class="hw-bar">
+                                            <div class="hw-fill cpu"
+                                                :style="{ width: `${slot.server.load || Math.floor(Math.random() * 60 + 20)}%` }">
+                                            </div>
+                                        </div>
+                                        <span class="val">{{ slot.server.load || Math.floor(Math.random() * 60 + 20)
+                                            }}%</span>
+                                    </div>
+                                    <div class="metric-row">
+                                        <span class="lbl">NET</span>
+                                        <div class="hw-bar">
+                                            <div class="hw-fill net"
+                                                :style="{ width: `${slot.server.netUsage || Math.floor(Math.random() * 50 + 10)}%` }">
+                                            </div>
+                                        </div>
+                                        <span class="val">{{ slot.server.netUsage || Math.floor(Math.random() * 50 + 10)
+                                            }}%</span>
+                                    </div>
+                                    <div class="metric-row inline">
+                                        <span class="inline-item">Temp {{ Math.round(slot.server.temperature ||
+                                            rack.temperature || 22) }}°C</span>
+                                        <span class="inline-item status-indicator">
+                                            <span class="led" :class="getStatusLEDClass(slot.server.status)"></span>
+                                            {{ getStatusText(slot.server.status) }}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
-                            <div v-if="slot.server.status === 'eol'" class="eol-marker">
-                                💀
+                            <!-- Hardware Air Vent Details -->
+                            <div class="blade-vents">
+                                <div class="fan-container">
+                                    <div class="fan-hub"></div>
+                                    <div class="fan-blades"></div>
+                                </div>
+                                <div class="fan-container">
+                                    <div class="fan-hub"></div>
+                                    <div class="fan-blades"></div>
+                                </div>
+                                <div class="fan-container">
+                                    <div class="fan-hub"></div>
+                                    <div class="fan-blades"></div>
+                                </div>
                             </div>
                         </div>
                     </template>
@@ -77,13 +112,39 @@
             </div>
 
             <div class="rack-telemetry">
-                <div class="telemetry-item" :class="temperatureClass">
-                    <span class="tel-label">TMP</span>
-                    <span class="tel-val">{{ Math.round(rack.temperature) }}°C</span>
+                <div class="tel-item" :class="temperatureClass">
+                    <span class="lbl">TEMP</span>
+                    <div class="hw-bar tel-bar">
+                        <div class="hw-fill cpu" :style="{ width: `${Math.min(100, rack.temperature * 2)}%` }"></div>
+                    </div>
+                    <span class="val align-r">{{ Math.round(rack.temperature) }}°C</span>
                 </div>
-                <div class="telemetry-item" :class="powerClass">
-                    <span class="tel-label">PWR</span>
-                    <span class="tel-val">{{ rack.power?.current?.toFixed(1) }}k</span>
+                <div class="tel-item" :class="powerClass">
+                    <span class="lbl">POWER</span>
+                    <div class="hw-bar tel-bar">
+                        <div class="hw-fill warning"
+                            :style="{ width: `${Math.min(100, ((rack.power?.current || 0) / (rack.power?.max || 1)) * 100)}%` }">
+                        </div>
+                    </div>
+                    <span class="val align-r">{{ (rack.power?.current || 0).toFixed(1) }}kW</span>
+                </div>
+                <div class="tel-item">
+                    <span class="lbl">NETWORK</span>
+                    <div class="hw-bar tel-bar">
+                        <div class="hw-fill net" :style="{ width: `${Math.random() * 40 + 20}%` }"></div>
+                    </div>
+                    <span class="val align-r">{{ (Math.random() * 3 + 1).toFixed(1) }}Gbps</span>
+                </div>
+                <div class="tel-item revenue">
+                    <span class="lbl">REVENUE</span>
+                    <span class="val text-success flex-r">+$24/hr</span>
+                </div>
+                <div class="game-stats">
+                    <div class="g-stat"><span class="lbl">Rack Efficiency</span><span class="val">82%</span></div>
+                    <div class="g-stat"><span class="lbl">Cooling</span><span class="val text-success">Optimal</span>
+                    </div>
+                    <div class="g-stat"><span class="lbl">Energy Cost</span><span
+                            class="val text-warning">-$12/hr</span></div>
                 </div>
             </div>
         </div>
@@ -93,6 +154,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useGameStore } from '../../stores/game';
+import { useTooltipStore } from '../../stores/tooltip';
 
 const props = defineProps({
     rack: { type: Object, required: true },
@@ -100,8 +162,9 @@ const props = defineProps({
     showHeatmap: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['select', 'selectServer']);
+const emit = defineEmits(['select', 'selectServer', 'openInventory']);
 const gameStore = useGameStore();
+const tooltipStore = useTooltipStore();
 
 const dropTargetSlot = ref(null);
 const dropValid = ref(true);
@@ -179,6 +242,7 @@ function onDrop(event, slot) {
     try {
         const parsed = JSON.parse(data);
         if (parsed.type === 'new_server') gameStore.placeServer(props.rack.id, parsed.category, parsed.modelKey, slot.number, parsed.generation, parsed.isLeased);
+        else if (parsed.type === 'inventory_server') gameStore.placeServer(props.rack.id, 'inventory', parsed.inventoryId, slot.number, parsed.generation, false);
         else if (parsed.type === 'existing_server') gameStore.moveServer(parsed.serverId, props.rack.id, slot.number);
     } catch (e) { }
 }
@@ -191,7 +255,7 @@ function onServerDragStart(event, server) {
 function canPlaceAt(startSlot, sizeU) {
     for (let s = startSlot; s < startSlot + sizeU; s++) {
         if (s > (props.rack.units?.total || 42)) return false;
-        const slotInfo = slotDisplay.value.find(slot => slot.number === s);
+        const slotInfo = slotDisplay.value?.find(slot => slot.number === s);
         if (slotInfo && !slotInfo.empty) return false;
     }
     return true;
@@ -247,538 +311,828 @@ function getShimmerStyle(slotNumber) {
         animationDuration: `${1.5 - (intensity * 1.2)}s`
     };
 }
+
+function getServerColor(type) {
+    if (type === 'web' || type === 'app' || type === 'balancer') return 'info'; // Blue
+    if (type === 'storage' || type === 'database') return 'cyan'; // Cyan
+    if (type === 'gpu' || type === 'ai') return 'purple'; // Purple
+    if (type === 'compute') return 'nominal'; // Green
+    if (type === 'network') return 'warning'; // Orange
+    return 'primary';
+}
+
+function getServerIcon(type) {
+    if (type === 'web' || type === 'app' || type === 'balancer') return '🌐';
+    if (type === 'storage' || type === 'database') return '💾';
+    if (type === 'gpu' || type === 'ai') return '🎮';
+    if (type === 'compute') return '⚡';
+    if (type === 'network') return '🔌';
+    return '🖥️';
+}
+
+function getServerTypeLabel(type) {
+    let lower = type?.toLowerCase() || '';
+    if (lower === 'web') return 'Web Node';
+    if (lower === 'app') return 'App Server';
+    if (lower === 'storage') return 'Storage';
+    if (lower === 'database') return 'Database';
+    if (lower === 'gpu') return 'GPU Node';
+    if (lower === 'ai') return 'AI Node';
+    if (lower === 'compute') return 'Compute';
+    if (lower === 'network' || lower === 'balancer') return 'Network Switch';
+    return 'Server';
+}
+
+function getStatusLEDClass(status) {
+    if (status === 'online') return 'bg-nominal shadow-nominal';
+    if (status === 'degraded' || status === 'warning') return 'bg-warning shadow-warning';
+    if (status === 'offline' || status === 'error') return 'bg-critical shadow-critical';
+    return 'bg-subtle';
+}
+
+function getStatusText(status) {
+    if (status === 'online') return 'SYSTEM_READY';
+    if (status === 'provisioning') return 'INITIALIZING...';
+    if (status === 'degraded' || status === 'warning') return 'ATTN: PERFORMANCE';
+    if (status === 'offline' || status === 'error') return 'SYSTEM_OFFLINE';
+    return 'UNKNOWN_STATE';
+}
+
+function getServerTooltip(server) {
+    if (!server) return null;
+    return {
+        title: server.modelName || 'Unknown Server',
+        content: `Type: ${getServerTypeLabel(server.type)}\nCPU Load: ${server.load || Math.floor(Math.random() * 60 + 20)}%\nTemp: ${server.temperature || server.temp || 28}°C\nPower: ${server.powerUsage || 0}W`,
+        hint: `Revenue: $${(server.revenueGeneration || server.revenue || 0).toFixed(2)}/hr`
+    };
+}
 </script>
 
 <style scoped>
-.rack-container {
-    background: var(--v3-bg-surface);
-    border: var(--v3-border-heavy);
-    padding: var(--v2-space-md);
+.v2-rack-unit {
+    background: var(--ds-bg-elevated);
+    border: 1px solid var(--ds-border-color);
+    border-radius: var(--ds-radius-lg);
+    position: relative;
+    padding: 12px;
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
-    gap: var(--v2-space-md);
-    transition: all var(--v3-transition-base);
-    min-width: 220px;
-    border-radius: var(--v3-radius);
-    position: relative;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.01);
+    transition: all 0.2s ease;
+    box-shadow: var(--ds-shadow-card);
+    overflow: hidden;
 }
 
-/* RACK HERO STATES */
-.rack-container--thermal {
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), inset 0 0 40px rgba(255, 100, 0, 0.05);
+.v2-rack-unit:hover {
+    box-shadow: var(--ds-shadow-md);
+    border-color: #CBD5E1;
 }
 
-.rack--high-load {
-    box-shadow: 0 10px 30px rgba(47, 107, 255, 0.1), inset 0 0 30px rgba(47, 107, 255, 0.05);
+.v2-rack-unit.is-selected {
+    border-color: var(--ds-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 3px var(--ds-accent-soft), var(--ds-shadow-lg);
 }
 
-.rack--thermal-risk {
-    border-color: var(--v3-warning);
-}
-
-.rack--critical {
-    border-color: var(--v3-danger);
-    animation: v3-crit-glow 1.2s infinite ease-in-out;
-}
-
-.rack--thermal-risk::after {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    background: linear-gradient(0deg, rgba(239, 68, 68, 0.1), transparent);
-    pointer-events: none;
-    animation: v3-heat-shimmer 2s infinite alternate ease-in-out;
-    border-radius: var(--v3-radius);
-}
-
-@keyframes v3-heat-shimmer {
-    from {
-        opacity: 0.3;
-        transform: scale(1);
-    }
-
-    to {
-        opacity: 0.7;
-        transform: scale(1.01);
-    }
-}
-
-.rack-container--selected {
-    border-color: var(--v3-accent);
-    box-shadow: 0 0 30px var(--v3-accent-glow);
-    transform: translateY(-4px);
-}
-
-.rack-summary {
+.rack-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-family: var(--font-family-mono);
-    font-size: 0.65rem;
-    font-weight: 800;
-    color: var(--v3-text-secondary);
-    border-bottom: var(--v3-border-soft);
-    padding-bottom: 6px;
-    letter-spacing: 0.1em;
+    flex-direction: column;
+    margin-bottom: 8px;
+    flex-shrink: 0;
 }
 
-.summary-actions {
+.rack-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--ds-text-primary);
+    font-family: var(--ds-font-mono);
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+    text-align: center;
+}
+
+.rack-sub-info {
+    font-size: 0.5625rem;
+    color: var(--ds-text-muted);
+    font-family: var(--ds-font-mono);
     display: flex;
-    align-items: center;
+    justify-content: center;
     gap: 12px;
 }
 
-.colo-toggle-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #fff;
-    font-size: 0.6rem;
-    padding: 2px 4px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
-    opacity: 0.5;
-}
-
-.colo-toggle-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    opacity: 1;
-}
-
-.colo-toggle-btn.is-active {
-    background: #8b5cf6;
-    border-color: #a78bfa;
-    opacity: 1;
-    box-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
-}
-
-.rack-structure {
-    display: flex;
-    gap: var(--v2-space-md);
-    position: relative;
-}
-
-/* Power Zone Layer (Subtle) */
-.power-zone-overlay {
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 48px;
-    background: linear-gradient(90deg, transparent, rgba(47, 107, 255, 0.02));
-    pointer-events: none;
-    z-index: 1;
-}
-
-.slots-area {
-    flex: 1;
+.rack-main {
     display: flex;
     flex-direction: column;
-    background: rgba(0, 0, 0, 0.5);
-    border: var(--v3-border-soft);
-    min-height: 320px;
-    position: relative;
+    gap: 4px;
+    flex: 1;
+    min-height: 0;
 }
 
-.slot-u {
-    height: 22px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+.u-slots {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: #090D14;
+    border-left: 6px solid #1E293B;
+    border-right: 6px solid #1E293B;
+    border-top: 3px solid #1E293B;
+    border-bottom: 3px solid #1E293B;
+    border-radius: 3px;
+    padding: 3px 4px 3px 28px;
+    position: relative;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Hide scrollbar but allow scrolling */
+.u-slots::-webkit-scrollbar {
+    width: 3px;
+}
+
+.u-slots::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.u-slots::-webkit-scrollbar-thumb {
+    background: #374151;
+    border-radius: 2px;
+}
+
+.u-row {
     position: relative;
     display: flex;
-    align-items: center;
-    transition: background var(--v3-transition-fast);
+    align-items: stretch;
+    margin-bottom: 1px;
+    width: 100%;
 }
 
 .u-index {
     position: absolute;
-    left: -28px;
-    font-size: 0.55rem;
-    font-family: var(--font-family-mono);
-    color: var(--v3-text-ghost);
+    left: -24px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.5rem;
+    font-weight: 600;
+    font-family: var(--ds-font-mono);
+    color: #4B5563;
 }
 
-.slot--target {
-    background: var(--v3-accent-soft);
-    box-shadow: inset 0 0 0 1px var(--v3-accent);
+/* ── RACK TELEMETRY (FOOTER) ──────────────── */
+.rack-telemetry {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--ds-bg-subtle);
+    border: 1px solid var(--ds-border-color);
+    border-radius: var(--ds-radius-md);
+    padding: 5px;
+    flex-shrink: 0;
 }
 
-.slot--invalid {
-    background: rgba(255, 77, 79, 0.1);
-    box-shadow: inset 0 0 0 1px var(--v3-danger);
+.tel-item {
+    font-size: 0.5rem;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    gap: 4px;
 }
 
-/* SERVER BLADE REFINEMENT */
-.server-blade {
+.tel-item .lbl {
+    color: var(--ds-text-ghost);
+    font-weight: 600;
+    width: 36px;
+    font-family: var(--ds-font-mono);
+    text-transform: uppercase;
+    font-size: 0.5rem;
+}
+
+.tel-bar {
+    height: 5px;
+    flex: 1;
+    background: #090D14;
+    border: 1px solid #374151;
+    border-radius: 1px;
+}
+
+.hw-fill.warning {
+    background: repeating-linear-gradient(90deg, var(--ds-warning), var(--ds-warning) 3px, #1A2233 3px, #1A2233 4px);
+}
+
+.tel-item .val {
+    font-family: var(--ds-font-mono);
+    font-weight: 700;
+    color: var(--ds-text-primary);
+    font-size: 0.5rem;
+}
+
+.val.align-r {
+    width: 40px;
+    text-align: right;
+}
+
+.flex-r {
+    flex: 1;
+    text-align: right;
+}
+
+.tel-item.revenue .val {
+    color: var(--ds-nominal);
+}
+
+.tel-item.critical .val {
+    color: var(--ds-critical);
+}
+
+.tel-item.warning .val {
+    color: var(--ds-warning);
+}
+
+.game-stats {
+    margin-top: 2px;
+    padding-top: 2px;
+    border-top: 1px dashed var(--ds-border-color);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1px;
+}
+
+.g-stat {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.5rem;
+    font-family: var(--ds-font-mono);
+    color: var(--ds-text-ghost);
+}
+
+.g-stat .val {
+    color: var(--ds-text-primary);
+    font-weight: 600;
+}
+
+.g-stat .text-success {
+    color: var(--ds-nominal);
+}
+
+.g-stat .text-warning {
+    color: var(--ds-warning);
+}
+
+.u-row.is-target {
+    background: var(--ds-accent-soft);
+}
+
+.u-row.is-invalid {
+    background: var(--ds-critical-soft);
+}
+
+/* ── EMPTY SLOTS ──────────────────────────── */
+.empty-slot-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
     height: 100%;
-    background: var(--v3-bg-overlay);
-    border: var(--v3-border-soft);
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+    transition: all 0.2s;
+}
+
+.u-row:hover .empty-slot-indicator {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+}
+
+.empty-text {
+    font-size: 0.5rem;
+    font-weight: 600;
+    color: #6B7280;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.u-row:hover .empty-text {
+    opacity: 1;
+}
+
+/* ── ASSET BLADES ──────────────────────────── */
+.asset-blade {
+    width: 100%;
+    height: 100%;
+    background: #1A2233;
+    border: 1px solid #374151;
     display: flex;
+    align-items: stretch;
     cursor: grab;
-    transition: all var(--v3-transition-fast);
+    transition: all 0.15s;
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.asset-blade:hover {
+    border-color: #6B7280;
+    background: #1E293B;
+    z-index: 10;
+}
+
+.blade-indicator {
+    width: 4px;
+    flex-shrink: 0;
+}
+
+/* Color Helpers */
+.bg-info {
+    background: var(--ds-info);
+}
+
+.bg-cyan {
+    background: var(--ds-cyan);
+}
+
+.bg-purple {
+    background: var(--ds-purple);
+}
+
+.bg-nominal {
+    background: var(--ds-nominal);
+}
+
+.bg-warning {
+    background: var(--ds-warning);
+}
+
+.bg-primary {
+    background: var(--ds-accent);
+}
+
+.bg-critical {
+    background: var(--ds-critical);
+}
+
+.shadow-nominal {
+    box-shadow: 0 0 8px var(--ds-nominal);
+}
+
+.shadow-warning {
+    box-shadow: 0 0 8px var(--ds-warning);
+}
+
+.shadow-critical {
+    box-shadow: 0 0 8px var(--ds-critical);
+}
+
+.text-info {
+    color: var(--ds-info);
+}
+
+.text-cyan {
+    color: var(--ds-cyan);
+}
+
+.text-purple {
+    color: var(--ds-purple);
+}
+
+.text-nominal {
+    color: var(--ds-nominal);
+}
+
+.text-warning {
+    color: var(--ds-warning);
+}
+
+.text-success {
+    color: var(--ds-nominal);
+}
+
+/* ───────────────────────────────────────────────────────── */
+/* BLADE VISUAL STATES                                       */
+/* ───────────────────────────────────────────────────────── */
+
+.asset-blade.status-online {
+    border-color: #3B82F6;
+    background: #1e293b;
+    box-shadow: inset 4px 0 0 #3B82F6, 0 0 15px rgba(59, 130, 246, 0.2);
     position: relative;
     overflow: hidden;
 }
 
-.server-blade::after {
+.asset-blade.status-online .led {
+    box-shadow: 0 0 10px #22c55e, 0 0 20px rgba(34, 197, 94, 0.4);
+    background-color: #4ade80 !important;
+}
+
+.asset-blade.status-online::after {
     content: '';
     position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    background: linear-gradient(to bottom,
+            transparent 0%,
+            rgba(59, 130, 246, 0.05) 48%,
+            rgba(59, 130, 246, 0.2) 50%,
+            rgba(59, 130, 246, 0.05) 52%,
+            transparent 100%);
+    background-size: 100% 200%;
+    animation: blade-scan 4s linear infinite;
     pointer-events: none;
+    z-index: 5;
 }
 
-.server-blade:hover {
-    border-color: var(--v3-accent);
-    background: var(--v3-bg-accent);
-    z-index: 2;
-}
-
-.is-thermal-glass {
-    background: rgba(0, 0, 0, 0.2) !important;
-    backdrop-filter: blur(2px);
-    border-color: rgba(255, 255, 255, 0.05) !important;
-}
-
-.thermal-shimmer {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-    background-size: 200% 100%;
-    animation: v3-shimmer linear infinite;
-    pointer-events: none;
-}
-
-@keyframes v3-shimmer {
+@keyframes blade-scan {
     from {
-        background-position: -100% 0;
+        background-position: 0 100%;
     }
 
     to {
-        background-position: 100% 0;
+        background-position: 0 -100%;
     }
 }
 
-.server-blade:active {
-    cursor: grabbing;
-    transform: scale(0.98);
+.asset-blade.status-provisioning {
+    border-color: #F59E0B;
+    box-shadow: inset 4px 0 0 #F59E0B;
 }
 
-.status--online::before {
-    content: '';
+.asset-blade.status-degraded,
+.asset-blade.status-warning {
+    border-color: #EAB308;
+    box-shadow: inset 4px 0 0 #EAB308;
+}
+
+.asset-blade.status-offline {
+    background: #0f172a;
+    border-color: #1e293b;
+    opacity: 0.6;
+    box-shadow: none;
+    filter: grayscale(80%);
+}
+
+.asset-blade.status-offline:hover {
+    opacity: 1;
+    filter: grayscale(50%);
+}
+
+.asset-blade.status-offline .hw-fill {
+    display: none !important;
+}
+
+.asset-blade.status-offline .blade-header .icon {
+    opacity: 0.3;
+}
+
+.asset-blade.status-offline .lbl,
+.asset-blade.status-offline .val {
+    color: #4B5563 !important;
+}
+
+/* ── DETAILED HARDWARE BLADE ──────────────── */
+.blade-grip {
+    width: 12px;
+    background: #111827;
+    border-right: 1px solid #374151;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.grip-line {
+    width: 6px;
+    height: 2px;
+    background: #4B5563;
+    border-radius: 1px;
+}
+
+.blade-vents {
+    width: 24px;
+    background: #090D14;
+    border-left: 1px solid #1E293B;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    align-items: center;
+    padding: 0;
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 2px 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.fan-container {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #111827;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 4px #000;
+}
+
+.fan-blades {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    position: relative;
+    background: conic-gradient(#374151 0deg 45deg,
+            transparent 45deg 90deg,
+            #374151 90deg 135deg,
+            transparent 135deg 180deg,
+            #374151 180deg 225deg,
+            transparent 225deg 270deg,
+            #374151 270deg 315deg,
+            transparent 315deg 360deg);
+}
+
+.fan-hub {
     position: absolute;
-    left: 0;
-    top: 0;
-    width: 2px;
-    height: 100%;
-    background: var(--v3-success);
-    box-shadow: 0 0 10px var(--v3-success);
-    animation: v3-power-pulse 2s infinite ease-in-out;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #9CA3AF;
+    z-index: 2;
 }
 
-@keyframes v3-power-pulse {
-
-    0%,
-    100% {
-        opacity: 0.5;
+@keyframes fan-spin {
+    from {
+        transform: rotate(0deg);
     }
 
-    50% {
-        opacity: 1;
-        box-shadow: 0 0 15px var(--v3-success);
+    to {
+        transform: rotate(360deg);
     }
 }
 
-.status--eol {
-    opacity: 0.4;
-    cursor: default !important;
-    filter: grayscale(1);
+.status-online .fan-blades {
+    animation: fan-spin 0.2s linear infinite;
 }
 
-.status--eol::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0, 0, 0, 0.2) 10px, rgba(0, 0, 0, 0.2) 20px);
+.status-provisioning .fan-blades {
+    animation: fan-spin 0.5s linear infinite;
 }
 
-.blade-edge {
-    width: 3px;
-    background: var(--v3-text-ghost);
-    transition: background var(--v3-transition-base);
-}
-
-.status--online .blade-edge {
-    background: var(--v3-success);
-    box-shadow: 0 0 8px var(--v3-success);
-}
-
-.status--damaged .blade-edge {
-    background: var(--v3-danger);
-    box-shadow: 0 0 8px var(--v3-danger);
+.status-degraded .fan-blades {
+    animation: fan-spin 0.4s linear infinite;
+    background: conic-gradient(#B45309 0deg 45deg,
+            transparent 45deg 90deg,
+            #B45309 90deg 135deg,
+            transparent 135deg 180deg,
+            #374151 180deg 225deg,
+            transparent 225deg 270deg,
+            #374151 270deg 315deg,
+            transparent 315deg 360deg);
 }
 
 .blade-body {
     flex: 1;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 12px;
+    flex-direction: column;
+    padding: 4px 6px;
+    gap: 2px;
+    min-width: 0;
+    overflow: hidden;
 }
 
-.blade-name {
-    font-size: 0.55rem;
+.blade-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.blade-header .icon {
+    font-size: 0.65rem;
+}
+
+.blade-header .model-name {
+    font-size: 0.5625rem;
     font-weight: 700;
-    font-family: var(--font-family-mono);
-    color: var(--v3-text-primary);
+    color: var(--ds-text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    letter-spacing: 0.05em;
-    max-width: 90px;
+    font-family: var(--ds-font-mono);
+    flex: 1;
+    min-width: 0;
 }
 
-.status--eol .blade-name {
-    color: #444;
-}
-
-.eol-marker {
-    position: absolute;
-    right: 8px;
-    font-size: 0.7rem;
-    opacity: 0.6;
-}
-
-.blade-status-dot {
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: var(--v3-text-ghost);
-    margin-left: 8px;
-}
-
-.status--online .blade-status-dot {
-    background: var(--v3-success);
-    box-shadow: 0 0 5px var(--v3-success);
-}
-
-.blade-activity {
+.blade-metrics {
     display: flex;
+    flex-direction: column;
     gap: 3px;
+    margin-top: 2px;
 }
 
-.activity-pip {
-    width: 2px;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 1px;
-}
-
-.activity-pip.active {
-    background: var(--v3-success);
-    opacity: 0.6;
-    animation: v3-pulse-state 1s infinite;
-}
-
-/* RACK TELEMETRY */
-.rack-telemetry {
+.metric-row {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 48px;
-    z-index: 2;
-}
-
-.telemetry-item {
-    display: flex;
-    flex-direction: column;
-    background: rgba(0, 0, 0, 0.3);
-    border: var(--v3-border-soft);
-    padding: 6px;
-    border-radius: var(--v3-radius);
-    transition: all var(--v3-transition-base);
-}
-
-.tel-label {
-    font-size: 0.45rem;
-    color: var(--v3-text-ghost);
-    font-weight: 900;
-    letter-spacing: 0.1em;
-    margin-bottom: 2px;
-}
-
-.tel-val {
-    font-size: 0.65rem;
-    font-family: var(--font-family-mono);
-    color: var(--v3-text-primary);
-    font-weight: 700;
-}
-
-.telemetry-item.critical {
-    border-color: var(--v3-danger);
-    background: rgba(255, 77, 79, 0.05);
-}
-
-.telemetry-item.critical .tel-val {
-    color: var(--v3-danger);
-}
-
-.telemetry-item.warning {
-    border-color: var(--v3-warning);
-    background: rgba(244, 180, 0, 0.05);
-}
-
-.telemetry-item.warning .tel-val {
-    color: var(--v3-warning);
-}
-
-.rental-badge {
+    align-items: center;
     font-size: 0.5rem;
-    background: #6e7681;
-    color: #fff;
-    padding: 1px 4px;
-    border-radius: 3px;
-    margin-left: 6px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
+    font-family: var(--ds-font-mono);
+    color: var(--ds-text-ghost);
+    gap: 4px;
 }
 
-.rental-badge.is-inbound {
-    background: var(--v3-accent);
-    box-shadow: 0 0 10px var(--v3-accent-glow);
+.metric-row .lbl {
+    width: 24px;
+    text-align: right;
+    font-weight: 600;
+    color: #6B7280;
 }
 
-.rental-badge.is-colo {
-    background: #8b5cf6;
-    /* Purple */
-    box-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
-}
-
-.type--colo {
-    background: linear-gradient(135deg, #1e1b4b, #2e1065) !important;
-}
-
-.type--colo .blade-edge {
-    background: #a78bfa !important;
-    box-shadow: 0 0 8px #a78bfa !important;
-}
-
-/* BATTERY STYLING */
-.type--battery {
-    background: linear-gradient(90deg, #09090b 0%, #1c1917 100%) !important;
-}
-
-.type--battery .blade-edge {
-    background: #fbbf24 !important;
-    box-shadow: 0 0 10px rgba(251, 191, 36, 0.4) !important;
-}
-
-.type--battery .blade-name {
-    color: #fbbf24;
-    font-weight: 900;
-}
-
-.battery-status {
-    position: absolute;
-    right: 32px;
-    height: 10px;
-    width: 60px;
-    background: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(251, 191, 36, 0.2);
-    border-radius: 2px;
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-}
-
-.battery-level-bar {
-    height: 100%;
-    background: linear-gradient(90deg, #d97706, #fbbf24);
-    box-shadow: 0 0 8px rgba(251, 191, 36, 0.3);
-    transition: width 0.5s ease;
-}
-
-.battery-label {
-    position: absolute;
-    inset: 0;
-    font-size: 0.45rem;
-    font-weight: 900;
-    color: #fff;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-transform: uppercase;
-}
-
-/* THERMAL TOOLTIP */
-.rack-container--thermal .slot-u:hover::after {
-    content: var(--slot-temp);
-    position: absolute;
-    right: -40px;
-    background: rgba(0, 0, 0, 0.8);
-    color: #fff;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    font-weight: 800;
-    z-index: 100;
-    pointer-events: none;
-    font-family: var(--font-family-mono);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.rack-led-strip {
-    position: absolute;
-    top: 15%;
-    bottom: 15%;
-    width: 2px;
-    opacity: 0.6;
+.hw-bar {
+    flex: 1;
+    height: 5px;
+    background: #090D14;
+    border: 1px solid #374151;
     border-radius: 1px;
-    z-index: 5;
-    pointer-events: none;
-    transition: all 0.3s ease;
+    overflow: hidden;
+    display: flex;
 }
 
-.rack-led-strip.left {
-    left: 4px;
+.hw-fill {
+    height: 100%;
 }
 
-.rack-led-strip.right {
-    right: 4px;
+.hw-fill.cpu {
+    background: repeating-linear-gradient(90deg,
+            var(--ds-info),
+            var(--ds-info) 3px,
+            #1A2233 3px,
+            #1A2233 6px);
+    background-size: 6px 100%;
 }
 
-.mode-pulse {
-    animation: led-pulse 2s infinite ease-in-out;
+.hw-fill.net {
+    background: repeating-linear-gradient(90deg,
+            var(--ds-purple),
+            var(--ds-purple) 3px,
+            #1A2233 3px,
+            #1A2233 6px);
+    background-size: 6px 100%;
 }
 
-.mode-rainbow {
-    animation: led-rainbow 5s infinite linear;
+@keyframes hardware-activity-scroll {
+    to {
+        background-position: -12px 0;
+    }
+}
+
+.status-online .hw-fill {
+    animation: hardware-activity-scroll 1s linear infinite;
+}
+
+.status-provisioning .hw-fill {
+    animation: hardware-activity-scroll 0.5s linear infinite;
+}
+
+.metric-row .val {
+    width: 24px;
+    text-align: right;
+    font-weight: 700;
+}
+
+.metric-row.inline {
+    margin-top: 2px;
+    justify-content: space-between;
+    color: var(--ds-text-muted);
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.led {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
 }
 
 @keyframes led-pulse {
 
     0%,
     100% {
-        opacity: 0.3;
-        filter: brightness(0.8);
+        opacity: 1;
+        transform: scale(1.1);
     }
 
     50% {
-        opacity: 1;
-        filter: brightness(1.5);
-        box-shadow: 0 0 10px currentColor;
+        opacity: 0.4;
+        transform: scale(0.9);
     }
 }
 
-@keyframes led-rainbow {
-    0% {
-        filter: hue-rotate(0deg);
+@keyframes led-blink-fast {
+
+    0%,
+    100% {
+        opacity: 1;
     }
 
-    100% {
-        filter: hue-rotate(360deg);
+    50% {
+        opacity: 0.1;
     }
+}
+
+.status-online .led {
+    animation: led-pulse 2s infinite ease-in-out;
+}
+
+.status-provisioning .led {
+    animation: led-pulse 0.8s infinite ease-in-out alternate;
+}
+
+.status-degraded .led {
+    animation: led-blink-fast 0.6s infinite step-end;
+}
+
+.status-damaged .led {
+    animation: led-blink-fast 0.2s infinite step-end;
+}
+
+.status-maintenance .led {
+    animation: led-pulse 1.5s infinite ease-in-out;
+}
+
+/* Offline is handled by CSS above */
+
+/* ── SIDE PANEL ────────────────────────────── */
+.side-panel {
+    width: 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.telemetry-node {
+    background: var(--ds-bg-subtle);
+    border: 1px solid var(--ds-border-color);
+    padding: 6px;
+    border-radius: var(--ds-radius-md);
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+}
+
+.telemetry-node .label {
+    font-size: 0.5625rem;
+    font-weight: 600;
+    color: var(--ds-text-ghost);
+    margin-bottom: 2px;
+    text-transform: uppercase;
+}
+
+.telemetry-node .val {
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: var(--ds-font-mono);
+    color: var(--ds-text-primary);
+}
+
+.telemetry-node.critical {
+    border-color: var(--ds-critical);
+    color: var(--ds-critical);
+    background: var(--ds-critical-soft);
+}
+
+.telemetry-node.warning {
+    border-color: var(--ds-warning);
+    color: var(--ds-warning);
+    background: var(--ds-warning-soft);
+}
+
+.colo-btn {
+    margin-top: auto;
+    background: var(--ds-bg-elevated);
+    border: 1px solid var(--ds-border-color);
+    color: var(--ds-text-secondary);
+    padding: 8px 0;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-radius: var(--ds-radius-md);
+}
+
+.colo-btn:hover {
+    border-color: var(--ds-accent);
+    color: var(--ds-accent);
+}
+
+.colo-btn.active {
+    color: #7C3AED;
+    border-color: #7C3AED;
+    background: rgba(124, 58, 237, 0.06);
 }
 </style>

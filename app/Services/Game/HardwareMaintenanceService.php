@@ -28,6 +28,9 @@ class HardwareMaintenanceService
         foreach ($servers as $server) {
             $this->processServerDecay($user, $server);
         }
+
+        // FEATURE 98: Component-based failure logic (MTBF)
+        $this->processComponentDecay($user);
     }
 
     /**
@@ -275,6 +278,97 @@ class HardwareMaintenanceService
                     $eventService->triggerRoomEvent($server->rack->room, \App\Enums\EventType::NETWORK_FAILURE, "Fire isolated in {$server->model_name}");
                 }
             }
+        }
+    }
+
+    /**
+     * FEATURE 98: Component-based failure logic (MTBF)
+     * Decreases component health and triggers failures based on MTBF.
+     */
+    protected function processComponentDecay(User $user): void
+    {
+        $components = \App\Models\UserComponent::where('user_id', $user->id)
+            ->whereIn('status', ['installed', 'active'])
+            ->whereNotNull('assigned_server_id')
+            ->get();
+
+        foreach ($components as $component) {
+            $config = $component->getConfig();
+            if (!$config) continue;
+
+            $mtbfHours = $config['mtbf_hours'] ?? 50000;
+            
+            // Overclocking malus (Factor of 3x faster decay if overclocked)
+            $server = $component->server;
+            $overclockMod = 1.0;
+            if ($server && $server->cpu_clock_mhz > $server->base_clock_mhz) {
+                $overclockMod = 3.0;
+            }
+
+            // Temperature Malus
+            $room = $server?->rack?->room;
+            $tempMod = 1.0;
+            if ($room && $room->temperature > 35) {
+                // Decay doubles for every 10 degrees above 35
+                $tempMod = pow(2, ($room->temperature - 35) / 10);
+            }
+
+            // Decay calculation: (ticks per hour / mtbf) * 100
+            // Assuming 1 tick ≈ 1 minute.
+            $baseDecay = (1 / $mtbfHours) * (60 / 60) * 100; // Simplified for 1-minute ticks
+            $actualDecay = $baseDecay * $overclockMod * $tempMod;
+            
+            // Random jitter/variance (±10%)
+            $actualDecay *= (1.0 + (rand(-10, 10) / 100));
+
+            $component->health = max(0, $component->health - $actualDecay);
+            
+            // Failure Trigger: Chance increases as health drops below 50%
+            $failureChance = 0;
+            if ($component->health < 50) {
+                 // Exponential increase in failure chance as health approaches 0
+                 $failureChance = pow((50 - $component->health) / 50, 2) * 2; // Up to 2% chance per tick at 0 health
+            }
+
+            if (rand(1, 10000) <= ($failureChance * 100)) {
+                $this->triggerComponentFailure($user, $component);
+            }
+
+            if ($component->isDirty()) {
+                $component->save();
+            }
+        }
+    }
+
+    /**
+     * Trigger a hardware failure based on component.
+     */
+    protected function triggerComponentFailure(User $user, \App\Models\UserComponent $component): void
+    {
+        $server = $component->server;
+        if (!$server) return;
+
+        // If it's the motherboard, server is dead instantly
+        if ($component->component_type === 'motherboard') {
+            $server->status = ServerStatus::OFFLINE;
+            $server->current_fault = 'MOTHERBOARD_FAILURE';
+            $server->health = 20; // Massive drop
+        } else {
+            // Other parts degrade health and potentially degrade status
+            $server->health = max(5, $server->health - 15);
+            $server->status = ServerStatus::DEGRADED;
+            $server->current_fault = strtoupper($component->component_type) . "_FAILURE_" . strtoupper($component->component_key);
+        }
+
+        $server->is_diagnosed = false;
+        $server->save();
+
+        GameLog::log($user, "HARDWARE FAILURE: A '{$component->getConfig()['name']}' failed in server '{$server->model_name}'!", 'critical', 'hardware');
+        
+        // Chance to mark component as broken
+        if (rand(1, 10) <= 3 || $component->health <= 0) {
+            $component->status = 'broken';
+            GameLog::log($user, "The component '{$component->getConfig()['name']}' is permanently broken and must be replaced.", 'danger', 'hardware');
         }
     }
 }

@@ -1,18 +1,31 @@
 <template>
-    <div class="research-view">
+    <div class="v2-evolution-forge">
         <div class="view-header">
             <div class="header-left">
-                <h2>RD_PROTOCOLS // RESEARCH_LAB</h2>
-                <div class="subtitle">ADVANCED TECHNOLOGY ACQUISITION</div>
+                <h2 class="l1-priority">
+                    R&D_PIPELINE // [PROJECT_LIST]
+                </h2>
+                <div class="subtitle l3-priority">STRATEGIC_ASSET_DEVELOPMENT // [INTEL_SYNC]</div>
             </div>
-            <div class="header-stats">
-                <div class="stat-pill">
-                    <span class="label">ACTIVE_PROJECTS</span>
-                    <span class="value">{{ activeResearchCount }}</span>
+            
+            <div class="v2-dominance-stats">
+                <div class="dominance-label l3-priority">R&D_PROGRESSION</div>
+                <div class="dominance-progress-row">
+                    <div class="dominance-track">
+                        <div class="dominance-fill" :style="{ width: (completedCount / Math.max(1, researchData.length) * 100) + '%' }"></div>
+                    </div>
+                    <span class="dominance-val l1-priority">{{ Math.round((completedCount / Math.max(1, researchData.length) * 100)) }}%</span>
                 </div>
-                <div class="stat-pill">
-                    <span class="label">COMPLETED</span>
-                    <span class="value">{{ completedCount }}</span>
+            </div>
+
+            <div class="header-stats">
+                <div class="stat-pill l2-priority">
+                    <span class="label l3-priority">ACTIVE_PROJECTS</span>
+                    <span class="value l1-priority">{{ activeResearchCount }}</span>
+                </div>
+                <div class="stat-pill l2-priority">
+                    <span class="label l3-priority">DEVELOPED_ASSETS</span>
+                    <span class="value l1-priority">{{ completedCount }}</span>
                 </div>
             </div>
         </div>
@@ -26,7 +39,13 @@
             <div v-else class="research-grid-container">
                 <div v-for="(techs, category) in groupedResearch" :key="category" class="research-category-section">
                     <div class="category-header">
-                        <h3>{{ formatCategory(category) }}</h3>
+                        <h3 class="l2-priority">
+                            {{ formatCategory(category) }}
+                            <span class="v3-info-trigger" 
+                                @mouseenter="tooltipStore.show($event, { title: 'DEVELOPMENT_BRANCH: ' + formatCategory(category), content: 'Specific R&D branch focused on ' + category + ' improvements.', hint: 'Unlock tiers to reach advanced capabilities.' })"
+                                @mouseleave="tooltipStore.hide()"
+                            >ⓘ</span>
+                        </h3>
                         <div class="category-line"></div>
                     </div>
                     
@@ -34,7 +53,7 @@
                         <div 
                             v-for="tech in techs" 
                             :key="tech?.id || Math.random()"
-                            class="tech-card"
+                            class="v2-spec-card"
                             :class="{
                                 'status-locked': tech?.status === 'locked',
                                 'status-available': tech?.status === 'available',
@@ -50,23 +69,33 @@
                                 </div>
 
                                 <div class="tech-card-header">
-                                    <div class="tech-icon-box">{{ getIcon(tech.category) }}</div>
-                                    <div class="tech-info">
-                                        <h4>{{ tech.name }}</h4>
-                                        <span class="tech-meta">DURATION: {{ formatDuration(tech.duration) }}</span>
+                                    <div class="tech-id-tag l3-priority">ASSET_ID // {{ tech.id }}</div>
+                                    <h4 class="l1-priority">{{ tech.name }}</h4>
+                                    
+                                    <div v-if="tech.status === 'completed'" class="status-badge success l2-priority">
+                                        [DEPLOYED]
                                     </div>
-                                    <div v-if="tech.status === 'completed'" class="status-badge success">INSTALLED</div>
-                                    <div v-else-if="tech.status === 'researching'" class="status-badge active">IN_PROGRESS</div>
+                                    <div v-else-if="tech.status === 'researching'" class="status-badge active l1-priority">
+                                        DEVELOPING...
+                                    </div>
+                                </div>
+                                
+                                <div class="tech-card-meta l3-priority">
+                                    <span>BRANCH: {{ tech.category.toUpperCase() }}</span>
+                                    <span>DURATION: {{ formatDuration(tech.duration) }}</span>
                                 </div>
                                 
                                 <div class="tech-card-body">
-                                    <p>{{ tech.description }}</p>
+                                    <p class="l3-priority">{{ tech.description }}</p>
 
                                     <!-- Progress Bar if researching -->
-                                    <div v-if="tech.status === 'researching'" class="progress-section">
+                                    <div v-if="tech.status === 'researching'" class="progress-section"
+                                        @mouseenter="tooltipStore.show($event, { title: 'DEVELOPMENT_PROGRESS', content: 'Percentage completion of the current project.', hint: 'Time remaining is based on resource allocation.' })"
+                                        @mouseleave="tooltipStore.hide()"
+                                    >
                                         <div class="progress-meta">
-                                            <span>ETA: {{ formatRemainingTime(tech.remaining_seconds) }}</span>
-                                            <span>{{ Math.round(tech.progress || 0) }}%</span>
+                                            <span class="l1-priority">ETA: {{ formatRemainingTime(tech.remaining_seconds) }}</span>
+                                            <span class="l1-priority">{{ Math.round(tech.progress || 0) }}%</span>
                                         </div>
                                         <div class="progress-bar-track">
                                             <div class="progress-bar-fill" :style="{ width: (tech.progress || 0) + '%' }"></div>
@@ -74,18 +103,21 @@
                                     </div>
 
                                     <!-- Prerequisites -->
-                                    <div v-if="tech.status === 'locked'" class="prereq-warning">
+                                    <div v-if="tech.status === 'locked'" class="prereq-warning l3-priority"
+                                        @mouseenter="tooltipStore.show($event, { title: 'PROJECT_LOCKED', content: 'Development is restricted until prerequisites are met.', hint: 'Unlock the required technology first.' })"
+                                        @mouseleave="tooltipStore.hide()"
+                                    >
                                         <div class="lock-header">
                                             <span class="icon">🔒</span>
                                             <span v-if="tech.specialization && tech.specialization !== economyStore.player?.economy?.corporate_specialization" class="doctrine-label">
-                                                DOCTRINE_LOCKED
+                                                SPECIALIZATION_RESTRICTED
                                             </span>
                                             <span v-else>ACCESS_RESTRICTED</span>
                                         </div>
                                         
                                         <div v-if="tech.specialization && tech.specialization !== economyStore.player?.economy?.corporate_specialization" class="doctrine-info">
-                                            This specialized technology is exclusive to the <strong>{{ tech.specialization.toUpperCase() }}</strong> doctrine. 
-                                            You must pivot your corporate specialization to unlock this R&D branch.
+                                            This specialized technology is exclusive to the <strong>{{ tech.specialization.toUpperCase() }}</strong> specialization. 
+                                            You must pivot your corporate strategy to unlock this R&D branch.
                                         </div>
                                         <div v-else class="req-list">
                                             REQ: {{ formatPrereqs(tech.prerequisites) }}
@@ -94,20 +126,25 @@
                                 </div>
                                 
                                 <div class="tech-card-footer">
-                                    <div class="cost-display" :class="{ 'insufficient': !canAfford(tech.cost || 0) && tech.status !== 'completed' }">
-                                        CREDIT_COST: ${{ (tech.cost || 0).toLocaleString() }}
+                                    <div class="cost-display l2-priority" :class="{ 'insufficient text-danger': !canAfford(tech.cost || 0) && tech.status !== 'completed' }"
+                                        @mouseenter="tooltipStore.show($event, { title: 'BUDGET_ALLOCATION', content: 'Upfront credit requirement for R&D infrastructure and resources.', hint: 'Non-refundable.' })"
+                                        @mouseleave="tooltipStore.hide()"
+                                    >
+                                        BUDGET: ${{ (tech.cost || 0).toLocaleString() }}
                                     </div>
 
                                     <button 
-                                        class="action-btn"
+                                        class="action-btn l2-priority"
                                         :disabled="tech.status !== 'available' || tech.is_busy || !canAfford(tech.cost || 0)"
                                         @click="startResearch(tech)"
+                                        @mouseenter="tooltipStore.show($event, { title: 'INITIATE_PROJECT', content: 'Start development of this asset.', hint: 'Verify budget availability.' })"
+                                        @mouseleave="tooltipStore.hide()"
                                     >
-                                        <span v-if="tech.status === 'completed'">INSTALLED</span>
-                                        <span v-else-if="tech.status === 'researching'">ANALYZING...</span>
-                                        <span v-else-if="tech.status === 'locked'">LOCKED</span>
-                                        <span v-else-if="!canAfford(tech.cost || 0)">INSUFFICIENT FUNDS</span>
-                                        <span v-else>INITIATE</span>
+                                        <span v-if="tech.status === 'completed'">ACTIVE</span>
+                                        <span v-else-if="tech.status === 'researching'">DEVELOPING...</span>
+                                        <span v-else-if="tech.status === 'locked'">ACCESS_RESTRICTED</span>
+                                        <span v-else-if="!canAfford(tech.cost || 0)">INSUFFICIENT_FUNDS</span>
+                                        <span v-else>INITIATE_PROJECT</span>
                                     </button>
                                 </div>
                             </template>
@@ -123,10 +160,12 @@
 import { onMounted, onUnmounted, computed, ref } from 'vue';
 import { useResearchStore } from '../../stores/research';
 import { useEconomyStore } from '../../stores/economy';
+import { useTooltipStore } from '../../stores/tooltip';
 import api from '../../utils/api';
 
 const researchStore = useResearchStore();
 const economyStore = useEconomyStore();
+const tooltipStore = useTooltipStore();
 
 const loading = ref(true);
 const researchData = ref([]);
@@ -247,27 +286,63 @@ const startResearch = async (tech) => {
 </script>
 
 <style scoped>
-.research-view {
+.v2-evolution-forge {
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--v3-bg-base);
-    color: var(--v3-text-primary);
+    background: var(--ds-bg-void);
+    color: #fff;
 }
 
 .view-header {
-    padding: 24px 32px;
-    background: rgba(0, 0, 0, 0.2);
-    border-bottom: var(--v3-border-soft);
+    padding: 32px 40px;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.08);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
+.v2-dominance-stats {
+    flex: 1;
+    max-width: 400px;
+    margin: 0 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.dominance-label {
+    font-size: 0.5rem;
+    font-weight: 950;
+    letter-spacing: 0.2em;
+}
+
+.dominance-progress-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.dominance-track {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.dominance-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--ds-accent), #fff);
+    box-shadow: 0 0 15px var(--ds-accent-glow);
+    transition: width 1.5s var(--ds-ease-spring);
+}
+
 .header-left h2 {
-    font-size: 1.2rem;
-    font-weight: 900;
-    letter-spacing: 0.1em;
+    font-size: 1.4rem;
+    font-weight: 950;
+    letter-spacing: 0.15em;
     color: #fff;
     margin: 0;
 }
@@ -362,49 +437,66 @@ const startResearch = async (tech) => {
     gap: 20px;
 }
 
-.tech-card {
-    background: var(--v3-bg-surface);
-    border: 1px solid var(--v3-border-soft);
-    border-left: 2px solid var(--v3-border-soft);
-    border-radius: 2px;
-    padding: 20px;
+.v2-spec-card {
+    background: rgba(255, 255, 255, 0.02);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.4);
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 24px;
     position: relative;
     overflow: hidden;
-    transition: all 0.2s ease;
+    transition: all 0.3s var(--ds-ease-out);
 }
 
-.tech-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--v3-text-ghost);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+.v2-spec-card:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
-.tech-card.status-available {
-    border-left-color: var(--v3-accent);
+.tech-id-tag {
+    font-size: 0.45rem;
+    font-weight: 950;
+    letter-spacing: 0.2em;
+    font-family: var(--ds-font-mono);
+    margin-bottom: 8px;
 }
 
-.tech-card.status-researching {
-    border-color: var(--v3-accent);
-    background: rgba(47, 107, 255, 0.03);
+.v2-spec-card.status-available {
+    border-top-color: var(--ds-accent);
 }
 
-.tech-card.status-completed {
-    border-left-color: var(--v3-success);
-    opacity: 0.8;
+.v2-spec-card.status-researching {
+    background: linear-gradient(135deg, rgba(88, 166, 255, 0.05) 0%, transparent 100%);
+    border-color: var(--ds-accent);
 }
 
-.tech-card.status-locked {
-    opacity: 0.5;
-    filter: grayscale(0.8);
+.v2-spec-card.status-completed {
+    opacity: 0.7;
+    filter: grayscale(0.5);
+    border-left: 2px solid var(--ds-nominal);
+}
+
+.v2-spec-card.status-locked {
+    opacity: 0.4;
+    filter: blur(1px) grayscale(1);
     pointer-events: none;
 }
 
 .tech-card-header {
     display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
-    position: relative;
-    z-index: 2;
+    flex-direction: column;
+    margin-bottom: 12px;
+}
+
+.tech-card-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 0.55rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    margin-bottom: 20px;
+    text-transform: uppercase;
 }
 
 .tech-icon-box {
@@ -592,6 +684,30 @@ const startResearch = async (tech) => {
 
 @keyframes pulse {
     0%, 100% { opacity: 0.5; }
-    50% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.v3-info-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(88, 166, 255, 0.15);
+    color: #58a6ff;
+    font-size: 10px;
+    font-weight: 800;
+    cursor: help;
+    margin-left: 6px;
+    vertical-align: middle;
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    transition: all 0.2s;
+}
+
+.v3-info-trigger:hover {
+    background: #58a6ff;
+    color: #05070a;
+    box-shadow: 0 0 10px rgba(88, 166, 255, 0.4);
 }
 </style>

@@ -272,7 +272,7 @@ const allRacks = computed(() => {
 const availableSlots = computed(() => {
     if (!selectedRackId.value || !selection.motherboard) return [];
     
-    const rack = allRacks.value.find(r => r.id === selectedRackId.value);
+    const rack = allRacks.value?.find(r => r.id === selectedRackId.value);
     if (!rack || !rack.slots) return [];
 
     const slots = [];

@@ -90,13 +90,22 @@
             <p class="action-note">Erhöht den Gesundheitszustand (SoH) auf 100% durch Austausch chemischer Komponenten.
             </p>
         </div>
+
+        <ConfirmationModal :show="showRefurbishConfirm" title="ZELLEN_REFURBISHMENT_ORDER"
+            message="Sollen die Batteriezellen für $1,200 generalüberholt werden?"
+            warning="Dieser chemische Prozess setzt den Gesundheitszustand (SoH) auf 100% zurück."
+            confirm-label="REFURBISH_STARTEN" type="info" @confirm="executeRefurbish"
+            @cancel="showRefurbishConfirm = false" />
     </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import api from '../../../../utils/api';
 import { useGameStore } from '../../../../stores/game';
+import ConfirmationModal from '../../../UI/ConfirmationModal.vue';
+
+const showRefurbishConfirm = ref(false);
 
 const props = defineProps({
     server: { type: Object, required: true },
@@ -113,10 +122,13 @@ function getHealthClass(health) {
 
 const emit = defineEmits(['processing-start', 'processing-end', 'reload']);
 
-async function handleRefurbish() {
+function handleRefurbish() {
     if (props.processing || props.server.health > 95) return;
-    if (!confirm('Sollen die Batteriezellen für $1,200 generalüberholt werden?')) return;
+    showRefurbishConfirm.value = true;
+}
 
+async function executeRefurbish() {
+    showRefurbishConfirm.value = false;
     emit('processing-start');
     try {
         const res = await api.post(`/server/${props.server.id}/battery/refurbish`);
@@ -124,188 +136,8 @@ async function handleRefurbish() {
             gameStore.loadGameState();
             emit('reload');
         }
-    } catch (e) {
-        console.error(e);
     } finally {
         emit('processing-end');
     }
 }
 </script>
-
-<style scoped>
-.battery-tab-v3 {
-    padding: 30px;
-}
-
-.battery-hero {
-    display: flex;
-    gap: 40px;
-    align-items: center;
-    margin-bottom: 40px;
-}
-
-.battery-visual {
-    position: relative;
-    width: 120px;
-    flex-shrink: 0;
-}
-
-.charge-percentage {
-    position: absolute;
-    top: 55%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    width: 100%;
-    pointer-events: none;
-}
-
-.charge-percentage .val {
-    display: block;
-    font-size: 2.2rem;
-    font-weight: 900;
-    line-height: 1;
-    color: #fff;
-    font-family: var(--font-family-mono);
-    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-}
-
-.charge-percentage .unit {
-    font-size: 0.8rem;
-    font-weight: 800;
-    color: var(--v3-text-ghost);
-}
-
-.battery-meta {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.meta-row {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 15px 25px;
-    border-radius: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.meta-row.main-stat {
-    background: rgba(251, 191, 36, 0.05);
-    border-color: rgba(251, 191, 36, 0.1);
-}
-
-.meta-row label {
-    margin: 0;
-}
-
-.meta-row .value {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-}
-
-.meta-row .value strong {
-    font-size: 1.4rem;
-    color: #fff;
-    font-family: var(--font-family-mono);
-}
-
-.meta-row .value small {
-    font-size: 0.7rem;
-    color: var(--v3-text-ghost);
-    font-weight: 700;
-}
-
-.health-good strong {
-    color: var(--v3-success) !important;
-}
-
-.health-warning strong {
-    color: var(--v3-warning) !important;
-}
-
-.health-danger strong {
-    color: var(--v3-danger) !important;
-}
-
-.battery-details-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    margin-bottom: 40px;
-}
-
-.detail-card {
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 20px;
-    border-radius: 12px;
-    display: flex;
-    gap: 15px;
-}
-
-.card-icon {
-    font-size: 1.5rem;
-}
-
-.card-content label {
-    margin-bottom: 10px;
-    font-size: 0.5rem;
-}
-
-.card-content .val {
-    font-size: 1.1rem;
-    font-weight: 900;
-    color: #fff;
-    font-family: var(--font-family-mono);
-    margin-bottom: 5px;
-}
-
-.card-content .desc {
-    font-size: 0.65rem;
-    color: var(--v3-text-ghost);
-    line-height: 1.4;
-}
-
-.battery-actions {
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    padding-top: 30px;
-    text-align: center;
-}
-
-.btn-refurbish {
-    background: linear-gradient(135deg, #10b981, #059669);
-    border: none;
-    color: #fff;
-    padding: 12px 30px;
-    border-radius: 8px;
-    font-weight: 900;
-    font-size: 0.8rem;
-    letter-spacing: 0.05em;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
-    transition: all 0.2s;
-}
-
-.btn-refurbish:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
-}
-
-.btn-refurbish:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    filter: grayscale(1);
-}
-
-.action-note {
-    margin-top: 15px;
-    font-size: 0.65rem;
-    color: var(--v3-text-ghost);
-    font-style: italic;
-}
-</style>

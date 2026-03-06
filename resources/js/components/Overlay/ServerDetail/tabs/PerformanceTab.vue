@@ -1,11 +1,6 @@
 <template>
     <div class="tab-content performance-tab monitoring-v3">
-        <div class="proc-header">
-            <div class="proc-title">
-                <h3>REALTIME_MONITORING_SUITE</h3>
-                <p>Echtzeit-Analyse der Hardware-Auslastung auf Node: {{ server.id.substring(0,8) }}</p>
-            </div>
-        </div>
+
 
         <div class="live-metrics-v3">
             <div class="v3-metric cpu" :class="{ 'high-load': latestCpu > 80 }">

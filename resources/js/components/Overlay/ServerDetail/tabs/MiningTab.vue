@@ -1,11 +1,6 @@
 <template>
     <div class="proc-v3 scroll-y">
-        <div class="proc-header">
-            <div class="proc-title">
-                <h3>CRYPTO_MINING_PROTOCOL</h3>
-                <p>Nutze ungenutzte Serverkapazitäten zum Schürfen von Kryptowährungen.</p>
-            </div>
-        </div>
+
 
         <div class="summary-group-v3 mb-4">
             <label class="section-label-industrial">MINING_STATUS</label>
@@ -19,8 +14,9 @@
                     </div>
                 </div>
                 <div class="status-toggle">
-                    <button class="btn-toggle" :class="{ 'on': server.mining?.isMining }"
-                        @click="toggleMining" :disabled="processing">
+                    <button class="btn-toggle" :class="{ 'on': server.mining?.isMining }" @click="toggleMining"
+                        :disabled="processing || (!server.mining?.isMining && server.status !== 'online')"
+                        :title="!server.mining?.isMining && server.status !== 'online' ? 'Server muss online sein.' : ''">
                         {{ server.mining?.isMining ? 'STOPPEN' : 'STARTEN' }}
                     </button>
                 </div>
@@ -87,91 +83,3 @@ const toggleMining = async () => {
     }
 };
 </script>
-
-<style scoped>
-.mining-status-card {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    padding: 20px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: var(--v3-radius);
-    transition: all var(--v3-transition-fast);
-}
-
-.mining-status-card.active {
-    border-color: var(--v3-warning);
-    background: rgba(241, 196, 15, 0.05);
-}
-
-.status-icon {
-    font-size: 2rem;
-}
-
-.status-details {
-    flex: 1;
-}
-
-.status-title {
-    font-size: 0.9rem;
-    font-weight: 800;
-    color: #fff;
-    margin-bottom: 5px;
-}
-
-.mining-status-card.active .status-title {
-    color: var(--v3-warning);
-    animation: v3-pulse-state 2s infinite;
-}
-
-.status-desc {
-    font-size: 0.65rem;
-    color: var(--v3-text-secondary);
-}
-
-.btn-toggle {
-    background: transparent;
-    border: 1px solid var(--v3-border-heavy);
-    color: var(--v3-text-ghost);
-    padding: 10px 20px;
-    font-size: 0.7rem;
-    font-weight: 800;
-    cursor: pointer;
-    border-radius: 2px;
-}
-
-.btn-toggle:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-}
-
-.btn-toggle.on {
-    border-color: var(--v3-danger);
-    color: var(--v3-danger);
-}
-
-.btn-toggle.on:hover {
-    background: var(--v3-danger);
-    color: #000;
-}
-
-.warning-group {
-    border-color: rgba(255, 77, 79, 0.3);
-}
-
-.risk-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    font-size: 0.65rem;
-    color: var(--v3-text-secondary);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.risk-list li strong {
-    color: var(--v3-danger);
-}
-</style>

@@ -1,98 +1,76 @@
 <template>
     <header class="v2-topbar">
-        <div class="v2-status-group">
-            <div class="v2-stat-item is-supporting"
-                v-tooltip="{ title: 'Uplink-Status', content: 'Zeigt die Verbindung zum Spielserver an.', hint: 'Grün bedeutet Echtzeit-Synchronisation.' }">
-                <span class="v2-stat-label">UPLINK</span>
-                <span class="v2-stat-value" :class="{ 'is-success': wsConnected, 'is-danger': !wsConnected }">
-                    {{ wsConnected ? 'LIVE' : 'OFFLINE' }}
-                </span>
+        <!-- High-level Tier 1: Player Power -->
+        
+        <div class="v2-identity-block l1-priority" @click="$emit('openProfile')">
+            <div class="v2-rank-module">
+                <span class="rank-tag">TIER</span>
+                <span class="rank-id">{{ economy.level || 1 }}</span>
             </div>
-            <div class="v2-stat-item is-supporting"
-                v-tooltip="{ title: 'Operator ID', content: 'Dein registrierter Unternehmensname im Netzwerk.' }">
-                <span class="v2-stat-label">OPERATOR</span>
-                <span class="v2-stat-value">{{ player?.companyName || 'R_ALPHA' }}</span>
-            </div>
-            <div class="v2-stat-item is-secondary"
-                v-tooltip="{ title: 'Systemzeit', content: 'Aktuelle Zeit in der Simulationsinstanz.', hint: 'Wichtig für Energie-Preisphasen.' }">
-                <span class="v2-stat-label">SYSTEM_TIME</span>
-                <span class="v2-stat-value">{{ formattedTime }}</span>
-            </div>
-            <WeatherWidget />
-        </div>
-
-        <div class="v2-center-monitoring">
-            <MarketAlertTicker />
-            <WorldNewsTicker compact />
-        </div>
-
-        <div class="v2-status-group">
-            <div class="v2-stat-item is-primary"
-                v-tooltip="{ title: 'Kapital', content: 'Deine liquiden Mittel für Hardware und Expansion.', hint: 'Kredite erhöhen deine monatlichen Fixkosten!' }">
-                <span class="v2-stat-label">CAPITAL</span>
-                <span class="v2-stat-value is-success">${{ formatMoney(economy.balance) }}</span>
-            </div>
-            <div class="v2-stat-item is-secondary"
-                v-tooltip="{ title: 'Netto-Cashflow', content: 'Stündlicher Gewinn oder Verlust nach Abzug aller Betriebskosten.', hint: 'Achte auf deine Energiepreise!' }">
-                <span class="v2-stat-label">NET_FLOW</span>
-                <span class="v2-stat-value" :class="{ 'is-success': netIncome > 0, 'is-danger': netIncome < 0 }">
-                    {{ netIncome >= 0 ? '+' : '' }}{{ formatMoney(netIncome) }}
-                </span>
-            </div>
-
-            <div class="v2-divider"></div>
-
-            <ControlCenter @openMarketing="$emit('openMarketing')" @openLeaderboard="$emit('openLeaderboard')"
-                @openRoadmap="$emit('openRoadmap')" @openAnalytics="$emit('openAnalytics')"
-                @openAchievements="$emit('openAchievements')" @openFinance="$emit('openFinance')"
-                @openReplay="$emit('openReplay')" @openSettings="$emit('openProfile')"
-                @openCustomers="$emit('openCustomers')" @openEmployees="$emit('openEmployees')" />
-
-            <a v-if="player?.is_admin" href="/admin" target="_blank" class="v2-stat-item admin-button"
-                v-tooltip="'Access Obsidian Live-Ops'">
-                <span class="v2-stat-label" style="color:#ef4444">LIVE_OPS</span>
-                <span class="v2-stat-value" style="color:#fca5a5">OBSIDIAN</span>
-            </a>
-
-            <button class="v2-profile-area" @click="$emit('openProfile')">
-                <div class="v2-stat-item is-supporting">
-                    <span class="v2-stat-label">RANK</span>
-                    <span class="v2-stat-value">LVL_{{ player?.economy?.level || 1 }}</span>
+                <div class="v2-title-node l1-priority">
+                    <span class="prefix">RANK //</span>
+                    <span class="designation">{{ getExecutiveTitle(economy.level || 1) }}</span>
                 </div>
-                <div class="v2-avatar-glow"></div>
-            </button>
+                <div class="v2-progression-track">
+                    <div class="v2-xp-bar-bg">
+                        <div class="v2-xp-bar-fill" :style="{ width: (economy.experience?.progress || 0) + '%' }"></div>
+                    </div>
+                    <span class="v2-xp-val l2-priority">GROWTH_INDEX: {{ Math.round(economy.experience?.progress || 0) }}%</span>
+                </div>
+            </div>
+
+        <div class="v2-strategic-context">
+            <StrategicDirective :active-view="activeView" @navigate="$emit('openView', $event)" />
+        </div>
+
+        <div class="v2-capital-block">
+            <div class="v2-capital-stat l1-priority" :class="balancePulse">
+                <div class="v2-cap-label l3-priority">OPERATING_CAPITAL</div>
+                <div class="v2-cap-main">
+                    <span class="curr">$</span>
+                    <span class="val">{{ formatMoneyFull(economy.balance) }}</span>
+                </div>
+            </div>
+            
+            <div class="v2-momentum-stat" :class="{ 'is-gain': netIncome > 0, 'is-loss': netIncome < 0 }">
+                <div class="v2-mom-label l3-priority">NET_YIELD</div>
+                <div class="v2-mom-main l2-priority">
+                    <span class="v-dir">{{ netIncome >= 0 ? '▲' : '▼' }}</span>
+                    <span class="v-val">{{ formatMoney(Math.abs(netIncome)) }}/HR</span>
+                </div>
+            </div>
+
+            <div class="v2-cmd-divider"></div>
+
+            <div class="v2-sys-actions">
+                <button class="v2-sys-btn l3-priority" @click="$emit('openNocWall')">OPERATIONS</button>
+                <button class="v2-sys-btn l3-priority" @click="$emit('openFinance')">FINANCE</button>
+            </div>
         </div>
     </header>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useGameStore } from '../../stores/game';
-import { storeToRefs } from 'pinia';
-import WorldNewsTicker from './WorldNewsTicker.vue';
-import MarketAlertTicker from './MarketAlertTicker.vue';
-import WeatherWidget from './WeatherWidget.vue';
-import ControlCenter from './ControlCenter.vue';
+import StrategicDirective from './StrategicDirective.vue';
 
 const gameStore = useGameStore();
+const props = defineProps({
+    activeView: { type: String, default: 'overview' }
+});
 
-const player = computed(() => gameStore.player || {});
 const economy = computed(() => gameStore.player?.economy || {});
 const lastUpdate = computed(() => gameStore.lastUpdate);
-const wsConnected = computed(() => gameStore.wsConnected);
 
-defineEmits(['openProfile', 'openMarketing', 'openLeaderboard', 'openRoadmap', 'openAnalytics', 'openAchievements', 'openFinance', 'openReplay', 'openCustomers', 'openEmployees']);
-
-const formattedTime = computed(() => {
-    if (!lastUpdate.value) return '--:--:--';
-    try {
-        const d = new Date(lastUpdate.value);
-        if (isNaN(d.getTime())) return '--:--:--';
-        return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    } catch (e) {
-        return '--:--:--';
-    }
+const balancePulse = ref(null);
+watch(() => economy.value.balance, (newVal, oldVal) => {
+    if (newVal > oldVal) balancePulse.value = 'growth-pulse';
+    else if (newVal < oldVal) balancePulse.value = 'decay-pulse';
+    setTimeout(() => { balancePulse.value = null; }, 800);
 });
+
+defineEmits(['openNocWall', 'openProfile', 'openFinance', 'openView']);
 
 const netIncome = computed(() => {
     const inc = economy.value?.hourlyIncome || 0;
@@ -106,225 +84,98 @@ function formatMoney(value) {
     if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
     return Math.floor(value).toLocaleString();
 }
+
+function formatMoneyFull(value) {
+     if (value === undefined || value === null) return '0';
+     return Math.floor(value).toLocaleString('de-DE');
+}
+
+const getExecutiveTitle = (level) => {
+    const titles = [
+        'JUNIOR_ASSOCIATE', 'SENIOR_ASSOCIATE', 'OPERATIONS_MANAGER',
+        'SITE_SUPERVISOR', 'FACILITY_DIRECTOR', 'DIVISION_DIRECTOR',
+        'REGIONAL_MANAGER', 'SENIOR_DIRECTOR', 'MANAGING_DIRECTOR',
+        'REGION_VP', 'EXECUTIVE_VP', 'MANAGING_PARTNER',
+        'GENERAL_PARTNER', 'SENIOR_PARTNER', 'CHIEF_OPERATING_OFFICER',
+        'PRESIDENT', 'CHIEF_EXECUTIVE', 'BOARD_MEMBER',
+        'BOARD_DIRECTOR', 'MANAGING_CHAIRMAN', 'BOARD_CHAIRMAN',
+        'PRINCIPAL_CONTROLLER', 'GLOBAL_DIRECTOR', 'MARKET_CONTROLLER',
+        'MAJORITY_OWNER', 'CHIEF_CONTROLLER', 'LEAD_STRATEGIST',
+        'SENIOR_EXECUTIVE', 'CHIEF_ARBITER', 'GLOBAL_CHAIRMAN'
+    ];
+    return titles[Math.min(level - 1, titles.length - 1)] || 'SENIOR_EXECUTIVE';
+};
 </script>
 
 <style scoped>
 .v2-topbar {
-    height: var(--topbar-height);
-    background: var(--color-base);
-    border-bottom: var(--border-ui);
+    height: 64px;
+    background: var(--ds-topbar-bg);
+    border-bottom: 1px solid var(--ds-topbar-border);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 var(--space-xl);
+    padding: 0 24px;
+    position: relative;
     z-index: 1000;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-.bar-section {
-    display: flex;
-    align-items: center;
-    gap: 32px;
-    height: 100%;
+.v2-scanlines { display: none; }
+
+.v2-identity-block { display: flex; align-items: center; gap: 16px; cursor: pointer; transition: opacity 0.2s; }
+.v2-identity-block:hover { opacity: 0.8; }
+
+.v2-rank-module {
+    width: 40px; height: 40px; background: var(--ds-accent);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    border-radius: var(--ds-radius-md); clip-path: none;
 }
 
-.bar-section.center {
-    flex: 1;
-    justify-content: center;
-    gap: 40px;
+.rank-tag { font-size: 0.5rem; font-weight: 700; color: rgba(255,255,255,0.7); letter-spacing: 0.04em; }
+.rank-id { font-size: 1.25rem; font-weight: 800; line-height: 1; color: #fff; }
+
+.v2-id-meta { display: flex; flex-direction: column; gap: 2px; }
+.v2-title-node { display: flex; gap: 6px; font-size: 0.8125rem; font-weight: 600; letter-spacing: 0; }
+.v2-title-node .prefix { color: var(--ds-text-ghost); }
+.v2-title-node .designation { color: var(--ds-text-primary); }
+
+.v2-progression-track { display: flex; align-items: center; gap: 8px; }
+.v2-xp-bar-bg { width: 120px; height: 4px; background: var(--ds-bg-hover); border-radius: var(--ds-radius-full); overflow: hidden; }
+.v2-xp-bar-fill { height: 100%; background: var(--ds-accent); border-radius: var(--ds-radius-full); transition: width 1s ease; }
+.v2-xp-val { font-size: 0.6875rem; font-weight: 600; color: var(--ds-text-muted); }
+
+.v2-strategic-context { flex: 1; display: flex; justify-content: center; }
+
+.v2-capital-block { display: flex; align-items: center; gap: 32px; }
+.v2-capital-stat { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.v2-cap-label { font-size: 0.6875rem; font-weight: 600; color: var(--ds-text-ghost); letter-spacing: 0.02em; }
+
+.v2-cap-main { display: flex; align-items: baseline; gap: 4px; }
+.v2-cap-main .curr { font-size: 1rem; color: var(--ds-nominal); font-weight: 700; }
+.v2-cap-main .val { font-size: 1.75rem; font-weight: 800; line-height: 1; color: var(--ds-text-primary); letter-spacing: -0.02em; font-family: var(--ds-font-mono); }
+
+.v2-momentum-stat { display: flex; flex-direction: column; align-items: flex-end; }
+.v2-mom-label { font-size: 0.6875rem; font-weight: 600; color: var(--ds-text-ghost); letter-spacing: 0.02em; }
+.v2-mom-main { display: flex; align-items: center; gap: 4px; font-size: 0.875rem; font-weight: 600; font-family: var(--ds-font-mono); }
+
+.is-gain { color: var(--ds-nominal); }
+.is-loss { color: var(--ds-critical); }
+
+.v2-cmd-divider { width: 1px; height: 32px; background: var(--ds-border-color); margin: 0 8px; }
+.v2-sys-actions { display: flex; gap: 8px; }
+
+.v2-sys-btn {
+    font-family: var(--ds-font-sans); font-size: 0.8125rem; font-weight: 600; padding: 8px 14px;
+    background: var(--ds-bg-subtle); border: 1px solid var(--ds-border-color); color: var(--ds-text-secondary);
+    cursor: pointer; transition: all 0.15s; border-radius: var(--ds-radius-md);
 }
 
-/* System Uplink */
-.system-uplink {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
+.v2-sys-btn:hover { background: var(--ds-bg-hover); color: var(--ds-text-primary); border-color: #CBD5E1; }
 
-.uplink-pip {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--color-danger);
-    box-shadow: 0 0 8px var(--color-danger);
-}
+.growth-pulse .val { animation: ds-growth 0.6s ease; }
+.decay-pulse .val { animation: ds-decay 0.6s ease; }
 
-.uplink-pip.online {
-    background: var(--color-success);
-    box-shadow: 0 0 10px var(--color-success);
-    animation: pulse-status 2s infinite;
-}
-
-.uplink-label {
-    font-size: 0.55rem;
-    font-weight: 900;
-    color: var(--color-muted);
-    letter-spacing: 0.15em;
-}
-
-@keyframes pulse-status {
-
-    0%,
-    100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-
-    50% {
-        opacity: 0.6;
-        transform: scale(0.9);
-    }
-}
-
-/* Company Badge */
-.company-badge {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.corp-name {
-    font-size: 0.75rem;
-    font-weight: 900;
-    color: #fff;
-    letter-spacing: 0.05em;
-}
-
-.corp-id {
-    font-size: 0.5rem;
-    font-family: var(--font-mono);
-    color: var(--color-muted);
-    opacity: 0.5;
-}
-
-/* Runtime Monitor */
-.monitor-seq {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    height: 24px;
-    position: relative;
-}
-
-.seq-line {
-    width: 40px;
-    height: 1px;
-    background: var(--color-accent);
-    position: relative;
-    overflow: hidden;
-}
-
-.seq-line::after {
-    content: '';
-    position: absolute;
-    left: -100%;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, #fff, transparent);
-    animation: scanline 3s infinite linear;
-}
-
-.seq-label {
-    font-size: 0.55rem;
-    font-weight: 800;
-    color: var(--color-muted);
-    letter-spacing: 0.2em;
-}
-
-.seq-value {
-    font-size: 0.75rem;
-    font-family: var(--font-mono);
-    color: var(--color-accent);
-    font-weight: 800;
-}
-
-@keyframes scanline {
-    0% {
-        left: -100%;
-    }
-
-    100% {
-        left: 100%;
-    }
-}
-
-/* Finance Stat Group */
-.stat-group {
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    padding: 6px 16px;
-    background: rgba(255, 255, 255, 0.02);
-    border: var(--border-dim);
-    border-radius: 2px;
-}
-
-.stat-mini {
-    display: flex;
-    flex-direction: column;
-}
-
-.m-label {
-    font-size: 0.5rem;
-    font-weight: 900;
-    color: var(--color-muted);
-    letter-spacing: 0.1em;
-    margin-bottom: 2px;
-}
-
-.m-val {
-    font-size: 0.8rem;
-    font-family: var(--font-mono);
-    font-weight: 800;
-    color: #fff;
-}
-
-.m-val.pos {
-    color: var(--color-success);
-}
-
-.m-val.neg {
-    color: var(--color-danger);
-}
-
-.sep {
-    width: 1px;
-    height: 20px;
-    background: var(--border-dim);
-}
-
-/* Profile Trigger */
-.profile-trigger {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.level-badge {
-    font-size: 0.6rem;
-    font-weight: 900;
-    color: var(--color-muted);
-    border: var(--border-dim);
-    padding: 2px 6px;
-    border-radius: 2px;
-}
-
-.avatar-box {
-    width: 32px;
-    height: 32px;
-    background: var(--color-muted);
-    opacity: 0.1;
-    border: var(--border-ui);
-    transition: var(--transition-subtle);
-}
-
-.profile-trigger:hover .avatar-box {
-    opacity: 0.3;
-    border-color: #fff;
-    transform: scale(1.05);
-}
-
-.divider {
-    display: none;
-}
+@keyframes ds-growth { 0% { color: var(--ds-nominal); transform: scale(1.03); } 100% { color: var(--ds-text-primary); transform: scale(1); } }
+@keyframes ds-decay { 0% { color: var(--ds-critical); transform: scale(0.97); } 100% { color: var(--ds-text-primary); transform: scale(1); } }
 </style>

@@ -1,57 +1,54 @@
 <template>
     <div class="tab-content networking-tab provision-lab">
-        <div class="proc-header">
-            <div class="proc-title">
-                <h3>NETZWERK_TOPOLOGIE</h3>
-                <p>Konfiguration der VPC-Paritionierung und Interface-Telemetrie.</p>
-            </div>
-        </div>
+
 
         <div class="v3-info-box">
             <label>VLAN_PEERING_STATUS</label>
             <div class="vpc-visualizer-card-v3">
-                 <div v-if="server.networking?.privateNetworkId" class="vlan-active-state">
-                     <div class="v3-node-map">
-                         <div class="node server">
-                             <div class="icon">🖥️</div>
-                             <div class="meta">
-                                 <strong>{{ server.nickname || 'LOCAL_NODE' }}</strong>
-                                 <span>{{ server.networking.privateIp }}</span>
-                             </div>
-                         </div>
-                         <div class="peering-line active">
-                             <div class="pulse"></div>
-                         </div>
-                         <div class="node vpc">
-                             <div class="icon">☁️</div>
-                             <div class="meta">
-                                 <strong>{{ getNetworkName(server.networking.privateNetworkId) }}</strong>
-                                 <span>VPC_GATEWAY</span>
-                             </div>
-                         </div>
-                     </div>
-                     <div class="v3-actions-row" style="margin-top: 20px;">
-                         <button class="btn-danger-v3-sm" @click="detachFromNetwork" :disabled="processing">PEERING_TERMINIEREN</button>
-                     </div>
-                 </div>
-                 <div v-else class="vlan-empty-state">
-                     <div class="v3-node-map inactive">
-                         <div class="node server">🖥️</div>
-                         <div class="peering-line"></div>
-                         <div class="node vpc">☁️</div>
-                     </div>
-                     <div class="vpc-selection-v3">
-                         <select v-model="selectedNetworkId" class="v3-select-sm">
-                             <option value="" disabled>VLAN_WÄHLEN...</option>
-                             <option v-for="net in netStore.privateNetworks" :key="net.id" :value="net.id">
-                                 {{ net.name }}
-                             </option>
-                         </select>
-                         <button class="btn-primary-v3-sm" @click="attachToNetwork" :disabled="!selectedNetworkId || processing">
-                             PEERING_INITIALISIEREN
-                         </button>
-                     </div>
-                 </div>
+                <div v-if="server.networking?.privateNetworkId" class="vlan-active-state">
+                    <div class="v3-node-map">
+                        <div class="node server">
+                            <div class="icon">🖥️</div>
+                            <div class="meta">
+                                <strong>{{ server.nickname || 'LOCAL_NODE' }}</strong>
+                                <span>{{ server.networking.privateIp }}</span>
+                            </div>
+                        </div>
+                        <div class="peering-line active">
+                            <div class="pulse"></div>
+                        </div>
+                        <div class="node vpc">
+                            <div class="icon">☁️</div>
+                            <div class="meta">
+                                <strong>{{ getNetworkName(server.networking.privateNetworkId) }}</strong>
+                                <span>VPC_GATEWAY</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="v3-actions-row" style="margin-top: 20px;">
+                        <button class="btn-danger-v3-sm" @click="detachFromNetwork"
+                            :disabled="processing">PEERING_TERMINIEREN</button>
+                    </div>
+                </div>
+                <div v-else class="vlan-empty-state">
+                    <div class="v3-node-map inactive">
+                        <div class="node server">🖥️</div>
+                        <div class="peering-line"></div>
+                        <div class="node vpc">☁️</div>
+                    </div>
+                    <div class="vpc-selection-v3">
+                        <select v-model="selectedNetworkId" class="v3-select-sm">
+                            <option value="" disabled>VLAN_WÄHLEN...</option>
+                            <option v-for="net in netStore.privateNetworks" :key="net.id" :value="net.id">
+                                {{ net.name }}
+                            </option>
+                        </select>
+                        <button class="btn-primary-v3-sm" @click="attachToNetwork"
+                            :disabled="!selectedNetworkId || processing">
+                            PEERING_INITIALISIEREN
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -67,7 +64,9 @@
                     <div class="port-telemetry">
                         <div class="t-val">{{ server.currentBandwidth || 0 }} Mbps</div>
                         <div class="v3-progress-flat small primary">
-                            <div class="fill" :style="{ width: Math.min(100, ((server.currentBandwidth || 0) / (server.specs?.bandwidthMbps || 1)) * 100) + '%' }"></div>
+                            <div class="fill"
+                                :style="{ width: Math.min(100, ((server.currentBandwidth || 0) / (server.specs?.bandwidthMbps || 1)) * 100) + '%' }">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -95,12 +94,20 @@
                 </div>
             </div>
         </div>
+
+        <ConfirmationModal :show="showDetachConfirm" title="NETWORK_PEERING_TERMINATION"
+            message="Möchten Sie den Server wirklich vom privaten Netzwerk trennen?"
+            warning="Die Verbindung zu anderen Knoten im VLAN geht sofort verloren." confirm-label="PEERING_TRENNEN"
+            type="warning" @confirm="executeDetach" @cancel="showDetachConfirm = false" />
     </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useNetworkStore } from '../../../../stores/network';
+import ConfirmationModal from '../../../UI/ConfirmationModal.vue';
+
+const showDetachConfirm = ref(false);
 
 const props = defineProps({
     server: { type: Object, required: true },
@@ -131,9 +138,13 @@ const attachToNetwork = async () => {
     }
 };
 
-const detachFromNetwork = async () => {
+const detachFromNetwork = () => {
     if (props.processing) return;
-    if (!confirm('Server vom privaten Netzwerk trennen? Die Verbindung zu anderen Knoten geht verloren.')) return;
+    showDetachConfirm.value = true;
+};
+
+const executeDetach = async () => {
+    showDetachConfirm.value = false;
     emit('processing-start');
     try {
         const success = await netStore.detachServerFromNetwork(props.server.id);

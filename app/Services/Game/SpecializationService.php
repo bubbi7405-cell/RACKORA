@@ -34,7 +34,9 @@ class SpecializationService
                 'passives' => [
                     'hardware_cost_reduction' => 0.25,
                     'churn_penalty' => 0.40,
-                    'xp_gain' => 0.15
+                    'xp_gain' => 0.15,
+                    'order_frequency_boost' => 1.5,
+                    'satisfaction_penalty_multiplier' => 2.0
                 ]
             ],
             'high_performance' => [

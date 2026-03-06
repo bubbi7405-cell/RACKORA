@@ -32,7 +32,7 @@ class GameHeartbeat extends Command
                 $service->processTick();
                 
                 $executionTime = round((microtime(true) - $start) * 1000, 2);
-                $this->line("[" . now()->toFormat('H:i:s') . "] Heartbeat dispatched (Wait: {$interval}s). Latency: {$executionTime}ms");
+                $this->line("[" . now()->format('H:i:s') . "] Heartbeat dispatched (Wait: {$interval}s). Latency: {$executionTime}ms");
                 
             } catch (\Exception $e) {
                 $this->error("Heartbeat Failure: " . $e->getMessage());

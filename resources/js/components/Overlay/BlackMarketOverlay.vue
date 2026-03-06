@@ -2,7 +2,7 @@
     <div class="black-market-container">
         <div class="bm-header">
             <div class="bm-title">
-                <span class="glitch-text" data-text="THE NIGHT SHOP">THE NIGHT SHOP</span>
+                <span>UNREGULATED_ASSETS</span>
             </div>
             <div class="bm-timer" :class="{ 'timer-critical': closingSoon }">
                 <span class="label">CLOSING IN:</span>
@@ -160,10 +160,7 @@ onMounted(() => {
     color: #8a2be2;
 }
 
-.glitch-text {
-    position: relative;
-    display: inline-block;
-}
+
 
 .bm-timer {
     display: flex;

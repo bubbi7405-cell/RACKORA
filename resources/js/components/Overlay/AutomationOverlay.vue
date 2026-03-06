@@ -3,8 +3,7 @@
         <div class="automation-overlay glass-panel animation-slide-up">
             <div class="overlay-header">
                 <div class="header-title">
-                    <span class="icon-pulsing">🤖</span>
-                    <h2>Automation & Services</h2>
+                    <h2>PROCESS_AUTOMATION</h2>
                 </div>
                 <div class="header-tabs">
                     <button class="header-tab" :class="{ active: activeTab === 'system' }" @click="activeTab = 'system'">System</button>
@@ -40,7 +39,6 @@
                                     <span class="premium-slider"></span>
                                 </label>
                             </div>
-                            <div v-if="settings.auto_reboot" class="module-scanline"></div>
                         </div>
 
                         <!-- Auto Provisioning -->
@@ -59,7 +57,6 @@
                                     <span class="premium-slider"></span>
                                 </label>
                             </div>
-                            <div v-if="settings.auto_provisioning" class="module-scanline"></div>
                         </div>
 
                         <!-- Auto-Cleanup -->
@@ -87,7 +84,6 @@
                                     <div class="lock-icon">🔒</div>
                                 </template>
                             </div>
-                            <div v-if="settings.auto_cleanup" class="module-scanline"></div>
                         </div>
 
                         <!-- Cooling Automation -->
@@ -115,7 +111,6 @@
                                     <div class="lock-icon">🔒</div>
                                 </template>
                             </div>
-                            <div v-if="settings.cooling_automation" class="module-scanline"></div>
                         </div>
                     </div>
                 </div>
@@ -466,15 +461,7 @@ const toggle = async (key, value) => {
     -webkit-text-fill-color: transparent;
 }
 
-.icon-pulsing {
-    font-size: 2.2rem;
-    animation: icon-pulse 2s infinite ease-in-out;
-}
 
-@keyframes icon-pulse {
-    0%, 100% { transform: scale(1); opacity: 0.8; }
-    50% { transform: scale(1.1); opacity: 1; filter: drop-shadow(0 0 10px #00f2ff); }
-}
 
 .overlay-body {
     flex: 1;
@@ -644,19 +631,7 @@ input:checked + .premium-slider::before {
     box-shadow: 0 0 15px #00f2ff;
 }
 
-.module-scanline {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 2px;
-    background: rgba(0, 242, 255, 0.2);
-    box-shadow: 0 0 10px #00f2ff;
-    animation: scan 3s infinite linear;
-    pointer-events: none;
-}
 
-@keyframes scan {
-    from { transform: translateY(-10px); }
-    to { transform: translateY(160px); }
-}
 
 .overlay-footer {
     padding: 20px 40px;

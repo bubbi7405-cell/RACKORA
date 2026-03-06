@@ -67,4 +67,12 @@ class Employee extends Model
         if (!$this->isOnSabbatical()) return null;
         return \Carbon\Carbon::parse($this->sabbatical_until)->diffForHumans();
     }
+
+    /**
+     * FEATURE 161: Check if employee is at a seminar
+     */
+    public function isOnSeminar(): bool
+    {
+        return isset($this->metadata['seminar_until']) && \Carbon\Carbon::parse($this->metadata['seminar_until'])->isFuture();
+    }
 }

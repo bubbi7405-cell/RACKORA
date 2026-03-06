@@ -236,7 +236,7 @@ const submitBid = async () => {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 1100;
+    z-index: var(--zi-overlays);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -248,7 +248,7 @@ const submitBid = async () => {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.65);
     backdrop-filter: blur(8px);
 }
 

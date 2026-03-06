@@ -47,6 +47,10 @@ export default defineConfig({
     server: {
         host: '0.0.0.0',
         port: 5173,
+        origin: 'https://dev.codepony.de:5173',
+        hmr: {
+            host: 'dev.codepony.de',
+        },
         watch: {
             ignored: ['**/storage/framework/views/**'],
         },

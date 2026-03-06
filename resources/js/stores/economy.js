@@ -74,6 +74,19 @@ export const useEconomyStore = defineStore('economy', () => {
         freezeEndsAt: null,
     });
 
+    // Feature: Global Market Simulation
+    const globalMarket = reactive({
+        demand: {
+            web: { value: 65, trend: 'stable', label: 'WEB_HOSTING' },
+            ai: { value: 88, trend: 'up', label: 'AI_COMPUTE' },
+            storage: { value: 45, trend: 'down', label: 'DATA_STORAGE' },
+            streaming: { value: 72, trend: 'up', label: 'MEDIA_STREAMING' }
+        },
+        regionalDemand: {}, // Populated with { us_east: { web: 70, ai: 40 }, ... }
+        marketEvents: [],
+        competitionIdx: 1.0
+    });
+
     // ─── Getters ────────────────────────────────────────
 
     const balance = computed(() => player.value.economy.balance);
@@ -129,6 +142,10 @@ export const useEconomyStore = defineStore('economy', () => {
         }
         if (data.energy) {
             energyMarket.value.spotPrice = data.energy.spotPrice ?? energyMarket.value.spotPrice;
+        }
+
+        if (data.globalMarket) {
+            Object.assign(globalMarket, data.globalMarket);
         }
     }
 
@@ -380,6 +397,7 @@ export const useEconomyStore = defineStore('economy', () => {
         orders,
         energyMarket,
         marketShare,
+        globalMarket,
         // Getters
         balance,
         reputation,

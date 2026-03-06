@@ -177,7 +177,7 @@ class RoomController extends Controller
     {
         $request->validate([
             'room_id' => 'required|uuid|exists:game_rooms,id',
-            'upgrade_type' => 'required|string|in:power,cooling,bandwidth,repair_cooling,airflow,network_tier,redundancy,diesel_backup,solar_panels,heat_recovery,academy',
+            'upgrade_type' => 'required|string|in:power,cooling,bandwidth,repair_cooling,airflow,network_tier,redundancy,diesel_backup,solar_panels,heat_recovery,academy,wellness_facility',
             'airflow_type' => 'nullable|string|in:hot_aisle,cold_aisle_containment',
         ]);
 
@@ -358,6 +358,36 @@ class RoomController extends Controller
                     'success' => true,
                     'data' => $room->toGameState(),
                     'message' => 'Heat Recovery System installed! Carbon Tax reduced by 40%.'
+                ]);
+            });
+        }
+
+        // FEATURE 243: Employee Wellness Facility
+        if ($upgradeType === 'wellness_facility') {
+            $currentUpgrades = $room->upgrades ?? [];
+            if (in_array('wellness_facility', $currentUpgrades)) {
+                return response()->json(['success' => false, 'error' => 'Wellness Facility is already installed.'], 400);
+            }
+            $cost = 25000;
+            if (!$user->economy->canAfford($cost)) {
+                return response()->json(['success' => false, 'error' => 'Insufficient funds for Wellness Facility.'], 400);
+            }
+
+            return DB::transaction(function () use ($user, $room, $cost, $currentUpgrades) {
+                $currentUpgrades[] = 'wellness_facility';
+                $room->upgrades = $currentUpgrades;
+                $room->save();
+
+                $economy = $user->economy;
+                $economy->debit($cost, "Wellness Facility: {$room->name}", 'infrastructure', $room);
+                $economy->addExperience(250);
+
+                \App\Models\GameLog::log($user, "Wellness Facility (Gym/Sauna) built in {$room->name}. Assigned staff recover stress 2x faster!", 'success', 'hr');
+
+                return response()->json([
+                    'success' => true,
+                    'data' => $room->toGameState(),
+                    'message' => 'Wellness Facility installed! Staff well-being improved.'
                 ]);
             });
         }

@@ -1400,10 +1400,10 @@ Enterprise-grade safety for Live-Ops.
 - [x] Passive bonus: 10% lower churn probability for happy customers.
 
 #### FEATURE 53: Smart Traffic Orchestrator (Auto-Migration)
-**Phase:** 🔴 Phase 4 | **Status:** 🔴 To Do
-- [ ] AI module that migrates customers to optimal regions automatically.
-- [ ] Balance "Latency Satisfaction" vs. "Regional Power Cost".
-- [ ] Requires Level 30 + Anycast Research.
+**Phase:** 🔴 Phase 4 | **Status:** ✅ Done
+- [x] AI module that migrates customers to optimal regions automatically.
+- [x] Balance "Latency Satisfaction" vs. "Regional Power Cost".
+- [x] Requires Level 30 + Anycast Research.
 
 ### 🧠 DEEP SIMULATION & REDUNDANCY (54-58)
 
@@ -1420,10 +1420,11 @@ Enterprise-grade safety for Live-Ops.
 - [x] Risk: Can be hacked or provide faulty "Aggressive" advice.
 
 #### FEATURE 56: Energy Futures & Derivatives
-**Phase:** 🔴 Phase 4 | **Status:** 🔴 To Do
-- [ ] Buy energy packages for future ticks at locked prices.
-- [ ] Speculate on price spikes during heatwave event forecasts.
-- [ ] Requires "Financial Engineering" Research.
+**Phase:** 🔴 Phase 4 | **Status:** ✅ Done
+- [x] Buy energy packages for future ticks at locked prices.
+- [x] Speculate on price spikes during heatwave event forecasts.
+- [x] Automatic consumption of hedged energy via EnergyService.
+- [x] Includes "Financial Engineering" Research unlock.
 
 #### FEATURE 57: Human Capital Risks (Burnout & Fatigue)
 **Phase:** 🟡 Phase 2 | **Status:** ✅ Done
@@ -1432,10 +1433,11 @@ Enterprise-grade safety for Live-Ops.
 - [x] Low morale leads to slow resolution or critical repair errors.
 
 #### FEATURE 58: Orbital Redundancy (Satellite Uplink)
-**Phase:** 🔴 Phase 3 | **Status:** 🔴 To Do
-- [ ] Emergency network link during "Fiber Cut" or ISP outages.
-- [ ] Mechanic: Extremely high cost-per-GB, but prevents SLA breach.
-- [ ] Visual: Small satellite dish icon in the room view when active.
+**Phase:** 🔴 Phase 3 | **Status:** ✅ Done
+- [x] Emergency network link during "Fiber Cut" or ISP outages.
+- [x] Mechanic: Extremely high cost-per-GB, but prevents SLA breach.
+- [x] Automatic failover logic in NetworkService.
+- [x] Requires "Orbital Redundancy" Research.
 
 ### 🏛️ SCALING & STRATEGY (59-63)
 
@@ -1451,16 +1453,18 @@ Enterprise-grade safety for Live-Ops.
 - [x] Bonus: Unlocks specific "Lessons Learned" research points.
 
 #### FEATURE 61: Hybrid Cloud Bursting (Surge Capacity)
-**Phase:** 🔴 Phase 4 | **Status:** 🔴 To Do
-- [ ] Rent temporary external capacity from "Global Cloud Providers".
-- [ ] Use Case: Handle server overload or provision orders without free slots.
-- [ ] Cost: 5x the normal operational cost (Emergency use only).
+**Phase:** 🔴 Phase 4 | **Status:** ✅ Done
+- [x] Rent temporary external capacity from "Global Cloud Providers".
+- [x] Use Case: Handle server overload or provision orders without free slots.
+- [x] Cost: 5x the normal operational cost (Emergency use only).
+- [x] Requires "Hybrid Cloud Bursting" Research.
 
 #### FEATURE 62: Modernization Missions (Legacy Refactor)
-**Phase:** 🔴 Phase 3 | **Status:** 🔴 To Do
-- [ ] Long-term projects to modernize aged racks without replacement.
-- [ ] Effect: Reset server "Technical Debt" and power inefficiency for a fixed fee.
-- [ ] Mechanic: Requires a Tech and a Lead Engineer assigned for 30 minutes.
+**Phase:** 🔴 Phase 3 | **Status:** ✅ Done
+- [x] Long-term projects to modernize aged racks without replacement.
+- [x] Effect: Reset server "Technical Debt" and power inefficiency for a fixed fee (80% life reset).
+- [x] Mechanic: Requires "Modernization Protocols" Research.
+- [x] Mechanic: Requires 1x Tech and 1x Lead Engineer (Level 10+) assigned for 30 minutes.
 
 #### FEATURE 63: Corporate Academy (Training Lab)
 **Phase:** 🟡 Phase 2 | **Status:** ✅ Done
@@ -1488,15 +1492,16 @@ Enterprise-grade safety for Live-Ops.
 - [x] "Tech Bubble" in US-East increases rent, while "Energy Crisis" in EU reduces it.
 
 #### FEATURE 67: Physical Rack Integrity (Weight Load)
-**Phase:** 🔴 Phase 3 | **Status:** 🔴 To Do
-- [ ] Racks have a max weight capacity. High-density GPU servers add more load.
-- [ ] Overloading increases hardware failure rate by 5% due to frame warping.
+**Phase:** 🔴 Phase 3 | **Status:** ✅ Done
+- [x] Racks have a max weight capacity. High-density GPU servers add more load.
+- [x] Overloading increases hardware failure rate by 25% due to frame warping (MTBF reduction).
 
 #### FEATURE 68: ISP Service Level Agreements (Contracts)
-**Phase:** 🔴 Phase 3 | **Status:** 🔴 To Do
-- [ ] Choose between different upstream providers.
-- [ ] "Budget ISP" ($): Low cost, high failure chance.
-- [ ] "Tier-1 ISP" ($$$): High cost, guaranteed uptime.
+**Phase:** 🔴 Phase 3 | **Status:** ✅ Done
+- [x] Choose between different upstream providers (Tier 1-3).
+- [x] "Budget ISP" ($): Low cost, high failure chance (Micro-Outages).
+- [x] "Tier-1 ISP" ($$$): High cost, guaranteed uptime (99.99%+ reliability).
+- [x] Mechanic: Micro-outages cause temporary packet loss and latency spikes.
 
 ### 👔 HR ETHICS & CORPORATE SCALING (69-73)
 
@@ -1508,9 +1513,10 @@ Enterprise-grade safety for Live-Ops.
 - [x] Synergizes with F128 (Golden Handcuffs) for retention protection.
 
 #### FEATURE 70: Strategic Doctrine: "The Discount King"
-**Phase:** 🔴 Phase 3 | **Status:** 🔴 To Do
-- [ ] New Specialization path for volume-based, low-cost hosting.
-- [ ] Boosts customer count by 50%, but satisfaction decay is 2x faster.
+**Phase:** 🔴 Phase 3 | **Status:** ✅ Done
+- [x] New Specialization path for volume-based, low-cost hosting.
+- [x] Boosts customer count by 50% via `order_frequency_boost`.
+- [x] Satisfaction decay is 2x faster via `satisfaction_penalty_multiplier`.
 
 #### FEATURE 71: Employee Synergy Systems
 **Phase:** 🟡 Phase 2 | **Status:** ✅ Done
@@ -1567,9 +1573,10 @@ Enterprise-grade safety for Live-Ops.
 - [x] Validate dashboard performance under heavy load using seeded chaos.
 
 #### FEATURE 81: Unified Metadata Strategy
-**Phase:** 🟢 MVP | **Status:** 🟡 In Progress
-- [ ] Standardize the use of JSON `metadata` columns for flexible model extensions.
-- [ ] Use for ticket reasoning, battery health logs, and employee moods.
+**Phase:** 🟢 MVP | **Status:** ✅ Done
+- [x] Standardize the use of JSON `metadata` columns for flexible model extensions.
+- [x] Implemented on `servers`, `server_racks`, `game_rooms`, `customers`, and `employees`.
+- [x] Use for ticket reasoning, battery health logs, and burnout tracking.
 
 #### FEATURE 82: Contextual Audio Notifications
 **Phase:** 🟡 Phase 2 | **Status:** 🔴 To Do
@@ -1593,10 +1600,10 @@ Enterprise-grade safety for Live-Ops.
 ### 🛡️ REDUNDANCY & FINANCIAL DEPTH (85-89)
 
 #### FEATURE 85: HA-Cluster (Server Redundancy)
-**Phase:** 🔴 Phase 3 | **Status:** 🔴 To Do
-- [ ] Link two identical servers as a High-Availability pair.
-- [ ] Prevents ticket generation on single-node failure.
-- [ ] Trade-off: 2x power, 2x slots, 2x costs.
+**Phase:** 🔴 Phase 3 | **Status:** ✅ Done
+- [x] Link two identical servers as a High-Availability pair.
+- [x] Prevents ticket generation on single-node failure if a healthy failover exists.
+- [x] Trade-off: 2x power, 2x slots, 2x costs (dual provisioning required).
 
 #### FEATURE 86: Hardware Leasing (Fixed Opex)
 **Phase:** 🟡 Phase 2 | **Status:** ✅ Done
@@ -1643,9 +1650,9 @@ Enterprise-grade safety for Live-Ops.
 - [ ] Massively reduces latency in specific target regions.
 
 #### FEATURE 93: Regional Power Rationing (Blackouts)
-**Phase:** 🔴 Phase 3 | **Status:** 🔴 To Do
-- [ ] World events triggering rolling blackouts in specific regions.
-- [ ] Force players to prioritize critical servers via manual power management.
+**Phase:** 🔴 Phase 3 | **Status:** ✅ Done
+- [x] World events triggering rolling blackouts in specific regions based on energy market stress.
+- [x] Regional capacity limits enforced; automated priority-based server shutdowns.
 
 #### FEATURE 94: Scalable Customer Entities
 **Phase:** 🟡 Phase 2 | **Status:** ✅ Done
@@ -1655,9 +1662,9 @@ Enterprise-grade safety for Live-Ops.
 ### ⚖️ COMPLIANCE, EXTREMES & LEGAL (95-99)
 
 #### FEATURE 95: Global Data Compliance (GDPR)
-**Phase:** 🔴 Phase 3 | **Status:** 🔴 To Do
-- [ ] Regional data laws (EU/US/Asia) affecting data storage locations.
-- [ ] Non-compliance penalties for illegal cross-border data transfers.
+**Phase:** 🔴 Phase 3 | **Status:** ✅ Done
+- [x] Regional data laws (EU/US/Asia) affecting data storage locations.
+- [x] Non-compliance penalties for illegal cross-border data transfers.
 
 #### FEATURE 96: Sector-Specific Certifications
 **Phase:** 🔴 Phase 3 | **Status:** 🔴 To Do
@@ -1692,9 +1699,10 @@ Enterprise-grade safety for Live-Ops.
 - [x] Passively increases employee loyalty and reduces the chance of poaching.
 
 #### FEATURE 102: Labor Union & Strike Events
-**Phase:** 🔴 Phase 4 | **Status:** 🔴 To Do
-- [ ] Low employee satisfaction triggers strikes.
-- [ ] All manual/auto maintenance stops for 24h unless demands are met.
+**Phase:** 🔴 Phase 4 | **Status:** ✅ Done
+- [x] Low employee satisfaction triggers strikes.
+- [x] All manual/auto maintenance stops for 24h unless demands are met.
+- [x] Negotiation mechanics (Bonus vs. Health Plan).
 
 #### FEATURE 103: BGP-Hijacking (Mega-Crisis Event)
 **Phase:** 🔴 Phase 4 | **Status:** 🔴 To Do
@@ -2015,9 +2023,10 @@ Enterprise-grade safety for Live-Ops.
 - [x] Tainted hardware reduces security score and triggers unique breach events.
 
 #### FEATURE 168: Mercenary Technicians (Instant Fix)
-**Phase:** 🟡 Phase 2 | **Status:** 🔴 To Do
-- [ ] Hire one-time expert techs for immediate disaster recovery.
-- [ ] High upfront flat fee instead of monthly salary.
+**Phase:** 🟡 Phase 2 | **Status:** ✅ Complete
+- [x] Recruitment option: "Mercenary Recovery Team".
+- [x] Instantly repairs all servers globally to 100% health for a high flat fee ($12,500).
+- [x] Does not count towards headcount (immediate disappearance after job).
 
 #### FEATURE 159: Quantum Key Distribution (QKD)
 **Phase:** 🌑 Phase 5 | **Status:** 🔴 To Do
@@ -2030,9 +2039,9 @@ Enterprise-grade safety for Live-Ops.
 - [ ] Prevents revenue loss during global network instability events (F85).
 
 #### FEATURE 161: Employee Seminars (Efficiency Buffs)
-**Phase:** 🟡 Phase 2 | **Status:** 🔴 To Do
-- [ ] Send critical staff to off-site training for 12h.
-- [ ] Permanent +10% Efficiency multiplier upon return.
+**Phase:** 🟡 Phase 2 | **Status:** ✅ Complete
+- [x] Send critical staff to off-site training for 12h.
+- [x] Permanent +10% Efficiency multiplier upon return.
 
 #### FEATURE 162: Safety Regulations & DC Audits
 **Phase:** 🔴 Phase 3 | **Status:** 🔴 To Do
@@ -2041,10 +2050,11 @@ Enterprise-grade safety for Live-Ops.
 
 ### 🎨 UX, IMMERSION & COMMUNITY (163-172)
 
-#### FEATURE 163: Universal Tooltip Coverage (Knowledge Layer)
-**Phase:** 🟢 MVP | **Status:** 🟡 In Progress
-- [ ] Comprehensive tooltips for all stats, buttons, and simulation metrics.
-- [ ] Purpose: Eliminate the "What does this button do?" barrier for new players.
+#### FEATURE 163: Universal Tooltip Coverage (UX Polish)
+**Phase:** 🟡 Phase 1 | **Status:** 🟡 In Progress
+- [x] All complex stats (SLA, TCO, efficiency) have explanatory tooltips on hover.
+- [x] Add subtle "info" icons to section headers that explain the mechanic.
+- [ ] Interactive tutorial hints: Highlight a UI element if a player has been idle too long. [PHASE 4]
 
 #### FEATURE 164: "High-Contrast" Dark Theme Variation
 **Phase:** 🟡 Phase 2 | **Status:** 🔴 To Do
@@ -2110,9 +2120,9 @@ Enterprise-grade safety for Live-Ops.
 - [ ] Prevents SLA-Breach/Tickets during routine maintenance.
 
 #### FEATURE 176: Advanced Employee Burnout Logic
-**Phase:** 🟡 Phase 2 | **Status:** 🔴 To Do
-- [ ] Employees have "Stress Resistance" stats.
-- [ ] Night-calls and heavy incident loads lead to mid-term burnout (Sabbatical).
+**Phase:** 🟡 Phase 2 | **Status:** ✅ Complete
+- [x] Employees have "Stress Resistance" stats. (Linked to Level/Training)
+- [x] Night-calls and heavy incident loads lead to mid-term burnout (Medical Leave).
 
 #### FEATURE 177: Social Engineering Threat Event
 **Phase:** 🔴 Phase 4 | **Status:** 🔴 To Do
@@ -2267,11 +2277,11 @@ Enterprise-grade safety for Live-Ops.
 - [x] API: Energy endpoint includes 'regional_weather' and 'solar_factors'.
 
 #### FEATURE 204: Employee Talent Trees (RPG Progress)
-**Phase:** 🟡 Phase 2 | **Status:** 🟡 In Progress
+**Phase:** 🟡 Phase 2 | **Status:** ✅ Done
 - [x] Employees gain XP to unlock specializations (Cooling Expert, Security Ninja, etc.).
 - [x] Talent prerequisites: Higher tier perks require base skills.
 - [x] "Respec" function: Reset talent points for a fee (scales with level).
-- [ ] Permanent buffs to repair speed or incident prevention via tree nodes.
+- [x] Permanent buffs to repair speed or incident prevention via tree nodes.
 
 #### FEATURE 65: Crypto Mining Idle Logic
 **Status**: ✅ Done
@@ -2491,14 +2501,15 @@ Enterprise-grade safety for Live-Ops.
 - [ ] Necessary to reach "Carbon-Negative" status for the highest eco-awards.
 
 #### FEATURE 243: Employee Wellness Facilities (Physical)
-**Phase:** 🟡 Phase 2 | **Status:** 🔴 To Do
-- [ ] Add nap pods, saunas, and gyms to the FacilityArchitect map.
-- [ ] Passively resets burnout counters (F176) while employees are on-site.
+**Phase:** 🟡 Phase 2 | **Status:** ✅ Done
+- [x] Add nap pods, saunas, and gyms to the FacilityArchitect map.
+- [x] Passively resets burnout counters (F176) while employees are on-site.
+- [x] Room assignment logic for staff placement bonuses.
 
 #### FEATURE 244: Hardware Benchmarking Labs
-**Phase:** 🟡 Phase 2 | **Status:** 🔴 To Do
-- [ ] Mini-game: Test new CPU/GPU combos to find optimal Voltage/Clock curves.
-- [ ] Finding "Secret Settings" grants +10% efficiency to all servers of that model.
+**Phase:** 🟡 Phase 2 | **Status:** ✅ Done
+- [x] Mini-game: Test new CPU/GPU combos to find optimal Voltage/Clock curves.
+- [x] Finding "Secret Settings" grants +10% efficiency to all servers of that model.
 
 #### FEATURE 245: BGP-Hijacking (Aggressive Peering)
 **Phase:** 🔴 Phase 5 | **Status:** 🔴 To Do

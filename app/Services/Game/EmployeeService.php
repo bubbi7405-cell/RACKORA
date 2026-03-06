@@ -14,6 +14,8 @@ class EmployeeService
     private const XP_PER_LEVEL_BASE = 500;
     private const MAX_LEVEL = 20;
 
+    protected ?bool $cachedStrikeStatus = null;
+
     public const SPECIALIZATIONS = [
         'sys_admin' => [
             'hardware_expert' => [
@@ -123,6 +125,14 @@ class EmployeeService
                 'level_req' => 10,
                 'prerequisite' => 'script_kiddie',
                 'effect' => ['instant_fix_chance' => 0.05]
+            ],
+            'hardware_safety' => [
+                'name' => 'Hardware Safety',
+                'description' => 'Reduces Hardware Failure probability by 30%',
+                'cost' => 2,
+                'level_req' => 15,
+                'prerequisite' => 'server_whisperer',
+                'effect' => ['hardware_failure_prevention' => 0.3]
             ]
         ],
         'support_agent' => [
@@ -173,6 +183,14 @@ class EmployeeService
                 'level_req' => 10,
                 'prerequisite' => 'trace_route',
                 'effect' => ['counter_attack_bonus' => 0.1]
+            ],
+            'incident_master' => [
+                'name' => 'Incident Master',
+                'description' => 'Global incident probability -10%',
+                'cost' => 2,
+                'level_req' => 15,
+                'prerequisite' => 'black_hat_past',
+                'effect' => ['global_incident_prevention' => 0.1]
             ]
         ],
         'manager' => [
@@ -198,6 +216,56 @@ class EmployeeService
                 'level_req' => 10,
                 'prerequisite' => 'office_politics',
                 'effect' => ['global_efficiency_bonus' => 0.05]
+            ]
+        ],
+        'compliance_officer' => [
+            'legal_eagle' => [
+                'name' => 'Legal Eagle',
+                'description' => 'Audit fines reduced by 30%',
+                'cost' => 1,
+                'level_req' => 2,
+                'effect' => ['audit_fine_reduction' => 0.3]
+            ],
+            'scam_shield' => [
+                'name' => 'Scam Shield',
+                'description' => 'Reduces Data Leak probability by 40%',
+                'cost' => 1,
+                'level_req' => 5,
+                'prerequisite' => 'legal_eagle',
+                'effect' => ['data_leak_prevention' => 0.4]
+            ],
+            'tax_wizard' => [
+                'name' => 'Tax Wizard',
+                'description' => 'Reduces regional taxes by additional 15%',
+                'cost' => 2,
+                'level_req' => 10,
+                'prerequisite' => 'scam_shield',
+                'effect' => ['tax_reduction_flat' => 0.15]
+            ]
+        ],
+        'network_engineer' => [
+            'topology_guru' => [
+                'name' => 'Topology Guru',
+                'description' => 'Reduces global latency by 15ms',
+                'cost' => 1,
+                'level_req' => 2,
+                'effect' => ['latency_reduction_flat' => 15]
+            ],
+            'redundancy_genius' => [
+                'name' => 'Redundancy Genius',
+                'description' => 'Reduces Network Failure probability by 50%',
+                'cost' => 1,
+                'level_req' => 5,
+                'prerequisite' => 'topology_guru',
+                'effect' => ['network_failure_prevention' => 0.5]
+            ],
+            'peering_partner' => [
+                'name' => 'Peering Partner',
+                'description' => 'Reduces bandwidth costs by 20%',
+                'cost' => 2,
+                'level_req' => 10,
+                'prerequisite' => 'redundancy_genius',
+                'effect' => ['bandwidth_cost_reduction' => 0.2]
             ]
         ]
     ];
@@ -253,7 +321,8 @@ class EmployeeService
     public function getEmployees(User $user)
     {
         if (!isset($this->employeeCache[$user->id])) {
-            $this->employeeCache[$user->id] = Employee::where('user_id', $user->id)->get();
+            $this->employeeCache[$user->id] = Employee::where('user_id', $user->id)->get()
+                ->map(fn($e) => $this->formatEmployee($e));
         }
         return $this->employeeCache[$user->id];
     }
@@ -278,6 +347,32 @@ class EmployeeService
         }
 
         return DB::transaction(function () use ($user, $type, $config, $hiringCost) {
+            // ── HANDLE MERCENARY (FEATURE 168) ──────────────────
+            if ($type === 'mercenary') {
+                $affected = Server::whereHas('rack.room', fn($q) => $q->where('user_id', $user->id))
+                    ->where(function($q) {
+                        $q->where('health', '<', 100)
+                          ->orWhereIn('status', [ServerStatus::DAMAGED, ServerStatus::HARDWARE_FAULT, ServerStatus::DEGRADED]);
+                    })->update([
+                        'health' => 100,
+                        'status' => ServerStatus::ONLINE,
+                        'current_fault' => null,
+                        'is_diagnosed' => false,
+                        'last_maintenance_at' => now(),
+                    ]);
+
+                $user->economy->debit($hiringCost, "Mercenary Recovery Team deployed", 'maintenance');
+                $user->economy->addExperience(50); // High XP rewards for saving the company
+
+                \App\Models\GameLog::log($user, "🏗️ MERCENARY RECOVERY: {$affected} servers were instantly restored to 100% health by professional technicians.", 'success', 'maintenance');
+
+                return [
+                    'success' => true,
+                    'message' => "Mercenary Team processed {$affected} units and left the facility.",
+                    'mercenary_deployed' => true
+                ];
+            }
+
             $specs = self::SPECIALIZATIONS[$type] ?? [];
             $assignedSpec = !empty($specs) ? array_rand($specs) : null;
 
@@ -315,17 +410,19 @@ class EmployeeService
             return ['success' => false, 'error' => 'Employee not found'];
         }
 
-        $severance = $employee->salary;
+        // FEATURE 233: Realistic Severance Pay
+        // Base: 10% of salary * (Level + 1) * tenure-factor (simulated by level)
+        $severance = round($employee->salary * (5 + $employee->level), 2);
         
-        if (!$user->economy->debit($severance, "Severance pay for {$employee->name}", 'hr', $employee)) {
-             return ['success' => false, 'error' => 'Cannot afford severance pay'];
+        if (!$user->economy->debit($severance, "Abfindung für {$employee->name} (Level {$employee->level})", 'hr', $employee)) {
+             return ['success' => false, 'error' => "Abfindung (\$" . number_format($severance, 2) . ") kann nicht bezahlt werden."];
         }
 
-        \App\Models\GameLog::log($user, "STAFF_TERMINATED: {$employee->name}", 'warning', 'hr');
+        \App\Models\GameLog::log($user, "🚫 KÜNDIGUNG: {$employee->name} wurde entlassen. Abfindung: \${$severance} ausgezahlt.", 'warning', 'hr');
 
         $employee->delete();
         
-        return ['success' => true, 'message' => "Employee terminated."];
+        return ['success' => true, 'message' => "Employee terminated. Paid \$" . number_format($severance, 2) . " severance."];
     }
 
     public function train(User $user, string $employeeId): array
@@ -353,6 +450,61 @@ class EmployeeService
 
             return ['success' => true, 'message' => "{$employee->name} completed training. +{$xpGain} XP gained."];
         });
+    }
+
+    /**
+     * FEATURE 161: Send employee to an off-site seminar for permanent efficiency boost.
+     * Duration: 12 game hours (actually 12 real world hours for immersion, but we can scale it).
+     */
+    public function sendToSeminar(User $user, string $employeeId): array
+    {
+        $employee = Employee::where('user_id', $user->id)->find($employeeId);
+        if (!$employee) return ['success' => false, 'error' => 'Mitarbeiter nicht gefunden.'];
+
+        // Availability check
+        if ($employee->isOnSabbatical()) return ['success' => false, 'error' => 'Mitarbeiter ist im Sabbatical.'];
+        if ($employee->isOnSeminar()) return ['success' => false, 'error' => 'Bereits in einem Seminar.'];
+        
+        $meta = $employee->metadata ?? [];
+        if (isset($meta['burnout_until'])) return ['success' => false, 'error' => 'Mitarbeiter ist wegen Burnout krankgeschrieben.'];
+        if ($this->isStriking($user)) return ['success' => false, 'error' => 'Streik läuft. Keine Entsendung möglich.'];
+
+        $cost = 7500; // Fixed high-tier cost for permanent boost
+        if (!$user->economy->canAfford($cost)) {
+            return ['success' => false, 'error' => "Seminar kostet \${$cost}. Nicht genug Guthaben."];
+        }
+
+        return DB::transaction(function () use ($user, $employee, $cost, $meta) {
+            $user->economy->debit($cost, "Seminar: {$employee->name}", 'hr', $employee);
+
+            $meta['seminar_until'] = now()->addHours(12)->toIso8601String();
+            $employee->metadata = $meta;
+            $employee->current_task = '🎓 At Off-site Seminar';
+            $employee->save();
+
+            \App\Models\GameLog::log($user, "🎓 SEMINAR: {$employee->name} wurde zu einer Fortbildung geschickt (12h).", 'info', 'hr');
+
+            return ['success' => true, 'message' => "{$employee->name} besucht nun ein externes Seminar."];
+        });
+    }
+
+    public function assignToRoom(User $user, string $employeeId, ?string $roomId): array
+    {
+        $employee = Employee::where('user_id', $user->id)->find($employeeId);
+        if (!$employee) return ['success' => false, 'error' => 'Employee not found'];
+
+        if ($roomId) {
+            $room = \App\Models\GameRoom::where('user_id', $user->id)->find($roomId);
+            if (!$room) return ['success' => false, 'error' => 'Room not found'];
+            $employee->room_id = $room->id;
+            $msg = "{$employee->name} assigned to {$room->name}.";
+        } else {
+            $employee->room_id = null;
+            $msg = "{$employee->name} unassigned from site duty.";
+        }
+
+        $employee->save();
+        return ['success' => true, 'message' => $msg];
     }
 
     public function awardXp(Employee $employee, int $amount): void
@@ -535,7 +687,7 @@ class EmployeeService
         if (in_array('sys_admin', $types) && in_array('security_engineer', $types)) {
             $synergies[] = [
                 'name' => 'Hardened Ops',
-                'effects' => ['breach_avoidance' => 0.15, 'wear_reduction' => 0.10]
+                'effects' => ['breach_avoidance' => 0.25, 'wear_reduction' => 0.15]
             ];
         }
 
@@ -559,7 +711,7 @@ class EmployeeService
         if (in_array('compliance_officer', $types) && in_array('manager', $types)) {
             $synergies[] = [
                 'name' => 'Audit Shield',
-                'effects' => ['audit_fine_reduction' => 0.30]
+                'effects' => ['audit_fine_reduction' => 0.40]
             ];
         }
 
@@ -569,7 +721,23 @@ class EmployeeService
         if ($hasSenior && $hasJunior) {
             $synergies[] = [
                 'name' => 'Mentorship',
-                'effects' => ['trainee_xp_boost' => 0.50]
+                'effects' => ['trainee_xp_boost' => 0.60, 'trainee_efficiency' => 0.20]
+            ];
+        }
+
+        // 6. Support + Compliance: "Consumer Protection"
+        if (in_array('support_agent', $types) && in_array('compliance_officer', $types)) {
+            $synergies[] = [
+                'name' => 'Consumer Protection',
+                'effects' => ['satisfaction_retention' => 0.10]
+            ];
+        }
+
+        // 7. Security + Network: "Zero Trust Layer"
+        if (in_array('security_engineer', $types) && in_array('network_engineer', $types)) {
+            $synergies[] = [
+                'name' => 'Zero Trust Layer',
+                'effects' => ['defense_bonus' => 0.30]
             ];
         }
 
@@ -596,20 +764,85 @@ class EmployeeService
         return (float) Employee::where('user_id', $user->id)->sum('salary');
     }
 
+    /**
+     * FEATURE 57: Labor Union Strikes
+     * Calculates the probability (0-100) of a strike starting.
+     */
+    public function calculateStrikeRisk(User $user): float
+    {
+        $employees = Employee::where('user_id', $user->id)->get();
+        if ($employees->isEmpty()) return 0;
+
+        $avgStress = $employees->avg('stress') ?? 0;
+        $burnoutCount = 0;
+        foreach ($employees as $emp) {
+            if (isset($emp->metadata['burnout_until'])) $burnoutCount++;
+        }
+
+        // Base risk from stress
+        // 0 risk at < 30 stress, linear up to 50 risk at 100 stress
+        $risk = max(0, ($avgStress - 30) * 0.71); 
+
+        // Multiplier from burnouts
+        // Each burned out employee adds 15% relative risk
+        $risk *= (1 + ($burnoutCount * 0.15));
+
+        // Policy modifiers
+        $economy = $user->economy;
+        $crunchTime = $economy->getPolicy('work_ethic', 'standard') === 'crunch';
+        if ($crunchTime) {
+            $risk += 20; // Massive flat increase for crunching
+        }
+
+        // Reputation factor (higher reputation = better public image = harder to justify strike?)
+        // Or reverse: High reputation = more to lose?
+        // Let's say high reputation slightly scales it down if you're a "good boss"
+        $reputation = $economy->reputation ?? 50;
+        if ($reputation > 80) $risk -= 10;
+        if ($reputation < 20) $risk += 15;
+
+        return min(100, max(0, $risk));
+    }
+
+    public function isStriking(User $user): bool
+    {
+        if ($this->cachedStrikeStatus !== null) return $this->cachedStrikeStatus;
+
+        $this->cachedStrikeStatus = \App\Models\GameEvent::where('user_id', $user->id)
+            ->where('type', \App\Enums\EventType::UNION_STRIKE)
+            ->whereIn('status', [\App\Enums\EventStatus::ACTIVE, \App\Enums\EventStatus::ESCALATED])
+            ->exists();
+
+        return $this->cachedStrikeStatus;
+    }
+
     public function processAutomation(User $user)
     {
         $employees = $this->getEmployees($user);
+        $isStriking = $this->isStriking($user);
         
         $activeEventsCount = \App\Models\GameEvent::where('user_id', $user->id)
             ->whereIn('status', ['active', 'escalated'])
             ->count();
 
         foreach ($employees as $employee) {
-            // FEATURE 284: Skip sabbatical employees
+            // HALT ON STRIKE (Except stress reduction while idle)
+            if ($isStriking) {
+                $employee->current_task = '🪧 On Strike';
+                $employee->stress = max(0, $employee->stress - 0.1); // Small cool-off
+                $employee->energy = min(100, $employee->energy + 2);
+                $employee->save();
+                continue;
+            }
+            // FEATURE 284: Handle sabbatical employees
             if ($employee->isOnSabbatical()) {
                 $employee->current_task = '🏖️ On Sabbatical';
                 $employee->stress = max(0, $employee->stress - 5);
                 $employee->energy = min(100, $employee->energy + 10);
+                
+                // FEATURE 89: Passive loyalty gain while on paid leave
+                $employee->loyalty = min(100, ($employee->loyalty ?? 50) + 0.1);
+                
                 $employee->save();
                 continue;
             }
@@ -620,10 +853,20 @@ class EmployeeService
                 $employee->stress = 0;
                 $employee->energy = 100;
                 $employee->efficiency = 1.0;
+                $employee->loyalty = min(100, ($employee->loyalty ?? 50) + 10); // Big jump
                 $employee->current_task = 'Returned from Sabbatical';
                 $employee->save();
 
-                \App\Models\GameLog::log($user, "🏖️ {$employee->name} ist aus dem Sabbatical zurückgekehrt. Stress: 0, Energie: 100%!", 'success', 'hr');
+                \App\Models\GameLog::log($user, "🏖️ {$employee->name} ist aus dem Sabbatical zurückgekehrt. Stress: 0, Energie: 100%, Loyalität signifikant gestiegen!", 'success', 'hr');
+            }
+
+            // FEATURE 243: PASSIVE WELLNESS & SICK LEAVE BONUS
+            $wellnessMultiplier = 1.0;
+            if ($employee->room_id) {
+                $room = \App\Models\GameRoom::find($employee->room_id);
+                if ($room && in_array('wellness_facility', $room->upgrades ?? [])) {
+                    $wellnessMultiplier = 2.0; // Cooldown for stress/energy
+                }
             }
 
             // FEATURE 129: Skip burned out employees (Medical Leave)
@@ -631,23 +874,43 @@ class EmployeeService
             if (isset($meta['burnout_until'])) {
                 if (now()->lt(\Carbon\Carbon::parse($meta['burnout_until']))) {
                     $employee->current_task = '⚕️ Medical Leave (Burnout)';
-                    $employee->stress = max(0, $employee->stress - 1);
-                    $employee->energy = min(100, $employee->energy + 2);
+                    
+                    // Recover stress/energy (boosted if in a wellness room)
+                    $recoveryMod = $wellnessMultiplier;
+                    $employee->stress = max(0, $employee->stress - (1.5 * $recoveryMod));
+                    $employee->energy = min(100, $employee->energy + (2.5 * $recoveryMod));
                     $employee->save();
                     continue;
                 } else {
                     unset($meta['burnout_until']);
                     $employee->metadata = $meta;
-                    $employee->stress = 0;
-                    $employee->energy = 100;
-                    $employee->efficiency = 1.0;
+                    $employee->stress = 5; 
+                    $employee->energy = 80;
+                    $employee->efficiency = 0.8; 
                     $employee->current_task = 'Returned from Medical Leave';
                     $employee->save();
-                    \App\Models\GameLog::log($user, "⚕️ {$employee->name} returned from medical leave. Stress reset.", 'success', 'hr');
+                    \App\Models\GameLog::log($user, "⚕️ {$employee->name} returned from medical leave. Slowly easing back into work.", 'success', 'hr');
                 }
             }
 
-            $this->simulateEmployee($employee, $activeEventsCount);
+            // FEATURE 161: Handle Seminar completion
+            if (isset($meta['seminar_until'])) {
+                if ($employee->isOnSeminar()) {
+                    $employee->current_task = '🎓 At Off-site Seminar';
+                    $employee->save();
+                    continue;
+                } else {
+                    unset($meta['seminar_until']);
+                    $employee->metadata = $meta;
+                    // Apply permanent +10% efficiency bonus (stacks)
+                    $employee->efficiency = ($employee->efficiency ?? 1.0) + 0.10;
+                    $employee->current_task = 'Returned from Seminar';
+                    $employee->save();
+                    \App\Models\GameLog::log($user, "🎓 {$employee->name} ist vom Seminar zurückgekehrt. Effizienz permanent um 10% gesteigert!", 'success', 'hr');
+                }
+            }
+
+            $this->simulateEmployee($employee, $activeEventsCount, $wellnessMultiplier);
         }
 
         // --- System Admins Logic ---
@@ -884,7 +1147,7 @@ class EmployeeService
         }
     }
 
-    private function simulateEmployee(Employee $employee, int $activeEventsCount)
+    private function simulateEmployee(Employee $employee, int $activeEventsCount, float $wellnessMultiplier = 1.0)
     {
         // Stress increase per incident
         // Normal level: 0.5 stress per minute per incident
@@ -908,13 +1171,30 @@ class EmployeeService
             $stressIncrease *= 1.5;
         }
 
-        $employee->stress = min(100, max(0, $employee->stress + $stressIncrease - 0.2)); // -0.2 natural recovery
+        $stressRecovery = 0.2 * $wellnessMultiplier;
+        if ($wellnessMultiplier > 1.0) {
+            $stressRecovery += 1.5; // Passive wellness floor bonus
+        }
+
+        $employee->stress = min(100, max(0, $employee->stress + $stressIncrease - $stressRecovery)); 
         
         // Efficiency impact: stressed employees are slower
         if ($employee->stress > 70) {
              // 70-100 stress = 30% speed reduction linear
              $penalty = ($employee->stress - 70) / 100; // max 0.3
              $employee->efficiency = max(0.4, 1.0 - $penalty);
+             
+             // FEATURE 176: Advanced Burnout Risk
+             if ($employee->stress > 95 && rand(1, 400) === 1) { // ~0.25% chance per tick at critical stress
+                 $burnoutHours = rand(24, 72);
+                 $meta = $employee->metadata ?? [];
+                 $meta['burnout_until'] = now()->addHours($burnoutHours)->toIso8601String();
+                 $employee->metadata = $meta;
+                 $employee->current_task = '⚕️ Sudden Burnout Victim';
+                 $employee->save();
+                 
+                 \App\Models\GameLog::log($employee->user, "🚑 ZUSAMMENBRUCH: {$employee->name} hat einen stressbedingten Burnout erlitten und fällt für {$burnoutHours}h aus!", 'danger', 'hr');
+             }
         } else {
              $employee->efficiency = 1.0;
         }
@@ -923,6 +1203,14 @@ class EmployeeService
         $efficiencyBonus = $this->getAggregatedBonus($employee->user, 'global_efficiency_bonus');
         if ($efficiencyBonus > 0) {
             $employee->efficiency += $efficiencyBonus;
+        }
+
+        // FEATURE 199: Trainee efficiency bonus from Mentorship synergy
+        if ($employee->level < 5) {
+            $traineeBonus = $this->getAggregatedBonus($employee->user, 'trainee_efficiency');
+            if ($traineeBonus > 0) {
+                $employee->efficiency += $traineeBonus;
+            }
         }
 
         // Energy recovery if idle
@@ -935,8 +1223,8 @@ class EmployeeService
         ];
 
         if (in_array($employee->current_task, $idleTasks)) {
-             $employee->energy = min(100, $employee->energy + 2);
-             $employee->stress = max(0, $employee->stress - 1);
+             $employee->energy = min(100, $employee->energy + (2 * $wellnessMultiplier));
+             $employee->stress = max(0, $employee->stress - (1 * $wellnessMultiplier));
              
              // FEATURE 63: Corporate Academy
              $hasAcademy = \App\Models\GameRoom::where('user_id', $employee->user_id)
@@ -991,17 +1279,34 @@ class EmployeeService
         $retentionUntil = $employee->metadata['retention_until'] ?? null;
         $hasRetentionBonus = $retentionUntil && now()->lt(\Carbon\Carbon::parse($retentionUntil));
         
-        if (!$hasRetentionBonus) {
+        $meta = $employee->metadata ?? [];
+        $isResigning = isset($meta['resignation_at']);
+
+        if (!$hasRetentionBonus && !$isResigning) {
             if ($loyalty < 15 && rand(1, 100) <= 2) {
-                // 2% chance per tick to resign when loyalty is critical
-                \App\Models\GameLog::log($employee->user, "⚠️ {$employee->name} hat gekündigt! Loyalty war zu niedrig ({$loyalty}%).", 'danger', 'hr');
-                $employee->delete();
-                return; // EXIT early
+                // FEATURE 232: Resignation Notice (2h window to react)
+                $noticeHours = 2;
+                $meta['resignation_at'] = now()->addHours($noticeHours)->toIso8601String();
+                $employee->metadata = $meta;
+                $employee->save();
+
+                \App\Models\GameLog::log($employee->user, "⚠️ KÜNDIGUNG EINGEGANGEN: {$employee->name} hat gekündigt! Verlässt das Unternehmen in {$noticeHours}h. (Loyalty: {$loyalty}%).", 'danger', 'hr');
+                return;
             } elseif ($loyalty < 5 && rand(1, 100) <= 5) {
-                // 5% chance for instant resignation at critically low loyalty
-                \App\Models\GameLog::log($employee->user, "🚨 {$employee->name} hat fristlos gekündigt! ({$loyalty}% Loyalty)", 'danger', 'hr');
+                // Tiny chance for instant resignation at critically low loyalty
+                \App\Models\GameLog::log($employee->user, "🚨 FRISTLOSE KÜNDIGUNG: {$employee->name} hat das Gebäude sofort verlassen! ({$loyalty}% Loyalty)", 'danger', 'hr');
                 $employee->delete();
                 return; // EXIT early
+            }
+        }
+
+        // Handle active resignation period
+        if ($isResigning) {
+            $deadline = \Carbon\Carbon::parse($meta['resignation_at']);
+            if (now()->gt($deadline)) {
+                \App\Models\GameLog::log($employee->user, "💼 ABGANG: {$employee->name} hat das Unternehmen nach Ablauf der Kündigungsfrist verlassen.", 'danger', 'hr');
+                $employee->delete();
+                return;
             }
         }
 
@@ -1105,6 +1410,57 @@ class EmployeeService
                 'success' => true,
                 'message' => "{$employee->name} received retention bonus. Locked in for {$hours} hours.",
                 'protected_until' => $meta['retention_until'],
+            ];
+        });
+    }
+    public function formatEmployee(Employee $employee): array
+    {
+        return array_merge($employee->toArray(), [
+            'is_on_sabbatical' => $employee->isOnSabbatical(),
+            'is_on_seminar' => $employee->isOnSeminar(),
+            'sabbatical_time_remaining' => $employee->getSabbaticalTimeRemaining(),
+            'is_resigning' => isset($employee->metadata['resignation_at']),
+            'resignation_deadline' => $employee->metadata['resignation_at'] ?? null,
+        ]);
+    }
+
+    /**
+     * FEATURE 232: Persuade an employee that has submitted a resignation to stay.
+     * Costs a lump-sum "Loyalty Bonus" and requires a mandatory raise.
+     */
+    public function persuadeToStay(User $user, string $employeeId): array
+    {
+        $employee = Employee::where('user_id', $user->id)->find($employeeId);
+        if (!$employee) return ['success' => false, 'error' => 'Employee not found.'];
+
+        $meta = $employee->metadata ?? [];
+        if (!isset($meta['resignation_at'])) {
+            return ['success' => false, 'error' => "{$employee->name} kündigt derzeit nicht."];
+        }
+
+        // Cost: 25x current salary (Retention Bonus)
+        $cost = (float) $employee->salary * 25;
+        if (!$user->economy->canAfford($cost)) {
+            return ['success' => false, 'error' => "Nicht genug Geld. Bonus kostet \$" . number_format($cost, 2) . "."];
+        }
+
+        return DB::transaction(function () use ($user, $employee, $meta, $cost) {
+            $user->economy->debit($cost, "Halte-Prämie: {$employee->name}", 'hr', $employee);
+
+            // Mandatory 15% raise
+            $employee->salary = round($employee->salary * 1.15, 2);
+            $employee->loyalty = 60; // Reset loyalty to a stable baseline
+            
+            unset($meta['resignation_at']);
+            $employee->metadata = $meta;
+            $employee->save();
+
+            \App\Models\GameLog::log($user, "🤝 VERHANDLUNGSERFOLG: {$employee->name} hat die Kündigung zurückgezogen! Gehalt erhöht auf \${$employee->salary} (+15%).", 'success', 'hr');
+
+            return [
+                'success' => true,
+                'message' => "{$employee->name} agreed to stay.",
+                'new_salary' => $employee->salary,
             ];
         });
     }

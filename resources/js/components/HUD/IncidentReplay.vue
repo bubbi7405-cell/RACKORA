@@ -3,9 +3,9 @@
         <div class="v2-replay-window">
             <header class="v2-replay-header">
                 <div class="v2-replay-title">
-                    <span class="v2-label">BLACKBOX_PLAYBACK</span>
+                    <span class="v2-label">INCIDENT_PLAYBACK</span>
                     <span class="v2-sep">//</span>
-                    <span class="v2-node">{{ event.title }}</span>
+                    <span class="v2-asset-site">{{ event.title }}</span>
                 </div>
                 <button @click="$emit('close')" class="v2-close-btn">×</button>
             </header>
@@ -14,7 +14,7 @@
                 <div class="v2-telemetry-view">
                     <!-- Thermal Visualization -->
                     <div class="v2-viz-card">
-                        <div class="v2-title">THERMAL_CONTEXT</div>
+                        <div class="v2-title">THERMAL_DATA</div>
                         <div class="v2-rack-mini">
                             <div v-for="(temp, slot) in currentSnapshot.telemetry.rack?.thermalMap || {}" 
                                  :key="slot"
@@ -37,7 +37,7 @@
                             </div>
                         </div>
                         <div class="v2-viz-stat">
-                            <span>INTEGRITY_INDEX</span>
+                            <span>GROWTH_STABILITY</span>
                             <span class="v2-val">{{ currentSnapshot.telemetry.server?.health || 0 }}%</span>
                         </div>
                     </div>
@@ -69,7 +69,7 @@
                         {{ event.managementGrade }}
                     </div>
                     <div class="v2-summary">
-                        <h3>POST_MORTEM_SUMMARY</h3>
+                        <h3>INCIDENT_SUMMARY</h3>
                         <p>{{ event.postMortem?.summary }}</p>
                     </div>
                 </div>

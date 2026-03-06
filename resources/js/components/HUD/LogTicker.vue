@@ -1,7 +1,16 @@
 <template>
-    <div class="log-ticker-container" v-show="uiStore.showLogTicker">
+    <div 
+        class="log-ticker-container" 
+        v-show="uiStore.showLogTicker"
+        :class="{ 
+            'v3-stealth': isStealth,
+            'is-dimmed': isWorkspaceFocused && !isHovered
+        }"
+        @mouseenter="isHovered = true"
+        @mouseleave="isHovered = false"
+    >
         <div class="ticker-header">
-            <span class="header-label">SYSTEM_PIPELINE.LOG</span>
+            <span class="header-label">FINANCIAL_LEDGER</span>
             <div class="header-led"></div>
         </div>
         <div class="ticker-content" ref="scrollContainer">
@@ -11,8 +20,8 @@
                 class="log-entryLine"
                 :class="[`type--${log.type}`]"
             >
-                <span class="entry-time">[{{ log.timestamp }}]</span>
-                <span class="entry-msg">{{ log.message }}</span>
+                <span class="entry-time l3-priority">[{{ log.timestamp }}]</span>
+                <span class="entry-msg l2-priority">{{ log.message }}</span>
             </div>
         </div>
     </div>
@@ -25,32 +34,70 @@ import { useUiStore } from '../../stores/ui';
 
 const logStore = useLogStore();
 const uiStore = useUiStore();
+
+const props = defineProps({
+    activeView: { type: String, default: 'overview' }
+});
+
 const logs = computed(() => logStore.logs);
 const scrollContainer = ref(null);
 
+const isStealth = ref(false);
+const isHovered = ref(false);
+
+const isWorkspaceFocused = computed(() => {
+    return ['research', 'finance', 'analytics', 'compliance'].includes(props.activeView);
+});
+let stealthTimeout = null;
+
+const startStealthTimer = () => {
+    if (stealthTimeout) clearTimeout(stealthTimeout);
+    isStealth.value = false;
+    stealthTimeout = setTimeout(() => {
+        isStealth.value = true;
+    }, 10000); // 10 seconds of inactivity
+};
+
+const handleInteraction = () => {
+    isHovered.value = true;
+    startStealthTimer();
+};
+
+watch(logs, () => {
+    startStealthTimer();
+}, { deep: true });
+
 onMounted(() => {
-    // Initial scroll or settings
+    startStealthTimer();
 });
 </script>
 
 <style scoped>
+/* Position is now handled by GameContainer to ensure layout orchestration */
 .log-ticker-container {
-    position: fixed;
-    right: 320px; /* Adjust based on RightPanel width */
-    bottom: 24px;
-    width: 280px;
-    height: 180px;
-    background: rgba(0, 5, 0, 0.85);
-    border: 1px solid rgba(0, 255, 65, 0.2);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(0, 255, 65, 0.05);
+    width: 100%;
+    height: 140px;
+    background: rgba(0, 5, 0, 0.4);
     display: flex;
     flex-direction: column;
-    z-index: 100;
-    pointer-events: none;
-    border-radius: 4px;
+    pointer-events: auto;
+    border-radius: 2px;
     overflow: hidden;
     font-family: var(--font-family-mono, 'Courier New', Courier, monospace);
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.log-ticker-container.is-dimmed {
+    opacity: 0.2;
+}
+
+.log-ticker-container.is-dimmed:hover {
+    opacity: 1;
+    background: rgba(0, 5, 0, 0.9);
+}
+
+.log-ticker-container.v3-stealth:not(:hover) {
+    opacity: 0.1;
 }
 
 .ticker-header {
@@ -119,15 +166,5 @@ onMounted(() => {
 .type--success { color: #00e676; }
 .type--info { color: rgba(0, 255, 65, 0.7); }
 
-/* Matrix scanline effect */
-.log-ticker-container::before {
-    content: " ";
-    display: block;
-    position: absolute;
-    top: 0; left: 0; bottom: 0; right: 0;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-    z-index: 2;
-    background-size: 100% 2px, 3px 100%;
-    pointer-events: none;
-}
+
 </style>

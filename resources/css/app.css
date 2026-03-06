@@ -10,12 +10,12 @@
    CSS CUSTOM PROPERTIES - DESIGN TOKENS
    -------------------------------------------------------------------------- */
 :root {
-    /* Color Palette - Dark Tech Environment */
-    --color-bg-deep: #0a0d14;
-    --color-bg-dark: #0f1419;
-    --color-bg-medium: #161b22;
-    --color-bg-light: #1c2128;
-    --color-bg-elevated: #21262d;
+    /* Color Palette - Tech Strategy Dark */
+    --color-bg-deep: #0C111B;
+    --color-bg-dark: #111827;
+    --color-bg-medium: #1A2233;
+    --color-bg-light: #1E293B;
+    --color-bg-elevated: #243044;
 
     /* Accent Colors */
     --color-primary: #00d4ff;
@@ -35,14 +35,14 @@
     --color-info: #3b82f6;
 
     /* Text Colors */
-    --color-text-primary: #e6edf3;
-    --color-text-secondary: #8b949e;
-    --color-text-muted: #6e7681;
-    --color-text-inverse: #0a0d14;
+    --color-text-primary: #E5E7EB;
+    --color-text-secondary: #9CA3AF;
+    --color-text-muted: #6B7280;
+    --color-text-inverse: #111827;
 
     /* Border Colors */
     --color-border: rgba(255, 255, 255, 0.08);
-    --color-border-focus: rgba(0, 212, 255, 0.5);
+    --color-border-focus: rgba(59, 130, 246, 0.5);
 
     /* Typography */
     --font-family-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -73,25 +73,17 @@
     --radius-xl: 1rem;
 
     /* Shadows */
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-    --shadow-glow-primary: 0 0 20px var(--color-primary-glow);
-    --shadow-glow-danger: 0 0 30px var(--color-danger-glow);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+    --shadow-glow-primary: none;
+    --shadow-glow-danger: none;
 
     /* Transitions */
     --transition-fast: 150ms ease;
     --transition-base: 250ms ease;
     --transition-slow: 400ms ease;
 
-    /* Z-Index Scale */
-    --z-base: 1;
-    --z-dropdown: 100;
-    --z-sticky: 200;
-    --z-modal: 500;
-    --z-overlay: 800;
-    --z-toast: 900;
-    --z-critical: 1000;
 }
 
 /* --------------------------------------------------------------------------
@@ -113,10 +105,10 @@ body {
 }
 
 body {
-    font-family: var(--font-family-ui);
+    font-family: var(--ds-font-sans), var(--font-family-ui);
     font-size: var(--font-size-base);
-    color: var(--color-text-primary);
-    background-color: var(--color-bg-deep);
+    color: var(--ds-text-primary);
+    background-color: var(--ds-bg-void);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

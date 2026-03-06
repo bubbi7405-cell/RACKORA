@@ -20,6 +20,15 @@ export const useInfrastructureStore = defineStore('infrastructure', () => {
     const regions = ref({});
     const locationDefinitions = ref({});
     const weather = ref({});
+    const specializations = ref({
+        available: [
+            { id: 'web', label: 'WEB_HOSTING_HUB', bonus: 'REVENUE_WEB +15%', icon: '🌐' },
+            { id: 'ai', label: 'AI_COMPUTE_CLUSTER', bonus: 'REVENUE_AI +25%, POWER +10%', icon: '🧠' },
+            { id: 'storage', label: 'COLD_STORAGE_VAULT', bonus: 'MAINTENANCE -20%, LATENCY +10%', icon: '💾' },
+            { id: 'streaming', label: 'MEDIA_STREAMING_NODE', bonus: 'REVENUE_STREAM +20%, BW_UTIL -10%', icon: '🎬' },
+            { id: 'mining', label: 'CRYPTO_EXCHANGE_HUB', bonus: 'PROFIT_VOLATILITY UP, REVENUE +30%', icon: '⛏️' }
+        ]
+    });
 
     const hardware = ref({
         inventory: [],
@@ -176,6 +185,29 @@ export const useInfrastructureStore = defineStore('infrastructure', () => {
         } catch (error) {
             useToastStore().error(error.response?.data?.error || 'PR Tour failed');
             SoundManager.playError();
+            return { success: false, error: error.message };
+        } finally {
+            isLoading.value = false;
+        }
+    }
+
+    async function setSpecialization(roomId, specializationId) {
+        isLoading.value = true;
+        try {
+            const response = await api.post('/rooms/specialize', {
+                room_id: roomId,
+                specialization: specializationId
+            });
+            if (response.success) {
+                if (response.data?.room) {
+                    rooms.value[roomId] = response.data.room;
+                }
+                useToastStore().success(`Specialization: ${specializationId.toUpperCase()} active!`);
+                SoundManager.playSuccess();
+                return { success: true };
+            }
+        } catch (error) {
+            useToastStore().error(error.response?.data?.error || 'Specialization failed');
             return { success: false, error: error.message };
         } finally {
             isLoading.value = false;
@@ -763,6 +795,7 @@ export const useInfrastructureStore = defineStore('infrastructure', () => {
         weather,
         hardware,
         stats,
+        specializations,
         // Getters
         roomList,
         roomCount,
@@ -775,6 +808,7 @@ export const useInfrastructureStore = defineStore('infrastructure', () => {
         upgradeRoom,
         customizeRoom,
         hostPrTour,
+        setSpecialization,
         resetCircuitBreaker,
         // Rack actions
         purchaseRack,

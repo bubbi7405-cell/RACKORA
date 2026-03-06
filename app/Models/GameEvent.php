@@ -38,6 +38,9 @@ class GameEvent extends Model
         'action_cost',
         'has_post_mortem',
         'reputation_recovered',
+        'affected_region',
+        'expires_at',
+        'metadata',
     ];
 
     protected $casts = [
@@ -53,11 +56,18 @@ class GameEvent extends Model
         'damage_cost' => 'decimal:2',
         'has_post_mortem' => 'boolean',
         'reputation_recovered' => 'decimal:2',
+        'expires_at' => 'datetime',
+        'metadata' => 'array',
     ];
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function getActions(): array
+    {
+        return $this->available_actions ?? [];
     }
 
     public function affectedRoom(): BelongsTo

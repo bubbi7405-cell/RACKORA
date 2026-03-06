@@ -109,6 +109,14 @@ class GameEventService
                 continue;
             }
 
+            // Expiry check -> Auto-Resolve (for non-critical info events like Micro-Outages)
+            if ($event->expires_at && $now->gte($event->expires_at)) {
+                $event->status = EventStatus::RESOLVED;
+                $event->resolved_at = $now;
+                $event->save();
+                continue;
+            }
+
             // Record incident state
             $this->recordIncidentState($event);
         }
@@ -500,7 +508,9 @@ class GameEventService
             EventType::ZERO_DAY_EXPLOIT->value => 5,
             EventType::STORAGE_FAILURE->value => 8,
             EventType::FIBER_CUT->value => 5,
+            EventType::UNION_STRIKE->value => (int) ($this->employeeService->calculateStrikeRisk($user) / 2),
         ];
+
 
         // 1. CASCADE LOGIC
         $activeEvents = GameEvent::where('user_id', $user->id)
@@ -610,7 +620,36 @@ class GameEventService
             $types[EventType::OVERHEATING->value] = (int) max(1, ($types[EventType::OVERHEATING->value] ?? 15) * (1.0 - $avgRedundancyBonus));
         }
 
-        // 5. Weighted Random Selection
+        // 6. EMPLOYEE INCIDENT PREVENTION PERKS (FEATURE 204)
+        $allEmployeeBonuses = $this->employeeService->getAllActiveBonuses($user);
+        
+        // Global Mitigation
+        $globalPrevention = $allEmployeeBonuses['global_incident_prevention'] ?? 0;
+        if ($globalPrevention > 0) {
+            foreach ($types as $key => $weight) {
+                $types[$key] = (int) max(1, $weight * (1.0 - min(0.5, $globalPrevention)));
+            }
+        }
+
+        // Specific Mitigation
+        if (isset($allEmployeeBonuses['hardware_failure_prevention'])) {
+            $hWPrev = min(0.8, $allEmployeeBonuses['hardware_failure_prevention']);
+            $types[EventType::HARDWARE_FAILURE->value] = (int) max(1, ($types[EventType::HARDWARE_FAILURE->value] ?? 0) * (1.0 - $hWPrev));
+            $types[EventType::OVERHEATING->value] = (int) max(1, ($types[EventType::OVERHEATING->value] ?? 0) * (1.0 - $hWPrev));
+        }
+
+        if (isset($allEmployeeBonuses['network_failure_prevention'])) {
+            $nWPrev = min(0.8, $allEmployeeBonuses['network_failure_prevention']);
+            $types[EventType::NETWORK_FAILURE->value] = (int) max(1, ($types[EventType::NETWORK_FAILURE->value] ?? 0) * (1.0 - $nWPrev));
+            $types[EventType::FIBER_CUT->value] = (int) max(1, ($types[EventType::FIBER_CUT->value] ?? 0) * (1.0 - $nWPrev));
+        }
+
+        if (isset($allEmployeeBonuses['data_leak_prevention'])) {
+            $dLPrev = min(0.8, $allEmployeeBonuses['data_leak_prevention']);
+            $types[EventType::DATA_LEAK->value] = (int) max(1, ($types[EventType::DATA_LEAK->value] ?? 0) * (1.0 - $dLPrev));
+        }
+
+        // 7. Weighted Random Selection
         $totalWeight = array_sum($types);
         $rand = rand(1, $totalWeight);
         
@@ -658,6 +697,9 @@ class GameEventService
                 break;
             case EventType::FIBER_CUT:
                 $this->createFiberCutEvent($user);
+                break;
+            case EventType::UNION_STRIKE:
+                $this->createUnionStrike($user);
                 break;
             default:
                 $this->createHardwareFailure($user);
@@ -1257,6 +1299,33 @@ class GameEventService
         ]);
     }
 
+    public function createRegionalBlackout(User $user, string $region): GameEvent
+    {
+        $event = GameEvent::create([
+            'user_id' => $user->id,
+            'type' => EventType::REGIONAL_BLACKOUT,
+            'status' => EventStatus::ACTIVE,
+            'severity' => 'critical',
+            'title' => 'REGIONAL POWER RATIONING: ' . strtoupper($region),
+            'description' => "The power grid in {$region} is under extreme stress. Rolling blackouts have limited available room capacity to 40%. Critical systems will remain online if priority is set.",
+            'affected_region' => $region,
+            'warning_at' => now(),
+            'deadline_at' => now()->addMinutes(120),
+            'escalates_at' => now()->addMinutes(30),
+            'expires_at' => now()->addMinutes(30), // Lasts 30 mins (game time)
+            'xp_reward' => 250,
+            'metadata' => [
+                'capacity_multiplier' => 0.4,
+                'region' => $region
+            ]
+        ]);
+
+        broadcast(new \App\Events\GameEventStarted($user, $event));
+        \App\Models\GameLog::log($user, "GRID ALERT: Regional power rationing active in {$region}!", 'danger', 'infrastructure');
+
+        return $event;
+    }
+
     private function applyEscalationConsequences(GameEvent $event): void
     {
         switch ($event->type) {
@@ -1641,5 +1710,137 @@ class GameEventService
             'affected_customers_count' => Server::whereHas('rack', fn($q) => $q->where('room_id', $room->id))->withCount('activeOrders')->get()->sum('active_orders_count'),
             'xp_reward' => 200,
         ]);
+    }
+
+    public function createUnionStrike(User $user): void
+    {
+        GameEvent::create([
+            'user_id' => $user->id,
+            'type' => EventType::UNION_STRIKE,
+            'severity' => 'critical',
+            'status' => EventStatus::ACTIVE,
+            'title' => 'Labor Union Strike',
+            'description' => 'Discontent among your workforce has reached a breaking point. Employees have walked out, halting all maintenance and support.',
+            'warning_at' => Carbon::now(),
+            'escalates_at' => Carbon::now()->addSeconds(EventType::UNION_STRIKE->escalationSeconds()),
+            'deadline_at' => Carbon::now()->addSeconds(EventType::UNION_STRIKE->deadlineSeconds()),
+            'available_actions' => [
+                [
+                    'id' => 'negotiate_union',
+                    'label' => 'Negotiate: One-time Bonus ($5,000)',
+                    'cost' => 5000,
+                    'description' => 'Pay a lump sum bonus to appease the union and restore work immediately.',
+                    'duration' => 60,
+                    'success_chance' => 85,
+                ],
+                [
+                    'id' => 'concede_benefits',
+                    'label' => 'Concede: Better Health Plan',
+                    'cost' => 0,
+                    'description' => 'Agree to a new benefits package. Permanent 5% increase in all salaries.',
+                    'duration' => 120,
+                    'success_chance' => 100,
+                    'meta' => ['salary_increase' => 0.05]
+                ],
+                [
+                    'id' => 'ignore_strike',
+                    'label' => 'Wait it out',
+                    'cost' => 0,
+                    'description' => 'Refuse to negotiate. The strike will end eventually, but morale will remain low.',
+                    'duration' => 0,
+                    'success_chance' => 0, // Not an "action" that succeeds, just a placeholder for doing nothing
+                ]
+            ],
+            'xp_reward' => 250,
+        ]);
+
+        \App\Models\GameLog::log($user, "🪧 UNION STRIKE: Operations have halted!", 'danger', 'hr');
+    }
+
+    /**
+     * Trigger a specific event for a room.
+     */
+    public function triggerRoomEvent(GameRoom $room, EventType $type, string $description = null): ?GameEvent
+    {
+        $user = $room->user;
+        
+        // Prevent duplicate active events for the same type in the same room
+        $exists = GameEvent::where('user_id', $user->id)
+            ->where('type', $type)
+            ->where('affected_room_id', $room->id)
+            ->whereIn('status', [EventStatus::WARNING, EventStatus::ACTIVE, EventStatus::ESCALATED])
+            ->exists();
+
+        if ($exists) return null;
+
+        $actions = [];
+        if ($type === EventType::STATIC_DISCHARGE) {
+             $actions = [
+                 [
+                     'id' => 'replace_component',
+                     'label' => 'Replace fried component',
+                     'cost' => rand(150, 400),
+                     'success_chance' => 90,
+                     'requires_tech' => true,
+                     'type' => 'mitigation'
+                 ],
+                 [
+                     'id' => 'ignore_static',
+                     'label' => 'Ignore and hope',
+                     'cost' => 0,
+                     'success_chance' => 5,
+                     'requires_tech' => false,
+                     'type' => 'mitigation'
+                 ]
+             ];
+        } elseif ($type === EventType::CORROSION) {
+             $actions = [
+                 [
+                     'id' => 'clean_and_repair',
+                     'label' => 'Deep Clean & Repair Short-Circuits',
+                     'cost' => rand(300, 800),
+                     'success_chance' => 85,
+                     'requires_tech' => true,
+                     'type' => 'mitigation'
+                 ],
+                 [
+                     'id' => 'replace_motherboard',
+                     'label' => 'Rip & Replace Board',
+                     'cost' => rand(800, 1500),
+                     'success_chance' => 98,
+                     'requires_tech' => false,
+                     'type' => 'mitigation'
+                 ]
+             ];
+        }
+
+        $event = new GameEvent();
+        $event->user_id = $user->id;
+        $event->type = $type;
+        $event->status = EventStatus::WARNING;
+        $event->severity = 'moderate';
+        $event->title = $type->label() . " in " . $room->name;
+        $event->description = $description ?? $type->description();
+        $event->affected_room_id = $room->id;
+        
+        // Target a random server in the room if applicable
+        $servers = Server::whereHas('rack', fn($q) => $q->where('room_id', $room->id))->get();
+        if ($servers->count() > 0) {
+             $targetServer = $servers->random();
+             $event->affected_server_id = $targetServer->id;
+             $event->affected_rack_id = $targetServer->rack_id;
+        }
+
+        $now = now();
+        $event->warning_at = $now;
+        $event->escalates_at = $now->copy()->addSeconds($type->escalationSeconds());
+        $event->deadline_at = $now->copy()->addSeconds($type->deadlineSeconds());
+        
+        $event->available_actions = $actions;
+        $event->save();
+
+        broadcast(new \App\Events\GameEventStarted($user, $event));
+
+        return $event;
     }
 }

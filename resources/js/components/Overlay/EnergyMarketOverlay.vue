@@ -15,12 +15,8 @@
             </div>
 
             <div class="overlay-tabs">
-                <button 
-                    v-for="tab in tabs" 
-                    :key="tab.id"
-                    @click="activeTab = tab.id"
-                    :class="{ active: activeTab === tab.id }"
-                >
+                <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
+                    :class="{ active: activeTab === tab.id }">
                     {{ tab.label }}
                 </button>
             </div>
@@ -41,7 +37,7 @@
                                 ${{ (userAvgRate || 0).toFixed(3) }} <small>/ kWh</small>
                             </div>
                         </div>
-                         <div class="summary-card">
+                        <div class="summary-card">
                             <label>Current Contract</label>
                             <div class="value highlight">
                                 {{ currentContractLabel }}
@@ -56,7 +52,8 @@
                             <span class="text-right">Spot Price</span>
                             <span class="text-right">Status</span>
                         </div>
-                        <div v-for="(price, region) in regionalPrices" :key="region" class="grid-row" :class="{ 'active-region': isUserInRegion(region) }">
+                        <div v-for="(price, region) in regionalPrices" :key="region" class="grid-row"
+                            :class="{ 'active-region': isUserInRegion(region) }">
                             <div class="region-name">
                                 <span class="indicator"></span>
                                 {{ formatRegionName(region) }}
@@ -64,7 +61,8 @@
                             </div>
                             <div class="sparkline">
                                 <svg viewBox="0 0 100 30" preserveAspectRatio="none">
-                                    <path :d="generateSparkline(region)" fill="none" stroke="var(--color-accent)" stroke-width="2" />
+                                    <path :d="generateSparkline(region)" fill="none" stroke="var(--color-accent)"
+                                        stroke-width="2" />
                                 </svg>
                             </div>
                             <div class="price-cell text-right">
@@ -93,25 +91,23 @@
                                 ${{ offer.price_per_kwh.toFixed(3) }} <small>/ kWh</small>
                             </div>
                             <div class="contract-desc">{{ offer.description }}</div>
-                            <button 
-                                class="btn-sign" 
-                                :disabled="hasActiveContract || processing"
-                                @click="signContract(offer.type)"
-                            >
+                            <button class="btn-sign" :disabled="hasActiveContract || processing"
+                                @click="signContract(offer.type)">
                                 {{ hasActiveContract ? 'Contract Active' : 'Sign Contract' }}
                             </button>
                         </div>
                     </div>
                 </div>
 
-                  <!-- Policies Tab -->
+                <!-- Policies Tab -->
                 <div v-if="activeTab === 'policies'" class="tab-content">
-                     <div class="policies-list">
+                    <div class="policies-list">
                         <div v-for="policy in marketData.policies" :key="policy.key" class="policy-card">
                             <div class="policy-header">
                                 <h3>{{ policy.name }}</h3>
                                 <label class="switch">
-                                    <input type="checkbox" :checked="isPolicyActive(policy.key)" @change="togglePolicy(policy.key)">
+                                    <input type="checkbox" :checked="isPolicyActive(policy.key)"
+                                        @change="togglePolicy(policy.key)">
                                     <span class="slider round"></span>
                                 </label>
                             </div>
@@ -120,7 +116,7 @@
                                 <span v-for="(eff, i) in policy.effects" :key="i" class="effect-tag">{{ eff }}</span>
                             </div>
                         </div>
-                     </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -165,7 +161,7 @@ const loadData = async () => {
 const signContract = async (type) => {
     if (processing.value) return;
     if (!confirm('Sign this energy contract? Early cancellation penalties may apply.')) return;
-    
+
     processing.value = true;
     try {
         await api.post('/energy/sign', { type });
@@ -225,7 +221,7 @@ const isUserInRegion = (region) => {
 const userAvgRate = computed(() => {
     // Simplified: just show global spot or contract
     if (marketData.value.current_contract?.type !== 'variable') {
-         return marketData.value.current_contract?.price;
+        return marketData.value.current_contract?.price;
     }
     return marketData.value.spot_price;
 });
@@ -270,7 +266,7 @@ onMounted(loadData);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 50px 100px rgba(0,0,0,0.8);
+    box-shadow: 0 50px 100px rgba(0, 0, 0, 0.8);
     color: #ccc;
     font-family: 'Inter', sans-serif;
 }
@@ -314,8 +310,17 @@ onMounted(loadData);
     background: #111;
     border: 1px solid #333;
 }
-.status-badge.stable { color: #2ecc71; border-color: #2ecc71; }
-.status-badge.crisis { color: #e74c3c; border-color: #e74c3c; animation: pulse 2s infinite; }
+
+.status-badge.stable {
+    color: #2ecc71;
+    border-color: #2ecc71;
+}
+
+.status-badge.crisis {
+    color: #e74c3c;
+    border-color: #e74c3c;
+    animation: pulse 2s infinite;
+}
 
 .overlay-tabs {
     display: flex;
@@ -373,8 +378,17 @@ onMounted(loadData);
     font-weight: 800;
     color: #fff;
 }
-.summary-card .value small { font-size: 0.8rem; color: #888; }
-.summary-card .value.highlight { color: #3498db; font-size: 1.2rem; margin-top: 8px; }
+
+.summary-card .value small {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.summary-card .value.highlight {
+    color: #3498db;
+    font-size: 1.2rem;
+    margin-top: 8px;
+}
 
 .region-grid {
     border: 1px solid #222;
@@ -402,20 +416,62 @@ onMounted(loadData);
     transition: background 0.2s;
 }
 
-.grid-row:hover { background: #1a1e26; }
-.grid-row.active-region { background: #1a2230; border-left: 3px solid #3498db; }
+.grid-row:hover {
+    background: #1a1e26;
+}
 
-.region-name { font-weight: 700; color: #eee; display: flex; align-items: center; gap: 8px; }
-.user-badge { font-size: 0.5rem; background: #3498db; color: #fff; padding: 2px 4px; border-radius: 2px; }
+.grid-row.active-region {
+    background: #1a2230;
+    border-left: 3px solid #3498db;
+}
 
-.sparkline svg { width: 100%; height: 30px; }
+.region-name {
+    font-weight: 700;
+    color: #eee;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 
-.price-val { font-family: monospace; font-size: 0.9rem; color: #fff; }
+.user-badge {
+    font-size: 0.5rem;
+    background: #3498db;
+    color: #fff;
+    padding: 2px 4px;
+    border-radius: 2px;
+}
 
-.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-.status-dot.low { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
-.status-dot.med { background: #f1c40f; }
-.status-dot.high { background: #e74c3c; box-shadow: 0 0 5px #e74c3c; }
+.sparkline svg {
+    width: 100%;
+    height: 30px;
+}
+
+.price-val {
+    font-family: monospace;
+    font-size: 0.9rem;
+    color: #fff;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-dot.low {
+    background: #2ecc71;
+    box-shadow: 0 0 5px #2ecc71;
+}
+
+.status-dot.med {
+    background: #f1c40f;
+}
+
+.status-dot.high {
+    background: #e74c3c;
+    box-shadow: 0 0 5px #e74c3c;
+}
 
 /* Contracts */
 .contracts-list {
@@ -434,8 +490,17 @@ onMounted(loadData);
     gap: 12px;
 }
 
-.contract-header h3 { margin: 0; font-size: 1rem; color: #fff; }
-.contract-header .duration { font-size: 0.7rem; color: #666; text-transform: uppercase; }
+.contract-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #fff;
+}
+
+.contract-header .duration {
+    font-size: 0.7rem;
+    color: #666;
+    text-transform: uppercase;
+}
 
 .contract-price {
     font-size: 1.5rem;
@@ -454,8 +519,16 @@ onMounted(loadData);
     cursor: pointer;
     transition: all 0.2s;
 }
-.btn-sign:hover:not(:disabled) { background: #2980b9; }
-.btn-sign:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+.btn-sign:hover:not(:disabled) {
+    background: #2980b9;
+}
+
+.btn-sign:disabled {
+    background: #333;
+    color: #666;
+    cursor: not-allowed;
+}
 
 /* Policies */
 .policies-list {
@@ -470,8 +543,18 @@ onMounted(loadData);
     padding: 20px;
 }
 
-.policy-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.policy-header h3 { margin: 0; color: #fff; font-size: 1rem; }
+.policy-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.policy-header h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 1rem;
+}
 
 .effect-tag {
     display: inline-block;
@@ -485,16 +568,78 @@ onMounted(loadData);
 }
 
 /* Toggle Switch */
-.switch { position: relative; display: inline-block; width: 40px; height: 20px; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 20px; }
-.slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
-input:checked + .slider { background-color: #2ecc71; }
-input:checked + .slider:before { transform: translateX(20px); }
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #333;
+    transition: .4s;
+    border-radius: 20px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: #2ecc71;
+}
+
+input:checked+.slider:before {
+    transform: translateX(20px);
+}
 
 @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+    transition: all 0.2s;
+}
+
+.close-btn:hover {
+    color: #fff;
+    transform: rotate(90deg);
 }
 </style>

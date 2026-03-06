@@ -1,11 +1,6 @@
 <template>
     <div class="tab-content tuning-tab provision-lab">
-        <div class="proc-header">
-            <div class="proc-title">
-                <h3>PERFORMANCE_TUNING_LAB</h3>
-                <p>Anpassung von Taktraten und Spannungen auf Silizium-Ebene.</p>
-            </div>
-        </div>
+
 
         <div class="tuning-lab" v-if="server.tuning">
             <!-- Stability Header -->

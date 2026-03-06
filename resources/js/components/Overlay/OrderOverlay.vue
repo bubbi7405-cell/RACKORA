@@ -1,6 +1,5 @@
 <template>
-    <div v-if="order" class="order-overlay">
-        <div class="overlay-backdrop" @click="$emit('close')"></div>
+    <div v-if="order" class="overlay-backdrop" @click.self="$emit('close')">
         <div class="overlay-content">
             <header class="overlay-header">
                 <h2>New Order: {{ order.productType }}</h2>
@@ -13,9 +12,12 @@
                     <div class="customer-text">
                         <div class="customer-title-row">
                             <h3>{{ order.customerName }}</h3>
-                            <span v-if="order.sla && order.sla.tier === 'enterprise'" class="sla-badge enterprise">ENTERPRISE</span>
-                            <span v-if="order.sla && order.sla.tier === 'diamond' || order.sla.tier === 'whale'" class="sla-badge whale">DIAMOND_GRADE</span>
-                            <span v-if="order.targetRegion" class="region-badge" :title="'Prefers ' + order.targetRegion">
+                            <span v-if="order.sla && order.sla.tier === 'enterprise'"
+                                class="sla-badge enterprise">ENTERPRISE</span>
+                            <span v-if="order.sla && order.sla.tier === 'diamond' || order.sla.tier === 'whale'"
+                                class="sla-badge whale">DIAMOND_GRADE</span>
+                            <span v-if="order.targetRegion" class="region-badge"
+                                :title="'Prefers ' + order.targetRegion">
                                 {{ getRegionFlag(order.targetRegion) }} {{ order.targetRegion }}
                             </span>
                         </div>
@@ -45,7 +47,8 @@
                             </div>
                             <div class="req-item" v-if="order.requirements.max_latency_ms">
                                 <span class="req-label">Max Latency</span>
-                                <span class="req-value" style="color: #ff9d00">{{ order.requirements.max_latency_ms }} ms</span>
+                                <span class="req-value" style="color: #ff9d00">{{ order.requirements.max_latency_ms }}
+                                    ms</span>
                             </div>
                             <div class="req-item" v-if="order.requirements.ipv4">
                                 <span class="req-label">IPv4_ADDR</span>
@@ -57,11 +60,14 @@
                             </div>
                             <div class="req-item" v-if="order.requirements.ports && order.requirements.ports.length">
                                 <span class="req-label">Comm Ports</span>
-                                <span class="req-value" style="color: #ff9d00">TCP: {{ order.requirements.ports.join(', ') }}</span>
+                                <span class="req-value" style="color: #ff9d00">
+                                    TCP: {{ order.requirements.ports.join(', ') }}
+                                </span>
                             </div>
                             <div class="req-item">
                                 <span class="req-label">SECURITY_PATCH_LVL</span>
-                                <span class="req-value" :style="{ color: getRequiredSecurity(order.sla?.tier) > 0 ? '#ff5f5f' : '#8b949e' }">
+                                <span class="req-value"
+                                    :style="{ color: getRequiredSecurity(order.sla?.tier) > 0 ? '#ff5f5f' : '#8b949e' }">
                                     {{ getRequiredSecurity(order.sla?.tier) }}%
                                 </span>
                             </div>
@@ -90,19 +96,19 @@
                     No suitable online servers available.
                 </div>
                 <div class="server-list" v-else>
-                    <button 
-                        v-for="server in availableServers" 
-                        :key="server.id"
-                        class="server-option"
+                    <button v-for="server in availableServers" :key="server.id" class="server-option"
                         :class="{ 'server-option--suitable': isSuitable(server), 'server-option--unsuitable': !isSuitable(server) }"
-                        :disabled="!isSuitable(server)"
-                        @click="acceptOrder(server.id)"
-                    >
+                        :disabled="!isSuitable(server)" @click="acceptOrder(server.id)">
                         <div class="server-option__icon">🖥️</div>
                         <div class="server-option__info">
                             <div class="server-option__name">{{ server.modelName }}</div>
                             <div class="server-option__specs">
-                                {{ server.specs.cpuCores }}C • {{ server.specs.ramGb }}GB • {{ server.specs.storageTb }}TB
+                                {{ server.specs.cpuCores }}C • {{ server.specs.ramGb }}GB • {{ server.specs.storageTb
+                                }}TB
+                            </div>
+                            <div v-if="!isSuitable(server)" class="server-option__reasons">
+                                <span v-for="(reason, i) in getRejectionReasons(server)" :key="i"
+                                    class="rejection-tag">⚠ {{ reason }}</span>
                             </div>
                         </div>
                         <div class="server-option__action">
@@ -115,11 +121,8 @@
 
             <div class="overlay-actions">
                 <button class="btn btn--danger" @click="rejectOrder">Reject Order</button>
-                <button 
-                    v-if="order.isNegotiable || (order.negotiation && order.negotiation.isNegotiable)" 
-                    class="btn btn--primary" 
-                    @click="$emit('negotiate', order)"
-                >
+                <button v-if="order.isNegotiable || (order.negotiation && order.negotiation.isNegotiable)"
+                    class="btn btn--primary" @click="$emit('negotiate', order)">
                     Negotiate Terms
                 </button>
             </div>
@@ -128,7 +131,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useGameStore } from '../../stores/game';
 import { useToastStore } from '../../stores/toast';
 import api from '../../utils/api';
@@ -143,11 +146,18 @@ const props = defineProps({
 const emit = defineEmits(['close', 'negotiate']);
 const gameStore = useGameStore();
 const toastStore = useToastStore();
+const processing = ref(false);
+
+watch(() => props.order?.status, (status) => {
+    if (status && status !== 'pending') {
+        emit('close');
+    }
+}, { immediate: true });
 
 const availableServers = computed(() => {
     const servers = [];
     console.log('SCANNING ROOMS:', Object.keys(gameStore.rooms || {}).length);
-    
+
     // Own rooms
     for (const roomId in gameStore.rooms) {
         const room = gameStore.rooms[roomId];
@@ -181,48 +191,54 @@ const availableServers = computed(() => {
 });
 
 function isSuitable(server) {
-    if (server.status === 'offline') return false;
-    
-    // Check requirements
+    return getRejectionReasons(server).length === 0;
+}
+
+function getRejectionReasons(server) {
+    const reasons = [];
+    if (server.status === 'offline') {
+        reasons.push('Server ist OFFLINE');
+        return reasons;
+    }
+
     const req = props.order.requirements;
-    console.log('CHECKING SERVER:', server.id, 'FOR ORDER:', props.order.id);
-    console.log('REQS:', req);
-    console.log('SPECS:', server.specs);
 
     if (server.specs.cpuCores < req.cpu) {
-        console.log('REJECTED: CPU', server.specs.cpuCores, '<', req.cpu);
-        return false;
+        reasons.push(`CPU: ${server.specs.cpuCores}/${req.cpu} Cores`);
     }
     if (server.specs.ramGb < req.ram) {
-        console.log('REJECTED: RAM', server.specs.ramGb, '<', req.ram);
-        return false;
+        reasons.push(`RAM: ${server.specs.ramGb}/${req.ram} GB`);
     }
     if (server.specs.storageTb * 1024 < req.storage) {
-        console.log('REJECTED: DISK', server.specs.storageTb * 1024, '<', req.storage);
-        return false;
+        reasons.push(`Storage: ${Math.round(server.specs.storageTb * 1024)}/${req.storage} GB`);
     }
 
     // Check OS
     if (req.os) {
-        if (server.os.type !== req.os) {
-            console.log('REJECTED: OS TYPE', server.os.type, '!==', req.os);
-            return false;
-        }
-        if (server.os.status !== 'installed') {
-            console.log('REJECTED: OS STATUS', server.os.status);
-            return false;
+        if (!server.os.type || server.os.type === 'none') {
+            reasons.push(`Kein OS installiert (${req.os} benötigt)`);
+        } else if (server.os.type !== req.os) {
+            reasons.push(`Falsches OS: ${server.os.type} (${req.os} benötigt)`);
+        } else if (server.os.status !== 'installed') {
+            reasons.push(`OS wird noch installiert`);
         }
     }
 
     // Check availability (if vserver node)
     if (server.type === 'shared_node') {
-        if (props.order.productType !== 'web_hosting' && props.order.productType !== 'database_hosting') return false;
-        if (server.vserver.available <= 0) return false;
+        if (props.order.productType !== 'web_hosting' && props.order.productType !== 'database_hosting') {
+            reasons.push('Shared Node: falscher Produkttyp');
+        } else if (server.vserver.available <= 0) {
+            reasons.push('Keine freien vServer-Slots');
+        }
     } else if (server.type === 'vserver_node') {
-        if (server.vserver.available <= 0) return false;
+        if (server.vserver.available <= 0) {
+            reasons.push('Keine freien vServer-Slots');
+        }
     } else {
-        // Dedicated: must be empty/unused
-        if (server.activeOrdersCount > 0) return false;
+        if (server.activeOrdersCount > 0) {
+            reasons.push('Server bereits belegt');
+        }
     }
 
     // Check Latency Requirement
@@ -240,21 +256,37 @@ function isSuitable(server) {
             }
             if (roomLatency !== null) break;
         }
-        
-        // If we found the room and it doesn't meet the requirement, reject
+
         if (roomLatency !== null && roomLatency > req.max_latency_ms) {
-            return false;
+            reasons.push(`Latenz: ${roomLatency}ms > ${req.max_latency_ms}ms`);
+        }
+    }
+
+    // Check Region Requirement
+    if (req.required_region) {
+        let serverRegion = null;
+        for (const roomId in gameStore.rooms) {
+            const room = gameStore.rooms[roomId];
+            if (room.racks && room.racks.some(r => r.servers && r.servers.some(s => s.id === server.id))) {
+                serverRegion = room.region;
+                break;
+            }
+        }
+
+        if (serverRegion && serverRegion !== req.required_region) {
+            const reqName = gameStore.regions[req.required_region]?.name || req.required_region;
+            const srvName = gameStore.regions[serverRegion]?.name || serverRegion;
+            reasons.push(`Region: ${srvName} (benötigt ${reqName})`);
         }
     }
 
     // Check Security Patch Level
     const requiredSecurity = getRequiredSecurity(props.order.sla?.tier);
-    if ((server.os?.patch_level || 0) < requiredSecurity) {
-        console.log('REJECTED: Security Level', server.os?.patch_level, '<', requiredSecurity);
-        return false;
+    if (requiredSecurity > 0 && (server.os?.security || 0) < requiredSecurity) {
+        reasons.push(`Security: ${server.os?.security || 0}%/${requiredSecurity}%`);
     }
 
-    return true;
+    return reasons;
 }
 
 function getRequiredSecurity(tier) {
@@ -265,6 +297,8 @@ function getRequiredSecurity(tier) {
 }
 
 async function acceptOrder(serverId) {
+    if (processing.value) return;
+    processing.value = true;
     try {
         const response = await api.post(`/orders/${props.order.id}/accept`, {
             server_id: serverId
@@ -276,18 +310,24 @@ async function acceptOrder(serverId) {
             emit('close');
         }
     } catch (error) {
-        toastStore.error(error.message || 'Failed to accept order');
-        if (error.message && (error.message.includes('pending') || error.message.includes('not found'))) {
+        const msg = error.message || '';
+        if (msg.includes('pending') || msg.includes('not found')) {
+            // It's already gone or accepted, just close silently or with a small info
+            console.log('Order already processed:', msg);
             await gameStore.loadGameState();
             emit('close');
+        } else {
+            toastStore.error(msg || 'Failed to accept order');
         }
+    } finally {
+        processing.value = false;
     }
 }
 
 async function rejectOrder() {
     try {
         const response = await api.post(`/orders/${props.order.id}/reject`);
-        
+
         if (response.success) {
             toastStore.info('Order rejected');
             await gameStore.loadGameState();
@@ -316,25 +356,28 @@ function getRegionFlag(regionKey) {
 </script>
 
 <style scoped>
-.order-overlay {
+.overlay-backdrop {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    z-index: 1000;
+    background: rgba(10, 15, 20, 0.65);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.overlay-backdrop {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(2px);
+    z-index: var(--zi-overlays);
+    pointer-events: auto;
 }
 
 @keyframes v3-pop-in {
-    from { transform: scale(0.98) translateY(10px); opacity: 0; }
-    to { transform: scale(1) translateY(0); opacity: 1; }
+    from {
+        transform: scale(0.98) translateY(10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
 }
 
 .overlay-content {
@@ -345,7 +388,7 @@ function getRegionFlag(regionKey) {
     background: var(--v3-bg-overlay);
     border: var(--v3-border-heavy);
     border-radius: var(--v3-radius);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -376,7 +419,10 @@ function getRegionFlag(regionKey) {
     cursor: pointer;
     padding: 4px;
 }
-.close-btn:hover { color: #e6edf3; }
+
+.close-btn:hover {
+    color: #e6edf3;
+}
 
 .order-details {
     padding: 24px;
@@ -627,6 +673,23 @@ function getRegionFlag(regionKey) {
     font-style: italic;
     background: #0d1117;
     border-radius: 6px;
+}
+
+.server-option__reasons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.rejection-tag {
+    font-size: 0.85rem;
+    color: #f85149;
+    background: rgba(248, 81, 73, 0.15);
+    border: 1px solid rgba(248, 81, 73, 0.3);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
 }
 
 .overlay-actions {

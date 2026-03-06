@@ -44,6 +44,8 @@ class GameRoom extends Model
         'diesel_fuel_liters',
         'diesel_fuel_capacity',
         'solar_capacity_kw',
+        'metadata',
+        'humidity',
     ];
 
     protected $casts = [
@@ -63,6 +65,8 @@ class GameRoom extends Model
         'diesel_fuel_capacity' => 'integer',
         'solar_capacity_kw' => 'float',
         'has_circuit_breaker_tripped' => 'boolean',
+        'metadata' => 'json',
+        'humidity' => 'decimal:2',
     ];
 
     public function user(): BelongsTo
@@ -132,8 +136,9 @@ class GameRoom extends Model
 
     public function getPowerCapacityPercent(): float
     {
-        if ($this->max_power_kw <= 0) return 0;
-        return ($this->getCurrentPowerUsage() / $this->max_power_kw) * 100;
+        $capacity = $this->getEffectiveMaxPowerKw();
+        if ($capacity <= 0) return 0;
+        return ($this->getCurrentPowerUsage() / $capacity) * 100;
     }
 
     public function getCurrentHeatOutput(): float
@@ -177,9 +182,27 @@ class GameRoom extends Model
         return $this->racks->contains(fn($rack) => $rack->temperature > 35) || $this->getCoolingCapacityPercent() > 100;
     }
 
+    public function getEffectiveMaxPowerKw(): float
+    {
+        $maxPower = (float) $this->max_power_kw;
+        
+        // FEATURE 93: Regional Power Rationing
+        $activeBlackout = \App\Models\GameEvent::where('affected_region', $this->region)
+            ->where('type', \App\Enums\EventType::REGIONAL_BLACKOUT)
+            ->whereIn('status', [\App\Enums\EventStatus::ACTIVE, \App\Enums\EventStatus::ESCALATED])
+            ->first();
+            
+        if ($activeBlackout) {
+            $multiplier = (float) ($activeBlackout->metadata['capacity_multiplier'] ?? 0.4);
+            $maxPower *= $multiplier;
+        }
+        
+        return $maxPower;
+    }
+
     public function isPowerOverloaded(): bool
     {
-        return $this->getCurrentPowerUsage() > $this->max_power_kw;
+        return $this->getCurrentPowerUsage() > $this->getEffectiveMaxPowerKw();
     }
 
     public function isBandwidthSaturated(): bool
@@ -310,6 +333,7 @@ class GameRoom extends Model
             'usedRacks' => $this->racks->count(),
             'power' => [
                 'max' => (float) $this->max_power_kw,
+                'effectiveMax' => $this->getEffectiveMaxPowerKw(),
                 'current' => $this->getCurrentPowerUsage(),
                 'percent' => $this->getPowerCapacityPercent(),
                 'pue' => (float) $this->calculatePue(),
@@ -331,6 +355,9 @@ class GameRoom extends Model
                 'airflow' => $this->airflow_type,
                 'redundancy' => $this->redundancy_level,
                 'redundancyLabel' => $this->getRedundancyLabel(),
+            ],
+            'environment' => [
+                'humidity' => (float) $this->humidity,
             ],
             'bandwidth' => [
                 'max' => (float) $this->bandwidth_gbps,

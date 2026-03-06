@@ -9,7 +9,7 @@
             </div>
 
             <div class="mgame-body">
-                <p class="hint">Connect the <b>SOURCE</b> node to the <b>GATEWAY</b> by clicking adjacent active nodes. Avoid the dead zones!</p>
+                <p class="hint">Connect the <b>SOURCE</b> coord to the <b>GATEWAY</b> by authorizing adjacent active coordinates. Avoid the dead zones!</p>
                 
                 <div class="grid-container">
                     <div v-for="(node, idx) in nodes" 

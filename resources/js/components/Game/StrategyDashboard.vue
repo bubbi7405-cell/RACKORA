@@ -2,20 +2,23 @@
     <div class="strategy-dashboard">
         <div class="dashboard-section header-section">
             <div class="section-title">
-                <h2>OPERATIONAL_DOCTRINE</h2>
-                <div class="subtitle">Define company-wide policies and strategic specialization.</div>
+                <h2 class="l1-priority">BOARD_STRATEGY</h2>
+                <div class="subtitle l3-priority">Define corporate-wide directives and strategic specialization protocols.</div>
             </div>
             <div class="header-stats">
-                <div class="stat-pill">
-                    <span class="label">ACTIVE_POLICIES</span>
-                    <span class="value">{{ activePolicies.length }}</span>
+                <div class="stat-pill l2-priority" 
+                    @mouseenter="tooltipStore.show($event, { title: 'ACTIVE_STRATEGIES', content: 'Current number of active management directives affecting operational costs.', hint: 'Monitor resource draw metrics.' })"
+                    @mouseleave="tooltipStore.hide()"
+                >
+                    <span class="label l3-priority">ACTIVE_STRATEGIES</span>
+                    <span class="value l1-priority">{{ activePolicies.length }}</span>
                 </div>
-                <div class="stat-pill" :class="{ 'is-locked': playerLevel < 10 }">
-                    <span class="label">STRATEGY_LEVEL</span>
-                    <span class="value">
-                        <template v-if="playerLevel < 10">🔒</template>
-                        <template v-else>ALPHA</template>
-                    </span>
+                <div class="stat-pill l2-priority" 
+                    @mouseenter="tooltipStore.show($event, { title: 'MARKET_PENETRATION', content: 'Aggregated market share across all regional networks.', hint: 'Increase footprint to dominate the sector.' })"
+                    @mouseleave="tooltipStore.hide()"
+                >
+                    <span class="label l3-priority">MARKET_PENETRATION</span>
+                    <span class="value l1-priority">{{ Math.round(gameStore.marketShare?.playerShare || 0) }}%</span>
                 </div>
             </div>
         </div>
@@ -26,7 +29,13 @@
                 <div class="panel-card glass">
                     <div class="card-header">
                         <span class="header-icon">🔌</span>
-                        <h3>ENERGY_PROTOCOLS</h3>
+                        <h3 class="l2-priority">
+                            BOARD_DIRECTIVES
+                            <span class="v3-info-trigger" 
+                                @mouseenter="tooltipStore.show($event, { title: 'BOARD_DIRECTIVES', content: 'Policies that modify power consumption and resource efficiency.', hint: 'Changes apply immediately.' })"
+                                @mouseleave="tooltipStore.hide()"
+                            >ⓘ</span>
+                        </h3>
                         <div class="header-line"></div>
                     </div>
                     <div class="card-body scrollable">
@@ -37,14 +46,16 @@
                                 class="policy-node"
                                 :class="{ 'node-active': isPolicyActive(key) }"
                                 @click="togglePolicy(key)"
+                                @mouseenter="tooltipStore.show($event, { title: policy.name, content: policy.description, hint: 'Toggling costs 0 XP but may affect reputation.' })"
+                                @mouseleave="tooltipStore.hide()"
                             >
                                 <div class="node-icon">{{ policy.icon }}</div>
                                 <div class="node-main">
                                     <div class="node-title">
-                                        <h4>{{ policy.name }}</h4>
-                                        <div v-if="isPolicyActive(key)" class="active-indicator">
+                                        <h4 class="l2-priority">{{ policy.name }}</h4>
+                                        <div v-if="isPolicyActive(key)" class="active-indicator l1-priority">
                                             <span class="pulse-dot"></span>
-                                            LIVE
+                                            LIVE_THREAD
                                         </div>
                                     </div>
                                     <p class="node-desc">{{ policy.description }}</p>
@@ -68,23 +79,31 @@
                 <div class="panel-card glass" :class="{ 'is-locked': playerLevel < 10 }">
                     <div class="card-header">
                         <span class="header-icon">{{ playerLevel < 10 ? '🔒' : '🏢' }}</span>
-                        <h3>CORPORATE_DOCTRINE</h3>
-                        <div class="header-line"></div>
+                        <h3 class="l2-priority">
+                            STRATEGIC_SPECIALIZATION
+                            <span class="v3-info-trigger" 
+                                @mouseenter="tooltipStore.show($event, { title: 'CORPORATE_SPECIALIZATION', content: 'Long-term corporate focus providing significant passive benefits.', hint: 'Once selected, changes require a strategic reset.' })"
+                                @mouseleave="tooltipStore.hide()"
+                            >ⓘ</span>
+                        </h3>
                     </div>
                     <div class="card-body">
-                        <div v-if="hasSpecialization" class="specialization-display">
+                        <div v-if="hasSpecialization" class="specialization-display"
+                            @mouseenter="tooltipStore.show($event, { title: getSpecName(activespec), content: getSpecDesc(activespec), hint: 'Your active specialization is providing global bonuses.' })"
+                            @mouseleave="tooltipStore.hide()"
+                        >
                             <div class="spec-banner" :class="activespec">
                                 <div class="spec-hero">
                                     <span class="hero-icon">{{ getSpecIcon(activespec) }}</span>
                                     <div class="hero-text">
-                                        <h4>{{ getSpecName(activespec) }}</h4>
-                                        <span class="hero-tag">CONFIRMED_STRATEGY</span>
+                                        <h4 class="l1-priority">{{ getSpecName(activespec) }}</h4>
+                                        <span class="hero-tag l3-priority">STRATEGY_CONFIRMED // [ACTIVE]</span>
                                     </div>
                                 </div>
                                 <p class="hero-desc">{{ getSpecDesc(activespec) }}</p>
                             </div>
                             <div class="buff-ledger">
-                                <div class="ledger-label">DOCTRINE_EFFECTS</div>
+                                <div class="ledger-label">STRATEGY_EFFECTS</div>
                                 <div class="ledger-items">
                                     <div v-for="buff in getSpecBuffs(activespec)" :key="buff" class="ledger-item">
                                         <span class="check">✓</span> {{ buff }}
@@ -96,19 +115,25 @@
                         <div v-else class="specialization-selection">
                             <!-- Locked State -->
                             <template v-if="playerLevel < 10">
-                                <div class="selection-alert locked">
+                                <div class="selection-alert locked"
+                                    @mouseenter="tooltipStore.show($event, { title: 'LOCKED_FEATURE', content: 'Advanced Corporate Specialization requires Executive Tier 10.', hint: 'Maintain operational growth to unlock.' })"
+                                    @mouseleave="tooltipStore.hide()"
+                                >
                                     <span class="lock-icon">🔒</span>
-                                    CORPORATE_DOCTRINE_RESTRICTED (REQ: LVL_10)
+                                    SPECIALIZATION_RESTRICTED (REQ: TIER_10)
                                 </div>
                                 <div class="selection-grid locked">
-                                    <div v-for="spec in specs" :key="spec.id" class="selection-btn locked">
+                                    <div v-for="spec in specs" :key="spec.id" class="selection-btn locked"
+                                        @mouseenter="tooltipStore.show($event, { title: spec.name, content: spec.shortDesc, hint: 'Locked.' })"
+                                        @mouseleave="tooltipStore.hide()"
+                                    >
                                         <span class="btn-icon">🔒</span>
                                         <span class="btn-label">{{ spec.name }}</span>
                                     </div>
                                 </div>
                                 <div class="lock-progress-mini">
                                     <div class="progress-info">
-                                        <span>SYSTEM_SYNC_PROGRESS</span>
+                                        <span>TIER_PROGRESSION</span>
                                         <span>{{ playerLevel }}/10</span>
                                     </div>
                                     <div class="bar-bg">
@@ -119,7 +144,7 @@
 
                             <!-- Ready to Select State -->
                             <template v-else>
-                                <div class="selection-alert ready">AWAITING_DOCTRINE_SELECTION</div>
+                                <div class="selection-alert ready">AWAITING_STRATEGY_SELECTION</div>
                                 <div class="selection-grid">
                                     <button 
                                         v-for="spec in specs" 
@@ -127,6 +152,8 @@
                                         class="selection-btn"
                                         :class="[spec.id, { 'is-processing': isProcessing }]"
                                         @click="confirmSpecialization(spec.id)"
+                                        @mouseenter="tooltipStore.show($event, { title: spec.name, content: spec.shortDesc, hint: 'Select this specialization to commit the organization to this strategy.' })"
+                                        @mouseleave="tooltipStore.hide()"
                                     >
                                         <span class="btn-icon">{{ spec.icon }}</span>
                                         <span class="btn-label">{{ spec.name }}</span>
@@ -140,7 +167,13 @@
                 <div class="panel-card glass positioning">
                     <div class="card-header">
                         <span class="header-icon">🎯</span>
-                        <h3>MARKET_POSITIONING</h3>
+                        <h3 class="l2-priority">
+                            MARKET_POSITIONING
+                            <span class="v3-info-trigger" 
+                                @mouseenter="tooltipStore.show($event, { title: 'MARKET_POSITIONING', content: 'Relative position of the company compared to key competitors.', hint: 'Premium = Margin focus, Mass = Volume focus.' })"
+                                @mouseleave="tooltipStore.hide()"
+                            >ⓘ</span>
+                        </h3>
                         <div class="header-line"></div>
                     </div>
                     <div class="card-body">
@@ -171,7 +204,13 @@
                 <div class="panel-card glass alert-border">
                     <div class="card-header">
                         <span class="header-icon">📡</span>
-                        <h3>THREAT_INTEL</h3>
+                        <h3 class="l2-priority">
+                            COMPETITIVE_INTELLIGENCE
+                            <span class="v3-info-trigger" 
+                                @mouseenter="tooltipStore.show($event, { title: 'COMPETITIVE_INTEL', content: 'Monitoring competitor market share and risk levels.', hint: 'Active competitors may attempt to undermine your operations.' })"
+                                @mouseleave="tooltipStore.hide()"
+                            >ⓘ</span>
+                        </h3>
                         <div class="header-line"></div>
                     </div>
                     <div class="card-body scrollable">
@@ -180,16 +219,25 @@
                                 <div class="intel-header">
                                     <div class="npc-marker" :style="{ backgroundColor: npc.color }"></div>
                                     <div class="npc-info">
-                                        <span class="npc-name">{{ npc.name }}</span>
-                                        <span class="npc-archetype">{{ npc.archetype.toUpperCase() }}</span>
+                                        <span class="npc-name l1-priority">{{ npc.name }}</span>
+                                        <span class="npc-archetype l3-priority">{{ npc.archetype.toUpperCase() }} // [INTEL_ACTIVE]</span>
                                     </div>
-                                    <div class="npc-share">{{ npc.marketShare.toFixed(1) }}%</div>
+                                    <div class="npc-share l2-priority">
+                                        DOMINANCE: {{ npc.marketShare.toFixed(1) }}%
+                                        <span class="v3-info-trigger" 
+                                            @mouseenter="tooltipStore.show($event, { title: 'MARKET_SHARE', content: 'The percentage of active customers currently served by this entity.', hint: 'Lower their share by expanding your regional footprint.' })"
+                                            @mouseleave="tooltipStore.hide()"
+                                        >ⓘ</span>
+                                    </div>
                                 </div>
                                 <div class="intel-body">
-                                    <div class="enmity-meter">
-                                        <div class="meter-label">Feindseligkeit</div>
+                                    <div class="enmity-meter"
+                                        @mouseenter="tooltipStore.show($event, { title: 'FEINDSELIGKEIT (ENMITY)', content: 'How likely this competitor is to attack you. Increases if you sabotage them.', hint: 'High enmity leads to DDOS and poaching attempts.' })"
+                                        @mouseleave="tooltipStore.hide()"
+                                    >
+                                        <div class="meter-label l3-priority">THREAT_LEVEL</div>
                                         <div class="meter-track">
-                                            <div class="meter-fill" :style="{ width: npc.playerEnmity + '%', backgroundColor: getEnmityColor(npc.playerEnmity) }"></div>
+                                            <div class="meter-fill l1-priority" :style="{ width: npc.playerEnmity + '%', backgroundColor: getEnmityColor(npc.playerEnmity) }"></div>
                                         </div>
                                     </div>
                                     <div class="intel-footer" v-if="npc.lastAttackAt">
@@ -198,7 +246,13 @@
                                     
                                     <!-- RETALIATION MENU -->
                                     <div class="retaliation-zone">
-                                        <div class="zone-label">COUNTER_OPS</div>
+                                        <div class="zone-label l2-priority">
+                                            COMPETITIVE_MEASURES
+                                            <span class="v3-info-trigger" 
+                                                @mouseenter="tooltipStore.show($event, { title: 'COUNTER_STRATEGIES', content: 'Active measures to protect market share or disrupt competitors.', hint: 'Costs capital and carries detection risk.' })"
+                                                @mouseleave="tooltipStore.hide()"
+                                            >ⓘ</span>
+                                        </div>
                                         <div class="ops-grid">
                                             <button 
                                                 v-for="(type, key) in sabotageTypes" 
@@ -206,7 +260,8 @@
                                                 class="ops-btn"
                                                 :class="[type.category, { 'is-disabled': isAttacking || (key === 'patent_countersuit' && npc.playerEnmity < 50) }]"
                                                 @click="executeRetaliation(npc.id, key)"
-                                                :title="type.description"
+                                                @mouseenter="tooltipStore.show($event, { title: type.name, content: type.description, hint: 'Detection Risk: ' + type.detection_chance + '%' })"
+                                                @mouseleave="tooltipStore.hide()"
                                             >
                                                 <span class="btn-name">{{ type.name.split(' ')[0] }}</span>
                                                 <span class="btn-cost">${{ Math.round(type.cost / 1000) }}k</span>
@@ -230,9 +285,11 @@ import { ref, onMounted, computed } from 'vue';
 import api from '../../utils/api';
 import { useGameStore } from '../../stores/game';
 import { useToastStore } from '../../stores/toast';
+import { useTooltipStore } from '../../stores/tooltip';
 
 const gameStore = useGameStore();
 const toast = useToastStore();
+const tooltipStore = useTooltipStore();
 
 const availablePolicies = ref({});
 const activePolicies = ref([]);
@@ -292,7 +349,7 @@ const confirmSpecialization = async (id) => {
     try {
         const response = await api.post('/management/specialization', { specialization: id });
         if (response.success) {
-            toast.success("CORPORATE DOCTRINE ESTABLISHED");
+            toast.success("CORPORATE STRATEGY ESTABLISHED");
             await gameStore.fetchPlayer(); // Refresh state
         } else {
             toast.error(response.error || "Failed to set specialization");
@@ -798,8 +855,33 @@ const getModClass = (val, type) => {
 
 .lock-msg p {
     font-size: 0.7rem;
-    color: var(--v3-text-secondary);
-    margin: 0 0 24px 0;
+    color: var(--v3-text-ghost);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.v3-info-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(88, 166, 255, 0.15);
+    color: #58a6ff;
+    font-size: 10px;
+    font-weight: 800;
+    cursor: help;
+    margin-left: 6px;
+    vertical-align: middle;
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    transition: all 0.2s;
+}
+
+.v3-info-trigger:hover {
+    background: #58a6ff;
+    color: #05070a;
+    box-shadow: 0 0 10px rgba(88, 166, 255, 0.4);
 }
 
 .lock-msg span {

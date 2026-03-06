@@ -139,6 +139,7 @@ class RackManagementService
                 'vserver_capacity' => $specs['vserverCapacity'] ?? 0,
                 'battery_capacity_kwh' => $specs['batteryCapacityKwh'] ?? 0,
                 'battery_level_kwh' => $specs['batteryCapacityKwh'] ?? 0,
+                'weight_kg' => $specs['weightKg'] ?? 10.0,
                 'status' => ServerStatus::OFFLINE,
                 'health' => 100.0,
                 'purchase_cost' => $isLeased ? 0 : $specs['purchaseCost'],
@@ -604,6 +605,7 @@ class RackManagementService
                     'bandwidthMbps' => 10000,
                     'purchaseCost' => 12000,
                     'imageUrl' => 'https://api.dicebear.com/7.x/identicon/svg?seed=gpu_tensor&backgroundColor=1a1a1b',
+                    'weightKg' => 45.0,
                 ],
             ],
             'battery' => [
@@ -619,6 +621,7 @@ class RackManagementService
                     'purchaseCost' => 1200,
                     'batteryCapacityKwh' => 2.5,
                     'imageUrl' => 'https://api.dicebear.com/7.x/identicon/svg?seed=bat_standard&backgroundColor=1a1a1b',
+                    'weightKg' => 22.0,
                 ],
                 'bat_pro' => [
                     'modelName' => 'VoltVault 2U Ultra',
@@ -632,6 +635,7 @@ class RackManagementService
                     'purchaseCost' => 2800,
                     'batteryCapacityKwh' => 6.0,
                     'imageUrl' => 'https://api.dicebear.com/7.x/identicon/svg?seed=bat_pro&backgroundColor=1a1a1b',
+                    'weightKg' => 48.0,
                 ],
             ],
             'experimental' => [
@@ -649,6 +653,7 @@ class RackManagementService
                     'isExperimental' => true,
                     'riskType' => 'instability',
                     'imageUrl' => 'https://api.dicebear.com/7.x/identicon/svg?seed=quantum_one&backgroundColor=1a1a1b',
+                    'weightKg' => 15.0,
                 ],
                 'overclock_monster' => [
                     'modelName' => 'X-TRME Overclock',
@@ -664,6 +669,7 @@ class RackManagementService
                     'isExperimental' => true,
                     'riskType' => 'meltdown',
                     'imageUrl' => 'https://api.dicebear.com/7.x/identicon/svg?seed=overclock_monster&backgroundColor=1a1a1b',
+                    'weightKg' => 35.0,
                 ]
             ],
             'hardware_parts' => [

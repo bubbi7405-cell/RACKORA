@@ -35,6 +35,9 @@ class GameStateService
             if ($cached) return $cached;
         }
 
+        // JIT Sync: Process any completed tasks (provisioning, installs) before returning state
+        $this->recalculateTimeBased($user);
+
         $economy = $user->economy ?? $this->initializePlayer($user);
 
         $rooms = GameRoom::where('user_id', $user->id)
@@ -142,6 +145,7 @@ class GameStateService
                     ->map(fn($c) => $c->toGameState())
                     ->toArray(),
                 'catalog' => \App\Models\GameConfig::get('server_components', []),
+                'servers' => \App\Models\GameConfig::get('server_catalog', []),
             ],
             'world_events' => [
                 'active' => \App\Models\WorldEvent::where('is_active', true)->get()->map(fn($e) => $e->toArray())->toArray(),
@@ -214,22 +218,31 @@ class GameStateService
      */
     public function recalculateTimeBased(User $user): void
     {
-        // Check for completed provisioning
-        $provisioningServers = Server::whereHas('rack.room', function ($q) use ($user) {
-            $q->where('user_id', $user->id);
-        })->where('status', 'provisioning')->get();
+        // JIT Sync ONLY servers that have actually finished their time
+        // This makes it extremely lightweight for normal polling
+        $servers = Server::where(function($q) use ($user) {
+            $q->whereHas('rack.room', fn($inner) => $inner->where('user_id', $user->id))
+              ->orWhere('tenant_id', $user->id);
+        })->where(function($q) {
+            $q->where(function($sq) {
+                $sq->where('status', 'provisioning')
+                  ->where('provisioning_completes_at', '<=', now());
+            })->orWhere(function($sq) {
+                $sq->where('os_install_status', 'installing')
+                  ->where('os_install_completes_at', '<=', now());
+            })->orWhere(function($sq) {
+                $sq->where('app_install_status', 'installing')
+                  ->where('app_install_completes_at', '<=', now());
+            });
+        })->get();
 
-        foreach ($provisioningServers as $server) {
-            if ($server->isProvisioningComplete()) {
-                $server->completeProvisioning();
-                
-                // Recalculate rack power/heat
-                $server->rack->recalculatePowerAndHeat();
+        if ($servers->isNotEmpty()) {
+            foreach ($servers as $server) {
+                $server->syncTaskStates();
             }
+            // Only recalculate economy if something actually changed status
+            $this->recalculateEconomy($user);
         }
-
-        // Calculate hourly income/expenses
-        $this->recalculateEconomy($user);
     }
 
     /**

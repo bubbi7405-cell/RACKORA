@@ -239,6 +239,24 @@
                             </button>
                         </div>
 
+                        <!-- FEATURE 243: Employee Wellness Facility -->
+                        <div class="upgrade-card upgrade-card--wellness" v-if="player.economy.level >= 3">
+                            <div class="upgrade-icon">💆</div>
+                            <div class="upgrade-info">
+                                <h4>Wellness Facility</h4>
+                                <div class="upgrade-level"
+                                    :class="{ 'text-glow-pink': isWellnessInstalled }">
+                                    {{ isWellnessInstalled ? 'INSTALLED' : 'NOT INSTALLED' }}
+                                </div>
+                                <div class="upgrade-description">Gym, Sauna, and Nap Pods. Assigned staff recover stress 2.5x faster and are immune to burnout while on-site.</div>
+                            </div>
+                            <button class="btn-upgrade btn-upgrade--wellness"
+                                :disabled="isWellnessInstalled || !canAfford(25000) || processing"
+                                @click="handleWellnessUpgrade">
+                                {{ isWellnessInstalled ? 'ACTIVE' : '$25,000' }}
+                            </button>
+                        </div>
+
                         <!-- FEATURE 63: Corporate Academy -->
                         <div class="upgrade-card upgrade-card--academy" v-if="player.economy.level >= 5">
                             <div class="upgrade-icon">🎓</div>
@@ -446,6 +464,21 @@ const handleResetBreaker = async () => {
         await gameStore.resetCircuitBreaker(selectedRoom.value.id);
     } catch (e) {
         console.error('Failed to reset breaker', e);
+    } finally {
+        processing.value = false;
+    }
+};
+
+const isWellnessInstalled = computed(() => {
+    if (!selectedRoom.value?.upgrades) return false;
+    return selectedRoom.value.upgrades.includes('wellness_facility');
+});
+
+const handleWellnessUpgrade = async () => {
+    if (processing.value || !selectedRoom.value) return;
+    processing.value = true;
+    try {
+        await gameStore.upgradeRoom(selectedRoom.value.id, 'wellness_facility');
     } finally {
         processing.value = false;
     }
@@ -798,8 +831,32 @@ const handleResetBreaker = async () => {
 
 .text-glow {
     text-shadow: 0 0 8px rgba(167, 139, 250, 0.5);
-    color: #a78bfa !important;
-    font-weight: 700;
+}
+
+.upgrade-card--wellness {
+    border-color: #ec4899 !important;
+    background: linear-gradient(90deg, rgba(236, 72, 153, 0.05) 0%, transparent 100%) !important;
+}
+
+.upgrade-card--wellness .upgrade-icon {
+    background: rgba(236, 72, 153, 0.2);
+    color: #f472b6;
+}
+
+.btn-upgrade--wellness {
+    background: #ec4899 !important;
+    color: white !important;
+}
+
+.btn-upgrade--wellness:hover:not(:disabled) {
+    background: #f472b6 !important;
+    box-shadow: 0 0 15px rgba(236, 72, 153, 0.4);
+}
+
+.text-glow-pink {
+    color: #f472b6;
+    text-shadow: 0 0 8px rgba(236, 72, 153, 0.5);
+}
 }
 
 .upgrade-card--gold {
@@ -853,7 +910,6 @@ const handleResetBreaker = async () => {
     text-shadow: 0 0 8px rgba(96, 165, 250, 0.5);
     color: #60a5fa !important;
     font-weight: 700;
-}
 }
 
 .upgrade-card--marketing {

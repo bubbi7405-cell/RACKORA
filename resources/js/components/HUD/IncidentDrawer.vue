@@ -8,41 +8,44 @@
             <span v-if="activeIncidents.length > 0" class="incident-count">{{ activeIncidents.length }}</span>
         </button>
 
-        <!-- Right-sliding Drawer -->
+        <!-- Tactical Operational Risk Console -->
         <transition name="slide-right">
             <div v-if="isOpen" class="incident-drawer shadow-2xl">
+                <div class="drawer-scanline"></div>
+                
                 <header class="drawer-header">
                     <div class="header-left">
-                        <span class="status-indicator"></span>
-                        <h3>INCIDENT_LOG</h3>
+                        <span class="status-indicator" :class="{ 'is-compromised': activeIncidents.length > 0 }"></span>
+                        <h3 class="l2-priority">OPERATIONAL_RISK_LOG</h3>
                     </div>
-                    <button class="clear-all" @click="isOpen = false">CLOSE</button>
+                    <button class="clear-all l3-priority" @click="isOpen = false">[DISMISS]</button>
                 </header>
 
                 <div class="drawer-content">
                     <div v-if="activeIncidents.length === 0" class="empty-incidents">
-                        <span class="icon">✓</span>
-                        <p>ALL SYSTEMS NOMINAL</p>
-                        <span class="subtext">No active service disruptions detected.</span>
+                        <span class="icon l3-priority">◈</span>
+                        <p class="l2-priority">SCANNING_STABLE</p>
+                        <span class="subtext l3-priority">No operational compromises detected in this sector.</span>
                     </div>
                     <div v-else class="incident-list">
                         <div v-for="incident in activeIncidents" :key="incident.id" class="incident-item"
-                            :class="incident.severity">
+                            :class="[incident.severity, { 'l1-priority': incident.severity === 'critical' }]">
                             <div class="incident-marker"></div>
                             <div class="incident-body">
                                 <div class="incident-meta">
-                                    <span class="severity-badge">{{ incident.severity?.toUpperCase() }}</span>
+                                    <span class="severity-badge">{{ getAggressiveSeverity(incident.severity) }}</span>
                                     <span class="incident-time">{{ formatTime(incident.started_at) }}</span>
                                 </div>
                                 <div class="incident-title">{{ incident.title?.toUpperCase() }}</div>
-                                <div class="incident-desc">{{ incident.description }}</div>
+                                <div class="incident-desc l3-priority">{{ incident.description }}</div>
+                                <div class="incident-action l1-priority" v-if="incident.severity === 'critical'">// MANUAL_INTERVENTION_REQUIRED</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <footer class="drawer-footer">
-                    <button class="history-btn" @click="isOpen = false">ARCHIVE_ACCESS</button>
+                    <button class="history-btn l2-priority" @click="isOpen = false">VIEW_THREAT_HISTORY</button>
                 </footer>
             </div>
         </transition>
@@ -73,7 +76,13 @@ const activeIncidents = computed(() => {
 const formatTime = (time) => {
     if (!time) return '----';
     const d = new Date(time);
-    return isNaN(d.getTime()) ? '----' : d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    return isNaN(d.getTime()) ? '----' : d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+};
+
+const getAggressiveSeverity = (sev) => {
+    if (sev === 'critical') return 'COMPROMISED';
+    if (sev === 'warning') return 'RISK_DETECTED';
+    return 'NOMINAL_LOG';
 };
 </script>
 
@@ -148,19 +157,27 @@ const formatTime = (time) => {
 
 .incident-drawer {
     position: fixed;
-    top: 48px;
-    /* TopBar height */
+    top: 80px; /* TopBar height */
     left: var(--v3-sidebar-width);
-    bottom: 0;
-    width: 320px;
-    background: var(--v3-bg-overlay);
-    border-right: var(--v3-border-heavy);
-    box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
+    bottom: 80px; /* BottomHud height */
+    width: 360px;
+    background: linear-gradient(90deg, var(--ds-bg-void) 0%, rgba(10, 15, 25, 0.98) 100%);
+    border-right: 2px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 20px 0 60px rgba(0, 0, 0, 0.9);
     overflow: hidden;
-    z-index: 2500;
+    z-index: var(--zi-hud-base);
     display: flex;
     flex-direction: column;
     transition: left var(--v3-transition-base);
+}
+
+.drawer-scanline {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
+    z-index: 10;
 }
 
 .is-collapsed .incident-drawer {
@@ -168,200 +185,49 @@ const formatTime = (time) => {
 }
 
 .drawer-header {
-    padding: 16px 20px;
-    border-bottom: var(--v3-border-soft);
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.02);
 }
 
-.header-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.status-indicator {
-    width: 4px;
-    height: 12px;
-    background: var(--v3-danger);
-    border-radius: 1px;
-}
-
-.drawer-header h3 {
-    font-size: 0.6rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    color: var(--v3-text-secondary);
-}
-
-.clear-all {
-    font-size: 0.55rem;
-    font-weight: 800;
-    color: var(--v3-text-ghost);
-    text-transform: uppercase;
-    cursor: pointer;
-}
-
-.clear-all:hover {
-    color: #fff;
-}
-
-.drawer-content {
-    flex: 1;
-    overflow-y: auto;
-}
-
-.empty-incidents {
-    padding: 60px 40px;
-    text-align: center;
-    color: var(--v3-text-ghost);
-}
-
-.empty-incidents .icon {
-    font-size: 1.5rem;
-    display: block;
-    margin-bottom: 16px;
-    color: var(--v3-success);
-    opacity: 0.4;
-}
-
-.empty-incidents .subtext {
-    font-size: 0.55rem;
-    opacity: 0.5;
-    margin-top: 8px;
-    display: block;
-}
-
-.incident-list {
-    display: flex;
-    flex-direction: column;
+.status-indicator.is-compromised {
+    background: var(--ds-critical);
+    box-shadow: 0 0 10px var(--ds-critical);
+    animation: ds-blink 0.5s infinite;
 }
 
 .incident-item {
     display: flex;
-    padding: 20px;
-    border-bottom: var(--v3-border-soft);
+    padding: 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     position: relative;
-    transition: background var(--v3-transition-fast);
+    transition: all 0.2s;
 }
 
-.incident-item:hover {
-    background: rgba(255, 255, 255, 0.02);
+.incident-item.critical {
+    background: rgba(239, 68, 68, 0.03);
 }
 
-.incident-marker {
-    width: 3px;
-    height: 100%;
-    position: absolute;
-    left: 0;
-    top: 0;
-}
-
-.incident-item.critical .incident-marker {
-    background: var(--v3-danger);
-}
-
-.incident-item.warning .incident-marker {
-    background: var(--v3-warning);
-}
-
-.incident-item.info .incident-marker {
-    background: var(--v3-accent);
-}
-
-.incident-body {
-    flex: 1;
-}
-
-.incident-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
+.incident-action {
+    font-size: 0.55rem;
+    font-weight: 950;
+    margin-top: 12px;
+    letter-spacing: 0.1em;
 }
 
 .severity-badge {
     font-size: 0.5rem;
-    font-weight: 900;
-    padding: 1px 4px;
-    border-radius: 2px;
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--v3-text-secondary);
-}
-
-.critical .severity-badge {
-    background: rgba(255, 77, 79, 0.1);
-    color: var(--v3-danger);
-}
-
-.incident-title {
-    font-weight: 800;
-    font-size: 0.7rem;
-    color: #fff;
-    margin-bottom: 4px;
-    letter-spacing: 0.05em;
-}
-
-.incident-desc {
-    font-size: 0.65rem;
-    color: var(--v3-text-secondary);
-    margin-bottom: 10px;
-    line-height: 1.5;
-}
-
-.incident-time {
-    font-size: 0.55rem;
-    font-family: var(--font-family-mono);
-    color: var(--v3-text-ghost);
-}
-
-.drawer-footer {
-    padding: 16px 20px;
-    background: var(--v3-bg-base);
-    border-top: var(--v3-border-soft);
-}
-
-.history-btn {
-    width: 100%;
-    font-size: 0.6rem;
-    font-weight: 800;
-    color: #fff;
-    text-align: center;
-    text-transform: uppercase;
-    background: rgba(255, 255, 255, 0.03);
-    border: var(--v3-border-soft);
-    padding: 10px;
-    cursor: pointer;
+    font-weight: 950;
     letter-spacing: 0.1em;
+    padding: 2px 6px;
+    border-radius: 1px;
+    background: rgba(255, 255, 255, 0.05);
 }
 
-.history-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-}
-
-/* Animations */
-.slide-right-enter-active,
-.slide-right-leave-active {
-    transition: transform var(--v3-transition-base);
-}
-
-.slide-right-enter-from,
-.slide-right-leave-to {
-    transform: translateX(-100%);
-}
-
-@keyframes v3-pulse-state {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.7;
-    }
+@keyframes ds-blink {
+    50% { opacity: 0.3; }
 }
 </style>

@@ -2,33 +2,37 @@
     <div class="tab-content os-tab provisioning-lab">
         <!-- Installation View -->
         <div v-if="server.os?.status === 'installing'" class="provisioning-active">
-            <div class="proc-header">
-                <div class="proc-title">
-                    <h3>SYSTEM_IMAGE_DEPLOYMENT</h3>
-                    <p>Initialisierung der Betriebssystem-Umgebung auf Node: {{ server.id.substring(0,8) }}</p>
-                </div>
-                <div class="proc-eta">
-                    <label>RESTZEIT_VERBLEIBEND</label>
-                    <strong>{{ remainingSeconds }}s</strong>
-                </div>
-            </div>
+
 
             <div class="proc-main">
                 <div class="proc-identity">
                     <div class="os-icon-anim">💿</div>
                     <h4>{{ getOsName(server.os.type) }}</h4>
                     <span>Version {{ server.os.version || 'v1.0' }}</span>
+                    <div class="v3-provisioning-eta"
+                        style="margin-top: 15px; font-family: var(--ds-font-mono); color: var(--ds-accent);">
+                        <template v-if="remainingSeconds > 0">
+                            {{ remainingSeconds }}s VERBLEIBEND
+                        </template>
+                        <template v-else>
+                            <div class="sync-status">
+                                <span class="loading-dots">SYSTEM_SYNC</span>
+                            </div>
+                        </template>
+                    </div>
                 </div>
 
                 <div class="proc-visuals">
                     <div class="progress-ring-container">
                         <svg viewBox="0 0 36 36" class="circular-progress">
-                            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                            <path class="circle" :stroke-dasharray="installProgress + ', 100'" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path class="circle-bg"
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path class="circle" :stroke-dasharray="installProgress + ', 100'"
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                             <text x="18" y="20.35" class="percentage">{{ Math.round(installProgress) }}%</text>
                         </svg>
                     </div>
-                    
+
                     <div class="kernel-console">
                         <div class="console-header">KERNEL_BOOT_LOG</div>
                         <div class="console-body">
@@ -38,10 +42,10 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Dashboard View -->
         <div v-else class="os-lab-dashboard">
-             <!-- Current OS Identity Card -->
+            <!-- Current OS Identity Card -->
             <div class="os-id-card" v-if="server.os?.type">
                 <div class="os-card-main">
                     <div class="os-branding">
@@ -50,7 +54,8 @@
                             <h3>{{ getOsName(server.os.type) }}</h3>
                             <div class="os-badges">
                                 <span class="badge version">{{ server.os.version }}</span>
-                                <span class="badge status" :class="server.os.license">{{ (server.os.license || 'active').toUpperCase() }}</span>
+                                <span class="badge status" :class="server.os.license">{{ (server.os.license ||
+                                    'active').toUpperCase() }}</span>
                                 <span class="badge arch" v-if="server.os.isProprietary">PONY_CORE</span>
                             </div>
                         </div>
@@ -58,7 +63,8 @@
                     <div class="os-health-grid">
                         <div class="h-stat">
                             <label>SICHERHEIT</label>
-                            <span :class="(server.os.security || 0) > 80 ? 'text-success' : 'text-danger'">{{ server.os.security || 0 }}%</span>
+                            <span :class="(server.os.security || 0) > 80 ? 'text-success' : 'text-danger'">{{
+                                server.os.security || 0 }}%</span>
                         </div>
                         <div class="h-stat">
                             <label>INTEGRITÄT</label>
@@ -82,36 +88,35 @@
                 </div>
 
                 <div class="os-grid-v3">
-                    <div 
-                        v-for="(def, key) in osCatalog" 
-                        :key="key" 
-                        class="os-release-card"
-                        :class="{ active: server.os?.type === key }"
-                    >
+                    <div v-for="(def, key) in osCatalog" :key="key" class="os-release-card"
+                        :class="{ active: server.os?.type === key }">
                         <div class="release-header">
                             <strong>{{ def.name }}</strong>
                             <span class="cost" v-if="def.license_cost > 0">${{ def.license_cost }} / m</span>
                             <span class="cost free" v-else>OPEN_SOURCE</span>
                         </div>
-                        
+
                         <p class="release-desc">{{ def.description }}</p>
-                        
+
                         <div class="release-specs">
                             <div class="spec-tag">🛡️ Security Base: {{ def.security_base }}</div>
                             <div class="spec-tag">⚡ Perf Multi: x{{ def.performance_mod }}</div>
                         </div>
 
-                        <button 
-                            @click="installOs(key)" 
-                            class="btn-deployment" 
-                            :disabled="server.os?.type === key || processing"
-                        >
+                        <button @click="installOs(key)" class="btn-deployment"
+                            :disabled="server.os?.type === key || processing">
                             {{ server.os?.type === key ? 'AKTUELL' : 'DEPLOY_IMAGE' }}
                         </button>
                     </div>
                 </div>
             </div>
         </div>
+
+        <ConfirmationModal :show="pendingInstall !== null" title="OS_DEPLOYMENT_BESTÄTIGUNG"
+            :message="`Soll ${pendingInstall ? osCatalog[pendingInstall]?.name : ''} wirklich installiert werden?`"
+            warning="Alle bestehenden Daten auf den Partitionen werden unwiderruflich gelöscht!"
+            confirm-label="KERNEL_FLASH_STARTEN" type="warning" @confirm="executeInstall"
+            @cancel="pendingInstall = null" />
     </div>
 </template>
 
@@ -127,18 +132,26 @@ const props = defineProps({
 const emit = defineEmits(['processing-start', 'processing-end', 'reload']);
 
 import api from '../../../../utils/api';
+import ConfirmationModal from '../../../UI/ConfirmationModal.vue';
+
+const pendingInstall = ref(null);
 
 const getOsName = (type) => {
     return props.osCatalog[type]?.name || type;
 };
 
-const installOs = async (type) => {
+const installOs = (type) => {
     if (props.processing) return;
-    if (!confirm(`${props.osCatalog[type]?.name || type} installieren? Bestehende Daten werden gelöscht.`)) return;
-    
+    pendingInstall.value = type;
+};
+
+const executeInstall = async () => {
+    const type = pendingInstall.value;
+    pendingInstall.value = null;
+
     emit('processing-start');
     try {
-        const response = await api.post(`/server/${props.server.id}/os/install`, { os_type: type });
+        const response = await api.post(`/server/${props.server.id}/install-os`, { os_type: type });
         if (response.success) {
             emit('reload');
         }
@@ -190,12 +203,11 @@ const remainingSeconds = computed(() => {
 onMounted(() => {
     timerInterval = setInterval(() => {
         currentTime.value = Date.now();
-        
+
         if (props.server?.os?.status === 'installing') {
             const totalSteps = kernelLines.length;
             const stepThreshold = 100 / totalSteps;
             const currentStep = Math.floor(installProgress.value / stepThreshold);
-            
             if (currentStep > kernelLogIndex.value && kernelLogIndex.value < totalSteps) {
                 const line = kernelLines[kernelLogIndex.value];
                 kernelLogs.value.unshift(line);
@@ -206,6 +218,12 @@ onMounted(() => {
             kernelLogIndex.value = 0;
         }
     }, 1000);
+});
+
+watch(remainingSeconds, (newVal, oldVal) => {
+    if (newVal === 0 && oldVal > 0) {
+        emit('reload');
+    }
 });
 
 onUnmounted(() => {

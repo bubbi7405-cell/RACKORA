@@ -1,11 +1,6 @@
 <template>
     <div class="tab-content logs-tab provision-lab">
-        <div class="proc-header">
-            <div class="proc-title">
-                <h3>KERN_MELDUNGEN_NODE</h3>
-                <p>Echtzeit-Stream der System-Logs und Hardware-Events.</p>
-            </div>
-        </div>
+
         <div class="v3-info-box no-padding">
             <div class="terminal">
                 <div v-for="(log, i) in logs" :key="i" class="log-line" :class="log.level">

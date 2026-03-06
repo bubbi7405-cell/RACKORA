@@ -1,43 +1,77 @@
 <template>
     <div class="tab-content summary-tab provision-lab">
-        <div class="proc-header">
-            <div class="proc-title">
-                <h3>SYSTEM_ÜBERSICHT_NODE</h3>
-                <p>Struktur-Analyse und Integritäts-Status für {{ server.nickname || server.modelName }}</p>
-            </div>
-        </div>
+
 
         <div class="summary-grid-v3">
             <div class="summary-group-v3">
                 <label>{{ server.type === 'battery' ? 'BATTERIE_SPEZIFIKATIONEN' : 'HARDWARE_SPEZIFIKATIONEN' }}</label>
                 <div class="spec-grid-v3" v-if="server.type === 'battery'">
-                    <div class="v3-spec"><span class="l">KAPAZITÄT</span><strong>{{ server.battery?.capacity }}
-                            kWh</strong></div>
-                    <div class="v3-spec"><span class="l">LADESTAND</span><strong>{{ Math.round(server.battery?.percent
-                        || 0) }}%</strong></div>
-                    <div class="v3-spec"><span class="l">ZUSTAND (SoH)</span><strong>{{ Math.round(server.health)
-                    }}%</strong></div>
-                    <div class="v3-spec"><span class="l">ENTLADUNG (MAX)</span><strong>{{ ((server.battery?.capacity || 0) *
-                        2).toFixed(1) }} kW</strong></div>
-                    <div class="v3-spec"><span class="l">LEBENSDAUER</span><strong>{{ server.aging?.lifespan ||
-                        'UNENDLICH' }}h</strong></div>
-                    <div class="v3-spec"><span class="l">LEISTUNGSAUFNAHME</span><strong>{{ (server.effectivePower ||
-                        0).toFixed(2) }} kW</strong></div>
+                    <div class="v3-spec">
+                        <div class="s-icon">🔋</div>
+                        <div class="s-data">
+                            <span class="l">KAPAZITÄT</span>
+                            <strong>{{ server.battery?.capacity }} kWh</strong>
+                        </div>
+                    </div>
+                    <div class="v3-spec">
+                        <div class="s-icon">⚡</div>
+                        <div class="s-data">
+                            <span class="l">LADESTAND</span>
+                            <strong>{{ Math.round(server.battery?.percent || 0) }}%</strong>
+                        </div>
+                    </div>
+                    <div class="v3-spec">
+                        <div class="s-icon">🛡️</div>
+                        <div class="s-data">
+                            <span class="l">ZUSTAND</span>
+                            <strong>{{ Math.round(server.health) }}%</strong>
+                        </div>
+                    </div>
                 </div>
                 <div class="spec-grid-v3" v-else>
-                    <div class="v3-spec"><span class="l">GENERATION</span><strong class="gen-badge"
-                            :class="`gen-${server.hardwareGeneration}`">GEN {{ server.hardwareGeneration }}</strong>
+                    <div class="v3-spec">
+                        <div class="s-icon purple">🧩</div>
+                        <div class="s-data">
+                            <span class="l">GENERATION</span>
+                            <strong class="gen-badge" :class="`gen-${server.hardwareGeneration}`">GEN {{
+                                server.hardwareGeneration }}</strong>
+                        </div>
                     </div>
-                    <div class="v3-spec"><span class="l">KERNE</span><strong>{{ server.specs?.cpuCores || 0 }}</strong>
+                    <div class="v3-spec">
+                        <div class="s-icon blue">⚙️</div>
+                        <div class="s-data">
+                            <span class="l">KERNE</span>
+                            <strong>{{ server.specs?.cpuCores || 0 }}</strong>
+                        </div>
                     </div>
-                    <div class="v3-spec"><span class="l">SPEICHER</span><strong>{{ server.specs?.ramGb || 0 }}
-                            GB</strong></div>
-                    <div class="v3-spec"><span class="l">KAPAZITÄT</span><strong>{{ server.specs?.storageTb || 0 }}
-                            TB</strong></div>
-                    <div class="v3-spec"><span class="l">DURCHSATZ</span><strong>{{ server.specs?.bandwidthMbps || 0 }}
-                            Mbps</strong></div>
-                    <div class="v3-spec"><span class="l">LEISTUNGSAUFNAHME</span><strong>{{ (server.effectivePower ||
-                        0).toFixed(2) }} kW</strong></div>
+                    <div class="v3-spec">
+                        <div class="s-icon green">📟</div>
+                        <div class="s-data">
+                            <span class="l">SPEICHER</span>
+                            <strong>{{ server.specs?.ramGb || 0 }} GB</strong>
+                        </div>
+                    </div>
+                    <div class="v3-spec">
+                        <div class="s-icon orange">💾</div>
+                        <div class="s-data">
+                            <span class="l">KAPAZITÄT</span>
+                            <strong>{{ server.specs?.storageTb || 0 }} TB</strong>
+                        </div>
+                    </div>
+                    <div class="v3-spec">
+                        <div class="s-icon cyan">🌐</div>
+                        <div class="s-data">
+                            <span class="l">DURCHSATZ</span>
+                            <strong>{{ server.specs?.bandwidthMbps || 0 }} Mbps</strong>
+                        </div>
+                    </div>
+                    <div class="v3-spec">
+                        <div class="s-icon yellow">⚡</div>
+                        <div class="s-data">
+                            <span class="l">VERBRAUCH</span>
+                            <strong>{{ (server.effectivePower || 0).toFixed(2) }} kW</strong>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -93,8 +127,9 @@
             <div class="summary-group-v3" v-if="server.aging">
                 <label>HARDWARE_LEBENSZYKLUS</label>
                 <div class="v3-lifecycle">
-                    <div class="l-row"><span>Betriebszeit:</span> <strong>{{ formatRuntime(server.aging?.totalRuntime || 0)
-                    }}</strong></div>
+                    <div class="l-row"><span>Betriebszeit:</span> <strong>{{ formatRuntime(server.aging?.totalRuntime ||
+                            0)
+                            }}</strong></div>
                     <div class="l-row"><span>Verschleiß-Level:</span> <strong
                             :class="getWearClass(server.aging?.wearPercentage || 0)">{{ (server.aging?.wearPercentage ||
                                 0).toFixed(1) }}%</strong></div>
@@ -140,7 +175,7 @@
 
 <script setup>
 import { computed } from 'vue';
-defineProps({
+const props = defineProps({
     server: { type: Object, required: true },
     healthClass: { type: String, required: true },
     formatRuntime: { type: Function, required: true },
@@ -149,7 +184,6 @@ defineProps({
 
 const hasSensitiveData = computed(() => {
     // Check if any active orders are Diamond or Enterprise
-    // For now, simpler: if it has high compliance requirements
-    return props.server.activeOrders?.some(o => o.sla_tier === 'whale' || o.sla_tier === 'diamond' || o.sla_tier === 'enterprise') || false;
+    return props.server?.activeOrders?.some(o => o.sla_tier === 'whale' || o.sla_tier === 'diamond' || o.sla_tier === 'enterprise') || false;
 });
 </script>

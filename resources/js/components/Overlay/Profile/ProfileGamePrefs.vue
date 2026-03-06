@@ -128,10 +128,10 @@ const notifsEnabled = ref(true);
 const newsEnabled = ref(true);
 
 const themes = [
-    { id: 'dark', name: 'Obsidian' },
+    { id: 'dark', name: 'Obsidian (Default)' },
     { id: 'light', name: 'Crystal' },
     { id: 'cyberpunk', name: 'Neon City' },
-    { id: 'terminal', name: 'Green Phosphor' },
+    { id: 'terminal', name: 'Terminal (High Contrast)' },
 ];
 
 const intensities = [
@@ -291,7 +291,8 @@ onMounted(loadSettings);
 .theme-preview.dark { background: #000; }
 .theme-preview.light { background: #fff; }
 .theme-preview.cyberpunk { background: linear-gradient(45deg, #f0f, #0ff); }
-.theme-preview.terminal { background: #000; border: 1px solid #0f0; }
+.theme-preview.terminal { background: #000; border: 1px solid #fff; position: relative; }
+.theme-preview.terminal::after { content: '>_'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-size: 1rem; font-weight: 800; }
 
 .theme-label { font-size: 0.75rem; font-weight: 700; }
 

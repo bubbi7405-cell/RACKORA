@@ -1,11 +1,6 @@
 <template>
     <div class="tab-content shared-hosting-tab provision-lab">
-        <div class="proc-header">
-            <div class="proc-title">
-                <h3>SHARED_HOSTING_METRIKEN</h3>
-                <p>Analyse der Instanz-Dichte und Resource-Oversubscription.</p>
-            </div>
-        </div>
+
 
         <div class="density-overview-v3">
             <div class="density-gauge-v3">

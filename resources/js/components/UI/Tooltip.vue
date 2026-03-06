@@ -1,17 +1,27 @@
 <template>
     <div 
         v-if="store.visible" 
-        class="tooltip-container" 
+        class="v3-intel-intercept" 
         :style="style"
         ref="tooltip"
     >
-        <div class="tooltip-arrow" :class="{ bottom: position === 'top', top: position === 'bottom' }"></div>
-        <div class="tooltip-content shadow-premium">
-            <div v-if="store.title" class="tooltip-title">{{ store.title }}</div>
-            <div class="tooltip-text">{{ store.content }}</div>
-            <div v-if="store.hint" class="tooltip-hint">
-                <i class="fas fa-lightbulb"></i> {{ store.hint }}
+        <div class="intercept-header l1-priority">
+            <span class="header-label">AUTH_SIGNAL // [SIG_SYNC]</span>
+            <span class="header-id">RX-{{ (store.title?.length || 0) * 12 }}-X</span>
+        </div>
+        <div class="intercept-body">
+            <div class="intercept-scanline"></div>
+            <div v-if="store.title" class="intercept-title l1-priority">{{ store.title.toUpperCase() }}</div>
+            <div class="intercept-content l3-priority">{{ store.content }}</div>
+            <div v-if="store.hint" class="intercept-hint l2-priority">
+                <span class="hint-marker">»</span> {{ store.hint.toUpperCase() }}
             </div>
+            
+            <!-- Industrial Corner Brackets -->
+            <div class="bracket-tl"></div>
+            <div class="bracket-tr"></div>
+            <div class="bracket-bl"></div>
+            <div class="bracket-br"></div>
         </div>
     </div>
 </template>
@@ -21,127 +31,98 @@ import { ref, computed } from 'vue';
 import { useTooltipStore } from '../../stores/tooltip';
 
 const store = useTooltipStore();
-const position = ref('top');
 
 const style = computed(() => ({
     left: `${store.x}px`,
     top: `${store.y - 12}px`,
     opacity: store.visible ? 1 : 0,
-    transform: store.visible ? 'translate(-50%, -100%) scale(1)' : 'translate(-50%, -90%) scale(0.95)'
+    transform: store.visible ? 'translate(-50%, -100%) scale(1)' : 'translate(-50%, -95%) scale(0.95)'
 }));
 </script>
 
 <style scoped>
-.tooltip-container {
+.v3-intel-intercept {
     position: fixed;
-    z-index: 10000;
-    pointer-events: none;
-    background: rgba(13, 17, 23, 0.95);
-    border: 1px solid rgba(56, 139, 253, 0.4);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(56, 139, 253, 0.1);
-    border-radius: 8px;
-    padding: 10px 14px;
-    max-width: 260px;
-    transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
-    backdrop-filter: blur(12px);
-}
-
-.tooltip-arrow {
-    position: absolute;
-    width: 0;
-    height: 0;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-}
-
-.tooltip-arrow.bottom {
-    bottom: -6px;
-    left: 50%;
-    transform: translateX(-50%);
-    border-top: 6px solid rgba(56, 139, 253, 0.4);
-}
-
-.tooltip-title {
-    color: #58a6ff;
-    font-size: 0.75rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.08rem;
-    margin-bottom: 6px;
-    border-bottom: 1px solid rgba(56, 139, 253, 0.2);
-    padding-bottom: 4px;
-}
-
-.tooltip-text {
-    color: #e6edf3;
-    font-size: 0.82rem;
-    line-height: 1.5;
-    font-weight: 400;
-}
-
-.tooltip-hint {
-    margin-top: 8px;
-    font-size: 0.7rem;
-    color: #8b949e;
-    font-style: italic;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.tooltip-hint i {
-    color: #f1e05a;
-}
-</style>
-
-<style scoped>
-.tooltip-container {
-    position: fixed;
-    z-index: 9999;
+    z-index: var(--zi-interaction);
     pointer-events: none;
     transform: translate(-50%, -100%);
-    background: rgba(13, 17, 23, 0.95);
-    border: 1px solid rgba(56, 139, 253, 0.4);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 10px rgba(56, 139, 253, 0.2);
-    border-radius: 8px;
-    padding: 10px 14px;
-    max-width: 280px;
+    width: 280px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.intercept-header {
+    background: var(--ds-bg-void);
+    border: 1px solid var(--ds-accent-soft);
+    border-bottom: none;
+    padding: 4px 10px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.45rem;
+    font-weight: 950;
+    letter-spacing: 0.15em;
+    color: var(--ds-accent);
+}
+
+.intercept-body {
+    background: rgba(5, 7, 10, 0.95);
     backdrop-filter: blur(8px);
-    animation: fadeIn 0.15s ease-out;
+    border: 1px solid var(--ds-accent-soft);
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(88, 166, 255, 0.1);
 }
 
-.tooltip-arrow {
+.intercept-scanline {
     position: absolute;
-    bottom: -6px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-top: 6px solid rgba(56, 139, 253, 0.4);
+    inset: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(88, 166, 255, 0.03) 50%);
+    background-size: 100% 2px;
+    pointer-events: none;
+    z-index: 10;
 }
 
-.tooltip-title {
-    color: #58a6ff;
-    font-size: 0.8rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05rem;
-    margin-bottom: 4px;
-    border-bottom: 1px solid rgba(56, 139, 253, 0.2);
-    padding-bottom: 4px;
+.intercept-title {
+    font-size: 0.65rem;
+    font-weight: 950;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+    color: #fff;
 }
 
-.tooltip-text {
-    color: #c9d1d9;
-    font-size: 0.85rem;
-    line-height: 1.4;
-    font-family: 'Inter', sans-serif;
+.intercept-content {
+    font-size: 0.7rem;
+    line-height: 1.6;
+    color: var(--ds-text-ghost);
+    font-weight: 600;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translate(-50%, -90%); }
-    to { opacity: 1; transform: translate(-50%, -100%); }
+.intercept-hint {
+    margin-top: 12px;
+    padding-top: 8px;
+    font-size: 0.55rem;
+    font-weight: 950;
+    color: var(--ds-warning);
+    letter-spacing: 0.05em;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
+
+.hint-marker {
+    margin-right: 4px;
+}
+
+/* ── CORNER BRACKETS ────────────────────────── */
+.bracket-tl, .bracket-tr, .bracket-bl, .bracket-br {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-color: var(--ds-accent);
+    border-style: solid;
+    opacity: 0.6;
+}
+
+.bracket-tl { top: 0; left: 0; border-width: 2px 0 0 2px; }
+.bracket-tr { top: 0; right: 0; border-width: 2px 2px 0 0; }
+.bracket-bl { bottom: 0; left: 0; border-width: 0 0 2px 2px; }
+.bracket-br { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
 </style>

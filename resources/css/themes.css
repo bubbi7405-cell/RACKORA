@@ -52,6 +52,36 @@
     --radius-xl: 0;
 }
 
+/* Terminal Theme (High Contrast) */
+:root[data-theme="terminal"] {
+    --color-bg-deep: #000000;
+    --color-bg-dark: #000000;
+    --color-bg-medium: #000000;
+    --color-bg-light: #111111;
+    --color-bg-elevated: #222222;
+
+    --color-primary: #ffffff;
+    --color-primary-dim: rgba(255, 255, 255, 0.1);
+    --color-primary-glow: rgba(255, 255, 255, 0.4);
+    --color-secondary: #00ffff;
+
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #aaaaaa;
+    --color-text-muted: #666666;
+
+    --color-border: #ffffff;
+    --color-border-dim: #333333;
+    --color-border-ui: 2px solid #ffffff;
+
+    --font-family-ui: 'JetBrains Mono', monospace;
+    --radius-sm: 0;
+    --radius-md: 0;
+    --radius-lg: 0;
+    --radius-xl: 0;
+    
+    --shadow-glow-primary: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
 /* Light Theme (Clean) */
 :root[data-theme="light"] {
     --color-bg-deep: #f6f8fa;

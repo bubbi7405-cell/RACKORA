@@ -20,7 +20,8 @@ class EmployeeController extends Controller
             'employees' => $this->service->getEmployees($request->user()),
             'available_types' => $this->service->getAvailableTypes(),
             'skill_trees' => EmployeeService::SKILL_TREES,
-            'active_bonuses' => $this->service->getAllActiveBonuses($request->user())
+            'active_bonuses' => $this->service->getAllActiveBonuses($request->user()),
+            'active_synergies' => $this->service->calculateSynergies($request->user())
         ]);
     }
 
@@ -142,6 +143,38 @@ class EmployeeController extends Controller
     }
 
     /**
+     * FEATURE 161: Send employee to an off-site seminar
+     */
+    public function sendToSeminar(Request $request, string $id): JsonResponse
+    {
+        $result = $this->service->sendToSeminar($request->user(), $id);
+
+        if (!$result['success']) {
+            return response()->json($result, 400);
+        }
+
+        return response()->json($result);
+    }
+
+    /**
+     * FEATURE 243: Assign an employee to a physical room
+     */
+    public function assignToRoom(Request $request, string $id): JsonResponse
+    {
+        $request->validate([
+            'room_id' => 'nullable|uuid'
+        ]);
+
+        $result = $this->service->assignToRoom($request->user(), $id, $request->room_id);
+
+        if (!$result['success']) {
+            return response()->json($result, 400);
+        }
+
+        return response()->json($result);
+    }
+
+    /**
      * FEATURE 69: Counter a headhunter offer
      * Player matches or exceeds the competitor salary to retain the employee.
      */
@@ -194,5 +227,19 @@ class EmployeeController extends Controller
             'message' => "{$employee->name} accepted your counter-offer and stays loyal!",
             'employee' => $this->service->formatEmployee($employee),
         ]);
+    }
+
+    /**
+     * FEATURE 232: Persuade an employee to cancel their resignation
+     */
+    public function persuadeToStay(Request $request, string $id): JsonResponse
+    {
+        $result = $this->service->persuadeToStay($request->user(), $id);
+
+        if (!$result['success']) {
+            return response()->json($result, 400);
+        }
+
+        return response()->json($result);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Services\Game;
 use App\Models\User;
 use App\Models\Server;
 use App\Models\PlayerEconomy;
+use App\Models\EnergyFuture;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -160,8 +161,11 @@ class EnergyService
             $stability = (float) ($currentWeather[$key]['modifiers']['grid_stability'] ?? 1.0);
             $stabilitySurcharge = 1.0 + (max(0, 1.0 - $stability) * 2.0); // 0.7 stability -> +60% price
 
-            // Parity Logic — use regional power_cost modifier instead of global
-            $price = $baseCost * $newFactor * $peakFactor * $regionalPowerCost * $stabilitySurcharge * (1 + $localNoise);
+            // FEATURE 151: Regional Event Multipliers (Arbitrage)
+            $eventMod = $this->getRegionalEventMultiplier($key);
+            
+            // Parity Logic
+            $price = $baseCost * $newFactor * $peakFactor * $regionalPowerCost * $stabilitySurcharge * $eventMod * (1 + $localNoise);
             
             // Clamp price
             $price = max($settings['min_price'], min($settings['max_price'], round($price, 4)));
@@ -263,6 +267,52 @@ class EnergyService
     }
 
     /**
+     * Get regional event multiplier (FEATURE 151).
+     * Simulates seasonal or geographic macro-events affecting energy production.
+     */
+    public function getRegionalEventMultiplier(string $region): float
+    {
+        $month = now()->month;
+        $dayOfYear = now()->dayOfYear;
+        
+        // Use day of year to create a smooth, cyclic curve for seasonal events
+        // Period of 365 days
+        
+        switch ($region) {
+            case 'asia_east':
+            case 'asia_south':
+                // Monsoon Season (May - September): Cheap Hydro
+                if ($month >= 5 && $month <= 9) {
+                    return 0.75; // 25% Reduction
+                }
+                break;
+                
+            case 'nordics':
+                // Arctic Winter (Nov - Feb): High wind/hydro + Natural Cooling
+                if ($month >= 11 || $month <= 2) {
+                    return 0.80; // 20% Reduction
+                }
+                break;
+                
+            case 'us_west':
+                // Solar Summer (June - August): Solar surplus
+                if ($month >= 6 && $month <= 8) {
+                    return 0.85; // 15% Reduction
+                }
+                break;
+            
+            case 'eu_central':
+                // Wind Peak (Autumn)
+                if ($month >= 9 && $month <= 11) {
+                    return 0.90;
+                }
+                break;
+        }
+        
+        return 1.0;
+    }
+
+    /**
      * Get available fixed contracts for a user.
      */
     public function getContractOffers(User $user): array
@@ -285,6 +335,110 @@ class EnergyService
                 'description' => 'Extreme protection against volatility. Best for high-capacity datacenters.'
             ]
         ];
+    }
+
+    /**
+     * FEATURE 56: Energy Futures Market
+     */
+    public function getFutureOffers(User $user): array
+    {
+        if (!$this->researchService->isUnlocked($user, 'financial_engineering')) {
+            return [];
+        }
+
+        $spot = $this->getSpotPrice();
+        
+        // Offers are blocks of kWh
+        return [
+            [
+                'id' => 'futures_bundle_small',
+                'name' => '10MWh Grid Voucher',
+                'total_kwh' => 10000,
+                'price_per_kwh' => round($spot * 1.05, 4), // Low premium
+                'description' => 'Standard energy volume. Locks in price for 10,000 kWh.',
+                'total_cost' => round($spot * 1.05 * 10000, 2)
+            ],
+            [
+                'id' => 'futures_bundle_large',
+                'name' => '50MWh Industrial Hedge',
+                'total_kwh' => 50000,
+                'price_per_kwh' => round($spot * 0.98, 4), // Hedge discount for bulk
+                'description' => 'Bulk industrial volume. Can actually be cheaper than current spot if you buy ahead!',
+                'total_cost' => round($spot * 0.98 * 50000, 2)
+            ],
+            [
+                'id' => 'futures_bundle_whale',
+                'name' => '250MWh Strategic Reserve',
+                'total_kwh' => 250000,
+                'price_per_kwh' => round($spot * 0.95, 4),
+                'description' => 'Serious players only. Hedge massive infrastructure against heatwave spikes.',
+                'total_cost' => round($spot * 0.95 * 250000, 2)
+            ]
+        ];
+    }
+
+    public function buyFuture(User $user, string $offerId): bool
+    {
+        $offers = $this->getFutureOffers($user);
+        $offer = collect($offers)->firstWhere('id', $offerId);
+        if (!$offer) return false;
+
+        $economy = $user->economy;
+        if (!$economy->debit($offer['total_cost'], "Purchased {$offer['name']}", 'energy')) {
+            return false;
+        }
+
+        EnergyFuture::create([
+            'user_id' => $user->id,
+            'total_kwh' => $offer['total_kwh'],
+            'remaining_kwh' => $offer['total_kwh'],
+            'buy_price' => $offer['price_per_kwh'],
+            'expires_at' => now()->addHours(24), // Futures expire after 1 real day if not used? or maybe they don't expire.
+            'is_active' => true,
+        ]);
+
+        \App\Models\GameLog::log($user, "HEDGE ACTIVE: Secured {$offer['total_kwh']} kWh at \${$offer['price_per_kwh']}/kWh.", 'success', 'energy');
+
+        return true;
+    }
+
+    /**
+     * Consume energy from active futures before hitting the grid.
+     */
+    public function processFutures(User $user, float &$remainingUsage): void
+    {
+        if ($remainingUsage <= 0) return;
+
+        $activeFutures = EnergyFuture::where('user_id', $user->id)
+            ->where('is_active', true)
+            ->where('remaining_kwh', '>', 0)
+            ->where(function($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->orderBy('buy_price', 'asc') // Use cheapest first? Or oldest?
+            ->get();
+
+        foreach ($activeFutures as $future) {
+            if ($remainingUsage <= 0) break;
+
+            $tickFraction = 1 / 60;
+            $maxCanDrawKwh = (float) $future->remaining_kwh;
+            $neededKwh = $remainingUsage * $tickFraction;
+
+            $drawKwh = min($maxCanDrawKwh, $neededKwh);
+            $future->remaining_kwh -= $drawKwh;
+            
+            // Re-calculate remaining KW for this tick
+            // If we drew $drawKwh, it covered ($drawKwh / $tickFraction) KW of load
+            $coveredKw = $drawKwh / $tickFraction;
+            $remainingUsage -= $coveredKw;
+
+            if ($future->remaining_kwh <= 0.0001) {
+                $future->is_active = false;
+                \App\Models\GameLog::log($user, "FUTURE EXPIRED: Energy bundle used up completely.", 'info', 'energy');
+            }
+            $future->save();
+        }
     }
 
     /**

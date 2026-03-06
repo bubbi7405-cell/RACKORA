@@ -199,6 +199,13 @@ class GameConfigSeeder extends Seeder
                 'hiring_cost' => 800,
                 'description' => 'Optimizes routing to reduce latency and negotiates better peering to lower bandwidth costs.',
                 'tasks' => ['BGP Optimization', 'Congestion Control', 'ISP Peering Negotiation']
+            ],
+            'mercenary' => [
+                'name' => 'Mercenary Team',
+                'base_salary' => 0.0,
+                'hiring_cost' => 12500,
+                'description' => 'Disaster recovery specialists. Instantly repairs ALL servers globally to 100% health upon recruitment. (One-time service).',
+                'tasks' => ['Instant Global Repair', 'Disaster Recovery']
             ]
         ], 'simulation', 'Available personnel roles and their base stats.');
 

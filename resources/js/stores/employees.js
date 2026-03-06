@@ -18,6 +18,7 @@ export const useEmployeesStore = defineStore('employees', () => {
     const activeBonuses = ref({
         hiring_cost_reduction: 0
     });
+    const activeSynergies = ref([]);
 
     // ─── Getters ────────────────────────────────────────
 
@@ -52,6 +53,9 @@ export const useEmployeesStore = defineStore('employees', () => {
                 if (response.active_bonuses) {
                     activeBonuses.value = response.active_bonuses;
                 }
+                if (response.active_synergies) {
+                    activeSynergies.value = response.active_synergies;
+                }
             }
         } catch (error) {
             console.error('Failed to load employees', error);
@@ -84,7 +88,6 @@ export const useEmployeesStore = defineStore('employees', () => {
      * Fire an employee by ID
      */
     async function fireEmployee(id) {
-        if (!confirm('Are you sure you want to fire this employee?')) return;
         isLoading.value = true;
         try {
             const response = await api.post(`/employees/${id}/fire`);
@@ -131,8 +134,6 @@ export const useEmployeesStore = defineStore('employees', () => {
      * FEATURE 204: Respec Talent points
      */
     async function respec(employeeId) {
-        if (!confirm('Möchten Sie alle Talente dieses Mitarbeiters zurücksetzen? Dies kostet eine Gebühr basierend auf seinem Level.')) return;
-
         isLoading.value = true;
         try {
             const response = await api.post('/employees/respec', {
@@ -176,6 +177,48 @@ export const useEmployeesStore = defineStore('employees', () => {
         }
     }
 
+    /**
+     * FEATURE 243: Assign an employee to a physical room
+     */
+    async function assignToRoom(employeeId, roomId) {
+        isLoading.value = true;
+        try {
+            const response = await api.post(`/employees/${employeeId}/assign-room`, { room_id: roomId });
+            if (response.success) {
+                useToastStore().success('Mitarbeiter-Einsatzort zugewiesen!');
+                await loadEmployees();
+                return true;
+            }
+        } catch (error) {
+            useToastStore().error(error.response?.data?.error || 'Zuweisung fehlgeschlagen');
+            return false;
+        } finally {
+            isLoading.value = false;
+        }
+    }
+
+    /**
+     * FEATURE 232: Persuade an employee that has submitted a resignation to stay.
+     */
+    async function persuadeToStay(employeeId) {
+        isLoading.value = true;
+        try {
+            const response = await api.post(`/employees/${employeeId}/persuade-to-stay`);
+            if (response.success) {
+                useToastStore().success('Mitarbeiter konnte zum Bleiben überredet werden!');
+                SoundManager.playSuccess();
+                await loadEmployees();
+                return true;
+            }
+        } catch (error) {
+            useToastStore().error(error.response?.data?.error || 'Verhandlung fehlgeschlagen');
+            SoundManager.playError();
+            return false;
+        } finally {
+            isLoading.value = false;
+        }
+    }
+
     // ─── Return ─────────────────────────────────────────
     return {
         // State
@@ -184,6 +227,7 @@ export const useEmployeesStore = defineStore('employees', () => {
         availableEmployeeTypes,
         skillTrees,
         activeBonuses,
+        activeSynergies,
         // Getters
         employeeCount,
         employeesByType,
@@ -195,5 +239,7 @@ export const useEmployeesStore = defineStore('employees', () => {
         unlockPerk,
         respec,
         sendOnSabbatical,
+        assignToRoom,
+        persuadeToStay,
     };
 });

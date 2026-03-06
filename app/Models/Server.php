@@ -87,6 +87,10 @@ class Server extends Model
         'total_mined_crypto',
         'battery_capacity_kwh',
         'battery_level_kwh',
+        'weight_kg',
+        'failover_server_id',
+        'power_priority',
+        'metadata',
     ];
 
     protected $casts = [
@@ -134,6 +138,9 @@ class Server extends Model
         'total_mined_crypto' => 'decimal:8',
         'battery_capacity_kwh' => 'decimal:2',
         'battery_level_kwh' => 'decimal:2',
+        'weight_kg' => 'decimal:2',
+        'power_priority' => 'integer',
+        'metadata' => 'json',
     ];
 
     protected $attributes = [
@@ -253,6 +260,28 @@ class Server extends Model
         $this->save();
     }
 
+    /**
+     * Synchronize all installation and provisioning states (JIT)
+     */
+    public function syncTaskStates(): void
+    {
+        // 1. Provisioning
+        if ($this->status === ServerStatus::PROVISIONING && $this->isProvisioningComplete()) {
+            $this->completeProvisioning();
+            $this->rack?->recalculatePowerAndHeat();
+        }
+
+        // 2. OS Installation
+        if ($this->os_install_status === 'installing' && $this->os_install_completes_at && now()->gte($this->os_install_completes_at)) {
+            app(\App\Services\Game\OsService::class)->processInstallTick($this);
+        }
+
+        // 3. Application Installation
+        if ($this->app_install_status === 'installing' && $this->app_install_completes_at && now()->gte($this->app_install_completes_at)) {
+            app(\App\Services\Game\SoftwareService::class)->processInstallTick($this);
+        }
+    }
+
     public function getEndSlot(): int
     {
         return $this->start_slot + $this->size_u - 1;
@@ -336,7 +365,6 @@ class Server extends Model
         $agingPenalty = $this->getEfficiencyPenalty();
 
         // FEATURE 254: Overvolting Impact on Power
-        // P is proportional to V^2 * f
         $tuningMod = 1.0;
         if ($this->base_voltage_v > 0 && $this->base_clock_mhz > 0) {
             $vRatio = $this->cpu_voltage_v / $this->base_voltage_v;
@@ -344,12 +372,22 @@ class Server extends Model
             $tuningMod = ($vRatio * $vRatio) * $fRatio;
         }
 
-        // FEATURE 65: Crypto Mining overrides and maximizes power draw
+        // FEATURE 65: Crypto Mining overrides
         if ($this->is_mining) {
-            return $base * 1.5; // Mining draws 150% power due to 100% load
+            $tuningMod = 1.5;
         }
 
-        return $base * (1.0 + $agingPenalty) * $tuningMod;
+        // FEATURE 244: Benchmarking Bonus
+        $benchmarkBonus = 1.0;
+        $owner = $this->rack?->room?->user;
+        if ($owner) {
+             $benchmarks = $owner->economy->metadata['benchmarks'] ?? [];
+             if (isset($benchmarks[$this->model_name]['optimized']) && $benchmarks[$this->model_name]['optimized']) {
+                 $benchmarkBonus = 0.90; // 10% Power reduction = Higher efficiency
+             }
+        }
+
+        return $base * (1.0 + $agingPenalty) * $tuningMod * $benchmarkBonus;
     }
 
     public function getEffectiveHeatOutput(): float
@@ -357,7 +395,7 @@ class Server extends Model
         $base = (float) $this->heat_output_kw;
         $agingPenalty = $this->getEfficiencyPenalty();
 
-        // Heat is essentially the power draw
+        // FEATURE 254: Overvolting Impact on Heat
         $tuningMod = 1.0;
         if ($this->base_voltage_v > 0 && $this->base_clock_mhz > 0) {
             $vRatio = $this->cpu_voltage_v / $this->base_voltage_v;
@@ -365,13 +403,23 @@ class Server extends Model
             $tuningMod = ($vRatio * $vRatio) * $fRatio;
         }
 
-        // FEATURE 65: Crypto Mining generates immense heat
+        // FEATURE 65: Crypto Mining
         if ($this->is_mining) {
-             return $base * 1.8; // 180% heat output
+            $tuningMod = 1.8;
+        }
+
+        // FEATURE 244: Benchmarking Bonus
+        $benchmarkBonus = 1.0;
+        $owner = $this->rack?->room?->user;
+        if ($owner) {
+             $benchmarks = $owner->economy->metadata['benchmarks'] ?? [];
+             if (isset($benchmarks[$this->model_name]['optimized']) && $benchmarks[$this->model_name]['optimized']) {
+                 $benchmarkBonus = 0.90;
+             }
         }
 
         // Dust impact could be added here if we want to move it from rack to server
-        return $base * (1.0 + $agingPenalty * 1.5) * $tuningMod;
+        return $base * (1.0 + $agingPenalty * 1.5) * $tuningMod * $benchmarkBonus;
     }
 
     public function getOsPerformanceModifier(): float
@@ -511,6 +559,7 @@ class Server extends Model
             'isLeased' => (bool) $this->is_leased,
             'leaseCostPerHour' => (float) $this->lease_cost_per_hour,
             'nickname' => $this->nickname,
+            'powerPriority' => (int) $this->power_priority,
             'tuning' => [
                 'cpuClock' => $this->cpu_clock_mhz,
                 'cpuVoltage' => (float) $this->cpu_voltage_v,

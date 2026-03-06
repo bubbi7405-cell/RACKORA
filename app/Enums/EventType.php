@@ -19,8 +19,10 @@ enum EventType: string
     case PRICE_WAR = 'price_war';
     case ISP_BANNING = 'isp_banning';
     case FIBER_CUT = 'fiber_cut';
-
-
+    case UNION_STRIKE = 'union_strike';
+    case REGIONAL_BLACKOUT = 'regional_blackout';
+    case STATIC_DISCHARGE = 'static_discharge';
+    case CORROSION = 'corrosion';
     public function label(): string
     {
         return match($this) {
@@ -38,8 +40,10 @@ enum EventType: string
             self::HIRING_RAID => 'Headhunting Raid',
             self::PRICE_WAR => 'Price War',
             self::ISP_BANNING => 'ISP Network Blacklist',
-            self::FIBER_CUT => 'Backhaul Fiber Cut',
-
+            self::UNION_STRIKE => 'Labor Union Strike',
+            self::REGIONAL_BLACKOUT => 'Regional Power Rationing',
+            self::STATIC_DISCHARGE => 'Static Discharge',
+            self::CORROSION => 'Condensation / Corrosion',
         };
     }
 
@@ -60,8 +64,10 @@ enum EventType: string
             self::HIRING_RAID => 'A competitor is aggressively headhunting your top engineers with massive bonuses.',
             self::PRICE_WAR => 'A competitor has slashed prices to unsustainable levels to capture your market share.',
             self::ISP_BANNING => 'Your IP ranges have been blacklisted by major transit providers due to suspicious activity.',
-            self::FIBER_CUT => 'A backhoe has severed a major fiber optic trunk line. Regional connectivity is degraded.',
-
+            self::UNION_STRIKE => 'Your employee union has called a strike due to poor conditions. Maintenance has halted.',
+            self::REGIONAL_BLACKOUT => 'The local power grid is under extreme stress. Rolling blackouts are in effect.',
+            self::STATIC_DISCHARGE => 'Extremely dry air has caused electrostatic buildup, damaging components.',
+            self::CORROSION => 'High humidity has led to moisture condensation and short-circuits.',
         };
     }
 
@@ -82,8 +88,10 @@ enum EventType: string
             self::HIRING_RAID => '#10b981',    // Success green/HR
             self::PRICE_WAR => '#facc15',      // Yellow/Warning
             self::ISP_BANNING => '#4b5563',    // Gray/Dead
-            self::FIBER_CUT => '#06b6d4',      // Cyan/Network
-
+            self::UNION_STRIKE => '#dc2626',   // Red/Strike
+            self::REGIONAL_BLACKOUT => '#78350f', // Brown/Dark
+            self::STATIC_DISCHARGE => '#fbbf24',
+            self::CORROSION => '#0ea5e9',
         };
     }
 
@@ -104,8 +112,10 @@ enum EventType: string
             self::HIRING_RAID => 'users',
             self::PRICE_WAR => 'trending-down',
             self::ISP_BANNING => 'slash',
-            self::FIBER_CUT => 'scissors',
-
+            self::UNION_STRIKE => 'users-minus',
+            self::REGIONAL_BLACKOUT => 'zap-off',
+            self::STATIC_DISCHARGE => 'zap',
+            self::CORROSION => 'droplet',
         };
     }
 
@@ -126,8 +136,10 @@ enum EventType: string
             self::HIRING_RAID => 60,
             self::PRICE_WAR => 30,
             self::ISP_BANNING => 45,
-            self::FIBER_CUT => 20,
-
+            self::UNION_STRIKE => 60,
+            self::REGIONAL_BLACKOUT => 30, // not really used directly, handled specially
+            self::STATIC_DISCHARGE => 15,
+            self::CORROSION => 60,
         };
     }
 
@@ -148,8 +160,10 @@ enum EventType: string
             self::HIRING_RAID => 1200,
             self::PRICE_WAR => 900,
             self::ISP_BANNING => 300,
-            self::FIBER_CUT => 120,
-
+            self::UNION_STRIKE => 600,
+            self::REGIONAL_BLACKOUT => 300,
+            self::STATIC_DISCHARGE => 60,
+            self::CORROSION => 300,
         };
     }
 
@@ -169,8 +183,10 @@ enum EventType: string
             self::HIRING_RAID => 2400,
             self::PRICE_WAR => 1800,
             self::ISP_BANNING => 900,
-            self::FIBER_CUT => 600,
-
+            self::UNION_STRIKE => 86400, // 24 hours in real life (or game time depending on ticks), practically indefinitely until resolved
+            self::REGIONAL_BLACKOUT => 1800,
+            self::STATIC_DISCHARGE => 300,
+            self::CORROSION => 600,
         };
     }
 }

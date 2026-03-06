@@ -1,39 +1,39 @@
 <template>
     <div class="tab-content backups-tab provision-lab">
-        <div class="proc-header">
-            <div class="proc-title">
-                <h3>DATENSICHERUNG_&_REDUNDANZ</h3>
-                <p>Konfiguration der automatisierten Snapshot-Zyklen und Recovery-SLAs.</p>
-            </div>
-        </div>
+
 
         <div class="v3-backup-dashboard">
             <div class="v3-status-card" :class="server.backup.plan">
                 <div class="status-icon">🛡️</div>
                 <div class="status-info">
                     <label>SICHERUNGS_STATUS</label>
-                    <strong>{{ server.backup.plan === 'none' ? 'UNPROTECTED' : server.backup.plan.toUpperCase() + '_REDUNDANCY' }}</strong>
+                    <strong>{{ server.backup.plan === 'none' ? 'UNPROTECTED' : server.backup.plan.toUpperCase() +
+                        '_REDUNDANCY' }}</strong>
                 </div>
             </div>
-            
+
             <div class="v3-backup-metrics">
                 <div class="v3-metric">
                     <span>Letzter Sync</span>
-                    <strong>{{ server.backup.lastBackupAt ? formatRuntime( (Date.now() - new Date(server.backup.lastBackupAt).getTime()) / 1000 ) + ' her' : 'Nie' }}</strong>
+                    <strong>{{ server.backup.lastBackupAt ? formatRuntime((Date.now() - new
+                        Date(server.backup.lastBackupAt).getTime()) / 1000) + ' her' : 'Nie' }}</strong>
                 </div>
                 <div class="v3-metric">
                     <span>Archiv-Integrität</span>
-                    <strong :class="server.backup.health < 95 ? 'text-warning' : 'text-success'">{{ Math.round(server.backup.health) }}%</strong>
+                    <strong :class="server.backup.health < 95 ? 'text-warning' : 'text-success'">{{
+                        Math.round(server.backup.health) }}%</strong>
                 </div>
             </div>
         </div>
 
-        <div class="v3-info-box" style="margin-top: 30px; border-color: #ffd700;" v-if="server.status === 'damaged' || server.status === 'offline'">
+        <div class="v3-info-box" style="margin-top: 30px; border-color: #ffd700;"
+            v-if="server.status === 'damaged' || server.status === 'offline'">
             <label style="color: #ffd700;">TEMPORAL_OPS (FEATURE 275)</label>
-            <p class="setting-desc">Notfall-Rollback durchführen. Setzt das System auf den letzten intakten Zustand zurück.<br>Hardware-Ersatz wird umgangen. Kostet -50 Reputation.</p>
-            <button class="btn-cancel-v3" style="background: #b8860b; color: #fff; border-color: #ffd700; border-width: 1px;" 
-                    @click="rollbackBackup" 
-                    :disabled="server.backup.health <= 0 || processing">
+            <p class="setting-desc">Notfall-Rollback durchführen. Setzt das System auf den letzten intakten Zustand
+                zurück.<br>Hardware-Ersatz wird umgangen. Kostet -50 Reputation.</p>
+            <button class="btn-cancel-v3"
+                style="background: #b8860b; color: #fff; border-color: #ffd700; border-width: 1px;"
+                @click="rollbackBackup" :disabled="server.backup.health <= 0 || processing">
                 SYSTEM_ZURÜCKSETZEN_(-50 REP)
             </button>
         </div>
@@ -41,13 +41,9 @@
         <div class="v3-plan-selector" style="margin-top: 30px;">
             <label>SLA_LEVEL_DEFINITION</label>
             <div class="v3-plan-grid">
-                <div 
-                    v-for="plan in backupPlans" 
-                    :key="plan.id"
-                    class="v3-plan-card"
+                <div v-for="plan in backupPlans" :key="plan.id" class="v3-plan-card"
                     :class="{ active: server.backup.plan === plan.id, 'none': plan.id === 'none', 'disabled': processing }"
-                    @click="updateBackupPlan(plan.id)"
-                >
+                    @click="updateBackupPlan(plan.id)">
                     <div class="p-head">
                         <span class="p-name">{{ plan.name }}</span>
                         <span class="p-cost">{{ plan.cost }}</span>
@@ -63,12 +59,22 @@
                 * Die laufenden Kosten werden sofort angepasst. Sicherungen erfolgen im laufenden Betrieb.
             </p>
         </div>
+
+        <ConfirmationModal :show="showRollbackConfirm" title="TEMPORAL_OPS_ROLLBACK"
+            message="Möchten Sie wirklich ein Disaster Snapshot Rollback durchführen?"
+            warning="Dies löscht den aktuellen fehlerhaften Zustand und setzt das System auf das letzte intakte Backup zurück. Kostet -50 Reputation!"
+            confirm-label="EXECUTE_ROLLBACK" type="warning" @confirm="executeRollback"
+            @cancel="showRollbackConfirm = false" />
     </div>
 </template>
 
 <script setup>
 import api from '../../../../utils/api';
 import { useGameStore } from '../../../../stores/game';
+import ConfirmationModal from '../../../UI/ConfirmationModal.vue';
+import { ref } from 'vue';
+
+const showRollbackConfirm = ref(false);
 
 const props = defineProps({
     server: { type: Object, required: true },
@@ -94,19 +100,20 @@ const updateBackupPlan = async (planId) => {
     }
 };
 
-const rollbackBackup = async () => {
+const rollbackBackup = () => {
     if (props.processing) return;
-    if (!confirm('!!! TEMPORAL OPS !!!\nMöchten Sie wirklich ein Disaster Snapshot Rollback durchführen?\nDies löscht den aktuellen fehlerhaften Zustand und lädt das letzte Snapshot, was -50 Reputation kostet.')) return;
+    showRollbackConfirm.value = true;
+};
+
+const executeRollback = async () => {
+    showRollbackConfirm.value = false;
     emit('processing-start');
     try {
         const response = await api.post(`/server/${props.server.id}/rollback`);
         if (response.success) {
-            alert(response.message);
             gameStore.loadGameState();
             emit('reload');
         }
-    } catch (e) {
-        if (e.response && e.response.data) alert(e.response.data.message);
     } finally {
         emit('processing-end');
     }

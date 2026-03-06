@@ -178,6 +178,20 @@
                             </div>
 
                             <div class="staff-footer">
+                                <div class="assignment-row">
+                                    <span class="f-label">Placement</span>
+                                    <select 
+                                        :value="emp.room_id" 
+                                        @change="e => handleAssignRoom(emp.id, e.target.value)"
+                                        class="room-assign-select"
+                                        :disabled="loading"
+                                    >
+                                        <option :value="null">Floating / Remote</option>
+                                        <option v-for="room in Object.values(rooms)" :key="room.id" :value="room.id">
+                                            {{ room.name }} {{ room.upgrades?.includes('wellness_facility') ? '💆' : '' }}
+                                        </option>
+                                    </select>
+                                </div>
                                 <div class="f-item">
                                     <span class="f-label">Efficiency</span>
                                     <span class="f-val">{{ (emp.efficiency * 100).toFixed(0) }}%</span>
@@ -212,7 +226,6 @@
                     </div>
                 </div>
             </div>
-        </div>
         </div>
 
         <!-- Global Buffs Modal -->
@@ -292,6 +305,7 @@ const selectedEmployee = ref(null);
 const showBuffsModal = ref(false);
 const economy = computed(() => player.value.economy);
 const availableTypes = computed(() => availableEmployeeTypes.value || {});
+const rooms = computed(() => gameStore.rooms);
 
 const totalSalary = computed(() => {
     return employees.value.reduce((sum, emp) => sum + parseFloat(emp.salary), 0);
@@ -332,6 +346,14 @@ async function handleSabbatical(empId) {
     if (!confirm('Diesen Mitarbeiter in ein 2-stündiges Sabbatical schicken? Kosten: 30× Stundenlohn als Bonus.')) return;
     loading.value = true;
     await employeeStore.sendOnSabbatical(empId);
+    loading.value = false;
+}
+
+async function handleAssignRoom(empId, roomId) {
+    loading.value = true;
+    // Handle empty/null value from select
+    const targetRoomId = (roomId === '' || roomId === 'null') ? null : roomId;
+    await employeeStore.assignToRoom(empId, targetRoomId);
     loading.value = false;
 }
 
@@ -705,6 +727,31 @@ function getStatusColor(val, isStress = false, getHex = false) {
 
 /* FEATURE 284: Sabbatical */
 .footer-actions { display: flex; gap: 8px; align-items: center; }
+
+/* FEATURE 243: Room Assignment */
+.assignment-row {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.room-assign-select {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    width: 140px;
+    cursor: pointer;
+    outline: none;
+}
+
+.room-assign-select:hover {
+    border-color: rgba(88, 166, 255, 0.5);
+}
+
 .sabbatical-btn {
     background: rgba(16, 185, 129, 0.1);
     border: 1px solid rgba(16, 185, 129, 0.3);

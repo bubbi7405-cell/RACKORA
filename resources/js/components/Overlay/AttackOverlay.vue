@@ -1,8 +1,6 @@
 <template>
     <transition name="attack-flash">
         <div v-if="attack" class="attack-overlay">
-            <div class="scanlines"></div>
-            <div class="glitch-red"></div>
             
             <div class="alert-content">
                 <div class="warning-header">
@@ -21,11 +19,11 @@
                 
                 <div class="attack-type">
                     <div class="label">VECTOR_TYPE</div>
-                    <div class="value pulse">{{ attack.action_type?.toUpperCase() }}</div>
+                    <div class="value">{{ attack.action_type?.toUpperCase() }}</div>
                 </div>
                 
                 <div class="threat-msg">
-                    INTEL_LOG: Defensive protocols engaged. Monitor system integrity immediately.
+                    SECURITY_HINT: Defensive protocols engaged. Monitor system integrity immediately.
                 </div>
                 
                 <div class="countdown-bar">
@@ -52,8 +50,8 @@ const attack = computed(() => uiStore.activeAttack);
     right: 0;
     bottom: 0;
     background: rgba(40, 0, 0, 0.4);
-    backdrop-filter: blur(10px);
-    z-index: 9999;
+    backdrop-filter: blur(4px);
+    z-index: var(--zi-attack);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -62,18 +60,7 @@ const attack = computed(() => uiStore.activeAttack);
     animation: border-flash 1s infinite;
 }
 
-.scanlines {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        to bottom,
-        rgba(255, 0, 0, 0) 50%,
-        rgba(255, 0, 0, 0.05) 50%
-    );
-    background-size: 100% 4px;
-    z-index: 1;
-}
+
 
 .alert-content {
     background: rgba(0, 0, 0, 0.9);
@@ -132,9 +119,7 @@ const attack = computed(() => uiStore.activeAttack);
     text-transform: uppercase;
 }
 
-.pulse {
-    animation: pulse-red 1s infinite;
-}
+
 
 .sub-label {
     font-size: 0.6rem;

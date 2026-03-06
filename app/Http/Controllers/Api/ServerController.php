@@ -22,6 +22,9 @@ class ServerController extends Controller
             $q->whereHas('rack.room', fn($inner) => $inner->where('user_id', $user->id))
               ->orWhere('tenant_id', $user->id);
         })->where('id', $id)->firstOrFail();
+        
+        // JIT Sync states before returning details
+        $server->syncTaskStates();
 
         // Generate simulated CPU/RAM history
         $metrics = [];
@@ -333,7 +336,7 @@ class ServerController extends Controller
     public function updateBackupPlan(string $id, Request $request): JsonResponse
     {
         $request->validate([
-            'plan' => 'required|string|in:none,daily,hourly',
+            'plan' => 'required|string|in:none,daily,hourly,tape,offsite',
         ]);
 
         $user = $request->user();
@@ -955,8 +958,8 @@ class ServerController extends Controller
         $user = $request->user();
         $server = Server::whereHas('rack.room', fn($q) => $q->where('user_id', $user->id))->findOrFail($id);
 
-        if ($server->status !== ServerStatus::ONLINE && $server->status !== ServerStatus::DEGRADED) {
-            return response()->json(['success' => false, 'error' => 'Server muss online sein.'], 400);
+        if (!$server->is_mining && $server->status !== ServerStatus::ONLINE && $server->status !== ServerStatus::DEGRADED) {
+            return response()->json(['success' => false, 'error' => 'Server muss online sein, um Mining zu starten.'], 400);
         }
 
         $server->is_mining = !$server->is_mining;

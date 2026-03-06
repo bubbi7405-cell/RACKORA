@@ -165,6 +165,13 @@ class CustomerOrderService
                 $satisfactionPenalty += 1.5;
             }
 
+            // Apply Specialization Penalty Multiplier (e.g. Mass Market / Discount King)
+            $specService = app(SpecializationService::class);
+            $spec = $specService->getActiveModifiers($user);
+            if (isset($spec['passives']['satisfaction_penalty_multiplier'])) {
+                $satisfactionPenalty *= (float) $spec['passives']['satisfaction_penalty_multiplier'];
+            }
+
             // Apply penalty if found
             if ($satisfactionPenalty > 0) {
                 $customer->satisfaction = max(0, $customer->satisfaction - $satisfactionPenalty);
@@ -301,6 +308,13 @@ class CustomerOrderService
         // Apply NPC Competition Penalty
         $competitiveModifier = $this->marketService->getCompetitiveModifier($user);
         $chance *= $competitiveModifier;
+
+        // Apply Specialization Boost (Discount King / Mass Market)
+        $specService = app(SpecializationService::class);
+        $spec = $specService->getActiveModifiers($user);
+        if (isset($spec['passives']['order_frequency_boost'])) {
+            $chance *= (float) $spec['passives']['order_frequency_boost'];
+        }
 
         // Apply Strategic Policy Modifier: market_focus
         $marketFocus = $user->economy->getPolicy('market_focus', 'balanced');
@@ -575,6 +589,12 @@ class CustomerOrderService
         $targetRegion = $customer->preferences['target_region'] ?? 'us_east';
         $baseRequirements = $this->generateRequirements($type, $level, $targetRegion);
         $requirements = $baseRequirements;
+
+        // FEATURE 95: Global Data Compliance (GDPR/Data Sovereignty)
+        if ($customer->preferences['is_compliance_heavy'] ?? false) {
+            $requirements['required_region'] = $targetRegion;
+            $baseRequirements['required_region'] = $targetRegion;
+        }
 
         // SLA Tier
         if ($preSelectedSla) {
@@ -908,6 +928,17 @@ class CustomerOrderService
             throw new \Exception("Security too low: Customer requires {$requiredSecurity}% patch level. Server has {$server->security_patch_level}%. Update OS first.");
         }
 
+        // FEATURE 95: Global Data Compliance (GDPR/Data Sovereignty)
+        $requiredRegion = $order->requirements['required_region'] ?? null;
+        if ($requiredRegion) {
+            $roomRegion = $server->rack->room->region ?? 'unknown';
+            if ($roomRegion !== $requiredRegion) {
+                $regionName = \App\Models\GameConfig::get('regions', [])[$requiredRegion]['name'] ?? $requiredRegion;
+                $srvRegionName = \App\Models\GameConfig::get('regions', [])[$roomRegion]['name'] ?? $roomRegion;
+                throw new \Exception("Data Sovereignty Violation: Client requires GDPR/Local data compliance in {$regionName}. Cannot provision in {$srvRegionName}.");
+            }
+        }
+
         // Check occupancy
         if ($server->type === \App\Enums\ServerType::SHARED_NODE && !in_array($order->product_type, ['web_hosting', 'database_hosting'])) {
             throw new \Exception("Shared Hosting Nodes can only accept Web or DB hosting contracts.");
@@ -1016,6 +1047,33 @@ class CustomerOrderService
             // Dedicated
             // Maybe lock server?
         }
+    }
+
+    /**
+     * FEATURE 61: Hybrid Cloud Bursting
+     * Rent temporary external capacity for an order.
+     */
+    public function assignToCloud(User $user, CustomerOrder $order): void
+    {
+        if (!$this->researchService->isUnlocked($user, 'cloud_bursting')) {
+            throw new \Exception("Hybrid Cloud Bursting research not unlocked.");
+        }
+
+        if (!$order->isPending()) {
+            throw new \Exception("Order is not pending.");
+        }
+
+        // Provisioning in the cloud is fast but expensive
+        $duration = 10; // 10 seconds (near instant)
+
+        $order->assigned_server_id = null; // No local server
+        $order->status = 'provisioning'; 
+        $order->provisioning_started_at = now();
+        $order->provisioning_completes_at = now()->addSeconds((int)$duration);
+        $order->metadata = array_merge($order->metadata ?? [], ['is_cloud' => true]);
+        $order->save();
+
+        GameLog::log($user, "CLOUD BURST: Provisioned {$order->product_type} contract in public cloud. High operational cost active.", 'info', 'infrastructure');
     }
 
     private function generateContactName(): string

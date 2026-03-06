@@ -26,6 +26,7 @@ class Customer extends Model
         'last_incident_at',
         'churn_at',
         'preferences',
+        'metadata',
     ];
 
     protected $casts = [
@@ -35,6 +36,7 @@ class Customer extends Model
         'last_incident_at' => 'datetime',
         'churn_at' => 'datetime',
         'preferences' => 'array',
+        'metadata' => 'json',
     ];
 
     public function user(): BelongsTo

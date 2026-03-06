@@ -9,8 +9,11 @@
                         <div class="h-main">
                             <div class="h-ring">
                                 <svg viewBox="0 0 36 36">
-                                    <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                    <path class="circle" :class="healthClass" :stroke-dasharray="(server.health || 0) + ', 100'" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    <path class="circle-bg"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    <path class="circle" :class="healthClass"
+                                        :stroke-dasharray="(server.health || 0) + ', 100'"
+                                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                                 </svg>
                                 <div class="h-text">
                                     <strong>{{ Math.round(server.health || 0) }}%</strong>
@@ -19,7 +22,8 @@
                             </div>
                             <div class="h-info">
                                 <div class="h-status" :class="healthClass">
-                                    {{ (server.health || 0) > 90 ? 'OPTIMAL' : ((server.health || 0) > 50 ? 'DEGRADIERT' : 'KRITISCH') }}
+                                    {{ (server.health || 0) > 90 ? 'OPTIMAL' : ((server.health || 0) > 50 ? 'DEGRADIERT'
+                                        : 'KRITISCH') }}
                                 </div>
                                 <div v-if="server.currentFault" class="v3-fault-alert">
                                     ⚠️ {{ server.currentFault }}
@@ -34,22 +38,28 @@
                     <div class="v3-lifecycle">
                         <div class="l-row">
                             <span>Akkumulierter Verschleiß:</span>
-                            <strong :class="getWearClass(server.aging?.wearPercentage || 0)">{{ (server.aging?.wearPercentage || 0).toFixed(2) }}%</strong>
+                            <strong :class="getWearClass(server.aging?.wearPercentage || 0)">{{
+                                (server.aging?.wearPercentage || 0).toFixed(2) }}%</strong>
                         </div>
                         <div class="l-row">
                             <span>Geschätzte Restlaufzeit:</span>
-                            <strong>{{ Math.max(0, 100 - (server.aging?.wearPercentage || 0)).toFixed(0) }} Zyklen</strong>
+                            <strong>{{ Math.max(0, 100 - (server.aging?.wearPercentage || 0)).toFixed(0) }}
+                                Zyklen</strong>
                         </div>
                         <div class="v3-progress-flat wear">
-                            <div class="fill" :class="getWearClass(server.aging?.wearPercentage || 0)" :style="{ width: (server.aging?.wearPercentage || 0) + '%' }"></div>
+                            <div class="fill" :class="getWearClass(server.aging?.wearPercentage || 0)"
+                                :style="{ width: (server.aging?.wearPercentage || 0) + '%' }"></div>
                         </div>
                     </div>
                     <div class="v3-pfa-zone" v-if="player?.research?.monitoring_v1" style="margin-top: 20px;">
                         <label>PREDICTIVE_FAILURE_ANALYSIS</label>
                         <div class="v3-progress-flat small danger">
-                            <div class="fill" :style="{ width: Math.min(100, (server.aging?.wearPercentage || 0) * 1.5) + '%' }"></div>
+                            <div class="fill"
+                                :style="{ width: Math.min(100, (server.aging?.wearPercentage || 0) * 1.5) + '%' }">
+                            </div>
                         </div>
-                        <small class="hint">Wahrscheinlichkeit eines Totalausfalls: {{ ((server.aging?.wearPercentage || 0) * 0.2).toFixed(1) }}%</small>
+                        <small class="hint">Wahrscheinlichkeit eines Totalausfalls: {{ ((server.aging?.wearPercentage ||
+                            0) * 0.2).toFixed(1) }}%</small>
                     </div>
                 </div>
             </div>
@@ -66,15 +76,17 @@
                         <strong class="val">{{ player?.economy?.spare_parts_count || 0 }} KITS</strong>
                     </div>
                 </div>
-                
+
                 <div class="v3-hw-grid" style="margin-top: 20px;">
-                    <div class="v3-hw-slot" :class="{ disabled: (player?.economy?.spare_parts_count || 0) < 1 || server.health >= 100 }">
+                    <div class="v3-hw-slot"
+                        :class="{ disabled: (player?.economy?.spare_parts_count || 0) < 1 || server.health >= 100 }">
                         <div class="v3-icon">🔧</div>
                         <div class="slot-info">
                             <div class="n">KIT_ANWENDEN</div>
                             <div class="v">+25% Integrität (SOFORT)</div>
                         </div>
-                        <button class="btn-primary-v3-sm" @click="useSparePart" :disabled="processing || (player?.economy?.spare_parts_count || 0) < 1 || (server.health || 0) >= 100">
+                        <button class="btn-primary-v3-sm" @click="useSparePart"
+                            :disabled="processing || (player?.economy?.spare_parts_count || 0) < 1 || (server.health || 0) >= 100">
                             AKTIVIEREN
                         </button>
                     </div>
@@ -84,7 +96,8 @@
                             <div class="n">LOGISTIK_ORDER</div>
                             <div class="v">$500 pro Revision-Kit</div>
                         </div>
-                        <button class="btn-v3-ghost-sm" @click="buySpareParts" :disabled="processing || (player?.economy?.balance || 0) < 500">
+                        <button class="btn-v3-ghost-sm" @click="buySpareParts"
+                            :disabled="processing || (player?.economy?.balance || 0) < 500">
                             BESTELLEN
                         </button>
                     </div>
@@ -123,16 +136,27 @@
                 <div class="cat-content">
                     <h3>TOTALAUSFALL DER HARDWARE</h3>
                     <p>End-of-Life erreicht. Dieses System ist irreparabel beschädigt.</p>
-                    <button class="btn-scrap-emergency" @click="sellServer">ALS RECYCLING-SCHROTT VERKAUFEN (${{ Math.round(server.resaleValue || 0).toLocaleString() }})</button>
+                    <button class="btn-scrap-emergency" @click="sellServer">ALS RECYCLING-SCHROTT VERKAUFEN (${{
+                        Math.round(server.resaleValue || 0).toLocaleString() }})</button>
                 </div>
             </div>
         </div>
+
+        <ConfirmationModal :show="showScrapConfirm" title="HARDWARE_RECYCLING_BESTÄTIGUNG"
+            message="Sind Sie sicher, dass Sie diesen Server VERSCHROTTEN wollen?"
+            warning="Alle Daten und aktiven Kundenaufträge werden unwiderruflich zerstört!"
+            confirm-label="VERSCHROTTUNG_DURCHFÜHREN" type="danger" @confirm="executeScrap"
+            @cancel="showScrapConfirm = false" />
     </div>
 </template>
 
 <script setup>
 import api from '../../../../utils/api';
 import { useGameStore } from '../../../../stores/game';
+import ConfirmationModal from '../../../UI/ConfirmationModal.vue';
+import { ref } from 'vue';
+
+const showScrapConfirm = ref(false);
 
 const props = defineProps({
     server: { type: Object, required: true },
@@ -176,16 +200,18 @@ const buySpareParts = async () => {
     }
 };
 
-const sellServer = async () => {
-    if (!confirm('Sind Sie sicher, dass Sie diesen Server VERSCHROTTEN wollen? Alle Daten und Aufträge werden unwiderruflich zerstört.')) return;
+const sellServer = () => {
+    showScrapConfirm.value = true;
+};
+
+const executeScrap = async () => {
+    showScrapConfirm.value = false;
     emit('processing-start');
     try {
         const response = await api.post('/hardware/sell', { server_id: props.server.id });
         if (response.success) {
             emit('close');
             gameStore.loadGameState();
-        } else {
-            alert(response.message || 'Server konnte nicht verkauft werden.');
         }
     } finally {
         emit('processing-end');

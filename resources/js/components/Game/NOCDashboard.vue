@@ -4,8 +4,14 @@
         <div class="noc-sidebar">
             <div class="noc-panel-header">
                 <span class="header-icon">🚨</span>
-                <span class="header-title">ACTIVE_INCIDENTS</span>
-                <span class="active-count">{{ activeEvents.length }}</span>
+                <span class="header-title l2-priority">
+                    INCIDENT_VECTORS_DETECTED // [LOG_SYNC]
+                    <span class="v3-info-trigger" 
+                        @mouseenter="tooltipStore.show($event, { title: 'INCIDENT_TRACKER', content: 'Aggregated view of all technical, security, and environmental issues affecting your network.', hint: 'Unresolved incidents degrade customer SLA.' })"
+                        @mouseleave="tooltipStore.hide()"
+                    >ⓘ</span>
+                </span>
+                <span class="active-count l1-priority">{{ activeEvents.length }}</span>
             </div>
 
             <div class="incident-list">
@@ -13,23 +19,28 @@
                     v-for="event in activeEvents" 
                     :key="event.id" 
                     class="incident-item"
-                    :class="['severity-' + event.severity, { 'selected': selectedEvent?.id === event.id }]"
+                    :class="[{ 'is-active': selectedEvent?.id === event.id }, 'severity-' + event.severity]"
                     @click="selectedEvent = event"
+                    @mouseenter="tooltipStore.show($event, { title: 'EVENT: ' + event.typeLabel, content: 'Severity: ' + event.severity + '. Affecting: ' + event.affected_server_id, hint: 'Select to see mitigation options.' })"
+                    @mouseleave="tooltipStore.hide()"
                 >
-                    <div class="incident-item__header">
-                        <span class="incident-type">{{ event.typeLabel }}</span>
-                        <span class="incident-timer">{{ formatRemaining(event) }}</span>
+                    <div class="pulse-indicator l1-priority"></div>
+                    <div class="incident-content">
+                        <div class="type l2-priority text-uppercase">{{ event.typeLabel }}</div>
+                        <div class="target l3-priority">UID_FRAG: {{ event.affected_server_id.toString().slice(-8) }}</div>
                     </div>
-                    <div class="incident-title">{{ event.title }}</div>
-                    <div class="incident-progress">
-                        <div class="progress-bar" :style="{ width: getProgressWidth(event) + '%' }"></div>
+                    <div class="incident-meta l3-priority">
+                        <div class="time">{{ event.relativeTime }}</div>
                     </div>
                 </div>
 
-                <div v-if="activeEvents.length === 0" class="noc-empty">
+                <div v-if="activeEvents.length === 0" class="empty-incidents"
+                    @mouseenter="tooltipStore.show($event, { title: 'SYSTEM_NOMINAL', content: 'All network services are performing within expected parameters.', hint: 'Great job, NOC operator!' })"
+                    @mouseleave="tooltipStore.hide()"
+                >
                     <div class="empty-icon">🛡️</div>
-                    <div class="empty-text">SYSTEMS_NOMINAL</div>
-                    <div class="empty-sub">Monitor telemetry for anomalies.</div>
+                    <div class="empty-text l2-priority">DOMINANCE_STABLE</div>
+                    <div class="empty-sub l3-priority">Scan complete. No anomalies detected.</div>
                 </div>
             </div>
         </div>
@@ -38,26 +49,36 @@
         <div class="noc-main">
             <!-- Header Telemetry Row -->
             <div class="noc-telemetry-row">
-                <div class="telemetry-card">
-                    <div class="tel-label">AVG_LATENCY</div>
-                    <div class="tel-value">{{ latency?.toFixed(1) || '0.0' }}ms</div>
-                    <div class="tel-chart">
-                        <!-- Simplified Sparkline -->
-                        <div v-for="(v, i) in 20" :key="i" class="spark-bar" :style="{ height: (Math.random() * 40 + 10) + '%' }"></div>
-                    </div>
-                </div>
-                <div class="telemetry-card">
-                    <div class="tel-label">PACKET_LOSS</div>
-                    <div class="tel-value text-danger">{{ packetLossPercent?.toFixed(2) || '0.00' }}%</div>
-                    <div class="tel-chart">
-                         <div v-for="(v, i) in 20" :key="i" class="spark-bar" :style="{ height: (Math.random() * 10 + (packetLossPercent > 0 ? 30 : 5)) + '%' }"></div>
-                    </div>
-                </div>
-                <div class="telemetry-card">
-                    <div class="tel-label">THROUGHPUT</div>
-                    <div class="tel-value text-accent">{{ bandwidthGbps?.toFixed(1) || '0.0' }} Gbps</div>
+                <div class="telemetry-card l2-priority"
+                    @mouseenter="tooltipStore.show($event, { title: 'AVG_LATENCY', content: 'Average response time across all active nodes.', hint: 'High latency leads to churn in high-tier customers.' })"
+                    @mouseleave="tooltipStore.hide()"
+                >
+                    <div class="tel-label l3-priority">PROPAGATION_DELAY</div>
+                    <div class="tel-value l1-priority">{{ latency?.toFixed(1) || '0.0' }}ms</div>
                     <div class="tel-chart">
                          <div v-for="(v, i) in 20" :key="i" class="spark-bar" :style="{ height: (Math.random() * 60 + 20) + '%' }"></div>
+                    </div>
+                </div>
+
+                <div class="telemetry-card l2-priority"
+                    @mouseenter="tooltipStore.show($event, { title: 'NET_THROUGHPUT', content: 'Sum of all incoming and outgoing data flows.', hint: 'Check Infrastructure for room bandwidth limits.' })"
+                    @mouseleave="tooltipStore.hide()"
+                >
+                    <div class="tel-label l3-priority">SIGNAL_VOLUME_SATURATION</div>
+                    <div class="tel-value l1-priority">{{ bandwidthGbps?.toFixed(1) || '0.0' }}Gbps</div>
+                    <div class="tel-chart">
+                         <div v-for="(v, i) in 20" :key="i" class="spark-bar" :style="{ height: (Math.random() * 40 + 40) + '%' }"></div>
+                    </div>
+                </div>
+
+                <div class="telemetry-card l2-priority"
+                    @mouseenter="tooltipStore.show($event, { title: 'ERROR_RATE', content: 'Percentage of failing network packets or node responses.', hint: 'Caused by hardware wear, bad routing, or software bugs.' })"
+                    @mouseleave="tooltipStore.hide()"
+                >
+                    <div class="tel-label l3-priority">PACKET_HEMORRHAGE_INDEX</div>
+                    <div class="tel-value l1-priority text-danger">{{ packetLossPercent?.toFixed(2) || '0.00' }}%</div>
+                    <div class="tel-chart">
+                         <div v-for="(v, i) in 20" :key="i" class="spark-bar" :style="{ height: (Math.random() * 30 + (packetLossPercent > 0.5 ? 50 : 10)) + '%' }"></div>
                     </div>
                 </div>
             </div>
@@ -65,20 +86,23 @@
             <!-- Focus Area -->
             <div class="noc-focus">
                 <div v-if="selectedEvent" class="event-details">
-                    <div class="details-header">
-                        <div class="details-type" :class="'severity-' + selectedEvent.severity">{{ selectedEvent.typeLabel }}</div>
-                        <h2 class="details-title">{{ selectedEvent.title }}</h2>
-                        <p class="details-desc">{{ selectedEvent.description }}</p>
+                    <div class="details-header"
+                        @mouseenter="tooltipStore.show($event, { title: 'EVENT_FOCUS', content: 'Direct command access for the current incident.', hint: 'Action execution takes time and credit resources.' })"
+                        @mouseleave="tooltipStore.hide()"
+                    >
+                        <div class="details-type l2-priority" :class="'severity-' + selectedEvent.severity">{{ selectedEvent.typeLabel }} // [CMD_ACTIVE]</div>
+                        <h2 class="details-title l1-priority">{{ selectedEvent.title }}</h2>
+                        <p class="details-desc l3-priority">{{ selectedEvent.description }}</p>
                     </div>
 
                     <div class="impact-stats">
                         <div class="stat">
-                            <span class="label">AFFECTED_CUSTOMERS</span>
-                            <span class="value">{{ selectedEvent.affected_customers_count }}</span>
+                            <span class="label l3-priority">REVENUE_VULNERABILITY_INDEX</span>
+                            <span class="value l1-priority">{{ selectedEvent.affected_customers_count }}</span>
                         </div>
                         <div class="stat" v-if="selectedEvent.affected_server_id">
-                            <span class="label">TARGET_UID</span>
-                            <span class="value">{{ selectedEvent.affected_server_id.toString().slice(-8) }}</span>
+                            <span class="label l3-priority">TARGET_COORDINATE_UID</span>
+                            <span class="value l1-priority">{{ selectedEvent.affected_server_id.toString().slice(-8) }}</span>
                         </div>
                     </div>
 
@@ -87,8 +111,10 @@
                             v-for="action in selectedEvent.available_actions" 
                             :key="action.id"
                             class="action-card"
-                            :class="{ 'disabled': isResolving || !canAfford(action) }"
+                            :class="{ 'is-disabled': !canAfford(action) || isResolving }"
                             @click="handleAction(action)"
+                            @mouseenter="tooltipStore.show($event, { title: 'MITIGATION_PROTOCOL: ' + action.label, content: 'Cost: $' + action.cost + ' | Duration: ' + action.duration + 's', hint: 'This action will reduce the risk of further fallout.' })"
+                            @mouseleave="tooltipStore.hide()"
                         >
                             <div class="action-top">
                                 <span class="action-label">{{ action.label }}</span>
@@ -106,12 +132,18 @@
                 <div v-else class="noc-landing">
                     <div class="grid-background"></div>
                     <div class="landing-content">
-                        <div class="pulse-ring"></div>
-                        <h3>NETWORK_OPERATIONS_CENTER</h3>
-                        <p>Awaiting incident trigger. All regional nodes verifying integrity.</p>
+                        <div class="pulse-ring"
+                            @mouseenter="tooltipStore.show($event, { title: 'GLOBAL_SCAN', content: 'The NOC is currently scanning for signal interference and node health.', hint: 'Idle NOC time is good time.' })"
+                            @mouseleave="tooltipStore.hide()"
+                        ></div>
+                        <h3 class="l1-priority">WAR_ROOM_OPERATIONS // [GLOBAL_SEC]</h3>
+                        <p class="l3-priority">Awaiting incident trigger. All regional nodes verifying integrity.</p>
                         
                         <div class="regional-status">
-                            <div v-for="reg in regions" :key="reg.id" class="region-pip">
+                            <div v-for="reg in regions" :key="reg.id" class="region-pip"
+                                @mouseenter="tooltipStore.show($event, { title: 'NODE_PRESENCE: ' + reg.name, content: 'Operational status: ONLINE', hint: 'No active incidents detected in this region.' })"
+                                @mouseleave="tooltipStore.hide()"
+                            >
                                 <span class="pip-dot" :class="reg.status"></span>
                                 <span class="pip-name">{{ reg.name }}</span>
                             </div>
@@ -127,6 +159,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useGameStore } from '../../stores/game';
 import { useNetworkStore } from '../../stores/network';
+import { useTooltipStore } from '../../stores/tooltip';
 import { useInfrastructureStore } from '../../stores/infrastructure';
 import { useEventsStore } from '../../stores/events';
 import { storeToRefs } from 'pinia';
@@ -535,5 +568,29 @@ onMounted(() => {
 .pip-dot { width: 8px; height: 8px; border-radius: 50%; }
 .pip-dot.online { background: var(--v3-success); box-shadow: 0 0 5px var(--v3-success); }
 .pip-name { font-size: 0.6rem; font-weight: 800; opacity: 0.5; }
+
+.v3-info-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(88, 166, 255, 0.15);
+    color: #58a6ff;
+    font-size: 10px;
+    font-weight: 800;
+    cursor: help;
+    margin-left: 6px;
+    vertical-align: middle;
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    transition: all 0.2s;
+}
+
+.v3-info-trigger:hover {
+    background: #58a6ff;
+    color: #05070a;
+    box-shadow: 0 0 10px rgba(88, 166, 255, 0.4);
+}
 
 </style>

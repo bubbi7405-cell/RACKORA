@@ -58,6 +58,7 @@ const isOpen = ref(false);
 const currentTime = ref(new Date().toLocaleTimeString());
 
 const emit = defineEmits([
+    'openNocWall',
     'openMarketing', 
     'openCustomers', 
     'openEmployees', 
@@ -83,6 +84,7 @@ const handleAction = (actionId) => {
 };
 
 const actions = [
+    { id: 'openNocWall', label: 'NOC_WALL', icon: '📺', desc: 'Full-screen Ops View' },
     { id: 'openMarketing', label: 'MARKETING', icon: '📢', desc: 'Campaign Management' },
     { id: 'openCustomers', label: 'CUSTOMERS', icon: '👥', desc: 'SLA & Entity Metrics' },
     { id: 'openEmployees', label: 'WORKFORCE', icon: '👔', desc: 'Human Capital' },

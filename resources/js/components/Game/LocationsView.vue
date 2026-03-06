@@ -2,30 +2,30 @@
     <div class="locations-view animate-view">
         <header class="view-header">
             <div class="header-main">
-                <nav class="breadcrumb">
-                    <span class="root">SYSTEMS</span>
+                <nav class="breadcrumb l3-priority">
+                    <span class="root">NETWORK</span>
                     <span class="sep">/</span>
-                    <span class="active">GLOBAL_ASSETS</span>
+                    <span class="active">INFRASTRUCTURE</span>
                 </nav>
-                <h2 class="view-title">INFRASTRUCTURE_NODES</h2>
+                <h2 class="view-title l1-priority">SITES_OVERVIEW // [ACTIVE_NETWORK]</h2>
             </div>
             <div class="header-stats">
                 <div class="h-stat">
-                    <span class="hs-label">ACTIVE_NODES</span>
-                    <span class="hs-val">{{ Object.keys(rooms).length }}</span>
+                    <span class="hs-label l3-priority">ACTIVE_SITES</span>
+                    <span class="hs-val l1-priority">{{ Object.keys(rooms).length }}</span>
                 </div>
                 <div class="h-stat">
-                    <span class="hs-label">TOTAL_CAPACITY</span>
-                    <span class="hs-val">{{ totalCapacity }}U</span>
+                    <span class="hs-label l3-priority">GLOBAL_CAPACITY</span>
+                    <span class="hs-val l1-priority">{{ totalCapacity }}U</span>
                 </div>
             </div>
         </header>
 
         <div class="locations-content">
-            <!-- Active Nodes Section -->
+            <!-- Active Sites Section -->
             <section class="nodes-section">
                 <div class="section-header">
-                    <span class="section-label">OPERATIONAL_DEPLOYS</span>
+                    <span class="section-label l2-priority">NETWORK_SITES</span>
                     <div class="section-line"></div>
                 </div>
 
@@ -39,10 +39,10 @@
                     >
                         <div class="node-header">
                             <div class="node-meta">
-                                <span class="node-type">{{ room.type.toUpperCase() }}</span>
-                                <h3 class="node-name">{{ room.name }}</h3>
+                                <span class="node-type l3-priority">{{ room.type.toUpperCase() }}_SITE</span>
+                                <h3 class="node-name l1-priority">{{ room.name }}</h3>
                             </div>
-                            <div class="node-region" v-if="getRegion(room.region)">
+                            <div class="node-region l3-priority" v-if="getRegion(room.region)">
                                 <span class="region-flag">{{ getRegion(room.region).flag }}</span>
                                 <span class="region-name">{{ getRegion(room.region).name.toUpperCase() }}</span>
                             </div>
@@ -50,7 +50,7 @@
 
                         <div class="node-metrics">
                             <div class="metric-mini">
-                                <span class="mm-label">RACK_SPACE</span>
+                                <span class="mm-label">RACK_DENSITY</span>
                                 <div class="mm-bar-bg">
                                     <div class="mm-bar" :style="{ width: (room.usedRacks / room.maxRacks * 100) + '%' }"></div>
                                 </div>
@@ -69,9 +69,9 @@
                         <div class="node-footer">
                             <div class="status-indicator">
                                 <span class="status-pip online"></span>
-                                <span class="status-text">NOMINAL</span>
+                                <span class="status-text l1-priority">NOMINAL</span>
                             </div>
-                            <button class="node-action">ACCESS_NODE</button>
+                            <button class="node-action l2-priority" @click="gameStore.selectRoom(room.id)">MANAGE_SITE</button>
                         </div>
                     </div>
                 </div>
@@ -80,7 +80,7 @@
             <!-- Expansion Section -->
             <section class="nodes-section expansion">
                 <div class="section-header">
-                    <span class="section-label">EXPANSION_OPPORTUNITIES</span>
+                    <span class="section-label l2-priority">EXPANSION_PIPELINE</span>
                     <div class="section-line"></div>
                 </div>
 
@@ -93,7 +93,7 @@
                     >
                         <div class="node-header">
                             <div class="node-meta">
-                                <span class="node-type">DEPLOYMENT PLAN</span>
+                                <span class="node-type">PLANNED_SITE</span>
                                 <h3 class="node-name">{{ roomType.name }}</h3>
                                 <p style="font-size:0.6rem; color:var(--color-muted); margin-top:8px;">{{ roomType.desc }}</p>
                             </div>
@@ -101,21 +101,21 @@
 
                         <div class="node-requirements">
                             <div class="req-item" :class="{ 'met': player.economy.level >= roomType.level }">
-                                <span class="req-label">REQUIRED_LEVEL</span>
-                                <span class="req-val">LVL_{{ roomType.level }}</span>
+                                <span class="req-label">REQUIRED_TIER</span>
+                                <span class="req-val">TIER_{{ roomType.level }}</span>
                             </div>
                             <div class="req-item" :class="{ 'met': canAfford(roomType.cost) }">
-                                <span class="req-label">ACQUISITION_COST</span>
+                                <span class="req-label">ACQUISITION_PRICE</span>
                                 <span class="req-val">${{ (roomType.cost / 1000).toFixed(0) }}K</span>
                             </div>
                         </div>
 
                         <button 
-                            class="purchase-btn"
+                            class="purchase-btn l1-priority"
                             :disabled="player.economy.level < roomType.level || !canAfford(roomType.cost)"
                             @click="purchaseRoom(key)"
                         >
-                            ACQUIRE_ASSET
+                            ACQUIRE
                         </button>
                     </div>
                 </div>
@@ -205,7 +205,7 @@ const purchaseRoom = (type) => {
 .header-stats { display: flex; gap: 40px; }
 .h-stat { display: flex; flex-direction: column; align-items: flex-end; }
 .hs-label { font-size: 0.55rem; font-weight: 800; color: var(--color-muted); letter-spacing: 0.1em; }
-.hs-val { font-size: 1.2rem; font-family: var(--font-mono); color: var(--color-accent); font-weight: 800; }
+.hs-val { font-size: 1.2rem; font-family: var(--font-mono); font-weight: 800; }
 
 .locations-content {
     padding: var(--space-3xl);

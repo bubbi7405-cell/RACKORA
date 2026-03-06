@@ -1,159 +1,144 @@
 <template>
-    <aside class="left-panel">
-        <div class="panel-header">
-            <div class="sys-label">METRIC_EXTRACTION_SYSTEM</div>
-            <h3 class="panel-header__title">NODE_TELEMETRY</h3>
+    <aside class="left-panel v2-left-panel">
+        <div class="panel-header l1-priority">
+            <div class="sys-label l3-priority">ASSET_IDENTIFICATION // [VERIFIED]</div>
+            <h3 class="panel-header__title">SITE_PORTFOLIO</h3>
         </div>
 
-        <div class="panel-content">
+        <div class="panel-content scroll-v2">
             <!-- Current Room Status -->
             <div class="panel-section current-node">
-                <div class="section-label-industrial">ACTIVE_UNIT</div>
-                <div class="node-summary glass-panel animate-glitch" v-if="selectedRoom"
-                    v-tooltip="{ title: 'Aktiver Knotenpunkt', content: 'Dies ist dein aktuell ausgewähltes Rechenzentrum.', hint: 'Klicke in der Locations-Ansicht auf ein anderes DC zum Wechseln.' }">
-                    <div class="scan-line"></div>
+                <div class="section-label-industrial l2-priority">ACTIVE_SITE</div>
+                <div class="node-summary glass-v2" v-if="selectedRoom"
+                    @mouseenter="tooltipStore.show($event, { title: 'SITE_DESIGNATION', content: 'The currently active infrastructure site. All executive actions apply to this location.', hint: 'Switch focus in GLOBAL_NETWORK.' })"
+                    @mouseleave="tooltipStore.hide()">
                     <div class="node-meta-top">
-                        <span class="node-type-label">{{ selectedRoom.type?.toUpperCase() || 'NODE' }}</span>
+                        <span class="node-type-label l2-priority">UNIT_TYPE: {{ selectedRoom.type?.toUpperCase() || 'NODE' }}</span>
                         <div class="node-indicators">
-                            <div v-if="selectedRoom.warnings?.overheating" class="ind danger"
-                                v-tooltip="'KRITISCHE_HITZE: Sofortige Reparatur oder Kühlung erforderlich!'">!</div>
-                            <div v-if="selectedRoom.warnings?.powerOverload" class="ind danger"
-                                v-tooltip="'STROM_LIMIT: Das DC verbraucht mehr Energie als verfügbar!'">P</div>
+                            <span class="status-badge l2-priority" :class="{ 'is-active': selectedRoom.status === 'online' }">
+                                {{ selectedRoom.status === 'online' ? '[ACTIVE]' : '[OFFLINE]' }}
+                            </span>
                         </div>
                     </div>
-                    <div class="node-name-main">{{ selectedRoom.name }}</div>
+                    <div class="node-name-main l1-priority">{{ selectedRoom.name.toUpperCase() }}</div>
+                    <div class="node-sub-meta l3-priority">SITE_CONNECTED // [LINK_STABLE]</div>
                 </div>
             </div>
 
             <!-- Global Facility Overview -->
             <div class="panel-section">
-                <DatacenterMinimap />
+                <div class="section-label-industrial l2-priority">NETWORK_TOPOLOGY</div>
+                <DatacenterMinimap class="minimap-v2" />
             </div>
 
             <!-- Quick Stats -->
             <div class="panel-section">
-                <div class="section-label-industrial">REGION_METRICS</div>
+                <div class="section-label-industrial l3-priority">SITE_METRICS</div>
                 <div class="quick-stats">
-                    <div class="quick-stat"
-                        v-tooltip="{ title: 'HE-Kapazität', content: 'Die Summe aller verfügbaren Höheneinheiten (U) in diesem Gebäude.', hint: 'Jeder Server belegt 1-4U.' }">
-                        <span class="quick-stat__label">U_CAPACITY</span>
-                        <span class="quick-stat__value">{{ stats.totalRacks * 42 }}U</span>
+                    <div class="quick-stat glass-v2"
+                        @mouseenter="tooltipStore.show($event, 'rack')"
+                        @mouseleave="tooltipStore.hide()">
+                        <span class="quick-stat__label l3-priority">CAPACITY</span>
+                        <span class="quick-stat__value l3-priority" :class="{ 'l1-priority text-critical': stats.utilization > 0.9 }">
+                            {{ (stats.totalRacks || 0) * 42 }}U
+                        </span>
                     </div>
-                    <div class="quick-stat"
-                        v-tooltip="{ title: 'Aktive Nodes', content: 'Anzahl der physisch installierten Server-Blades in diesem DC.' }">
-                        <span class="quick-stat__label">NODES</span>
-                        <span class="quick-stat__value">{{ stats.totalServers }}</span>
+                    <div class="quick-stat glass-v2"
+                        @mouseenter="tooltipStore.show($event, 'server')"
+                        @mouseleave="tooltipStore.hide()">
+                        <span class="quick-stat__label l3-priority">ASSETS</span>
+                        <span class="quick-stat__value l3-priority">{{ stats.totalServers || 0 }}</span>
                     </div>
-                    <div class="quick-stat wide"
-                        v-tooltip="{ title: 'Verfügbarkeits-SLO', content: 'Die durchschnittliche Betriebszeit deiner Hardware in diesem Monat.', hint: 'Fällt der Wert unter 99.9%, drohen Vertragsstrafen!' }">
-                        <span class="quick-stat__label">UPTIME_SLO</span>
-                        <div class="mini-bar-bg">
-                            <div class="mini-bar data-fill" :style="{ width: stats.uptime + '%' }"
+                    <div class="quick-stat glass-v2 wide"
+                        @mouseenter="tooltipStore.show($event, { title: 'STABILITY', content: 'Percentage of continuous operational uptime.', hint: 'Maintain power yields to preserve stability.' })"
+                        @mouseleave="tooltipStore.hide()">
+                        <span class="quick-stat__label l3-priority">STABILITY</span>
+                        <div class="mini-bar-bg-v2">
+                            <div class="mini-bar data-fill-v2" :style="{ width: (stats.uptime || 0) + '%' }"
                                 :class="{ 'warning': stats.uptime < 99 }"></div>
                         </div>
-                        <span class="quick-stat__value" :class="{ 'warning': stats.uptime < 99 }">{{
-                            stats.uptime.toFixed(2) }}%</span>
+                        <span class="quick-stat__value l3-priority" :class="{ 'l1-priority text-critical': stats.uptime < 99 }">
+                            {{ (stats.uptime || 0) >= 99.99 ? 'NOMINAL_100%' : (stats.uptime || 0).toFixed(2) + '%' }}
+                        </span>
                     </div>
                 </div>
             </div>
 
-            <!-- Management Actions -->
-            <div class="panel-section">
-                <div class="section-label-industrial">OVERSIGHT_PROTOCOLS</div>
-                <div class="action-grid">
-                    <button class="action-btn glass-panel" @click="$emit('openResearch')"
-                        v-tooltip="'Öffnet das Forschungszentrum für neue Technologien.'">
-                        <span class="action-icon">⌬</span>
-                        <span>RD_LABS</span>
-                        <div v-if="gameStore.research.active" class="active-pulse"></div>
+            <!-- Quick Room Actions (contextual) -->
+            <div class="panel-section" v-if="selectedRoom">
+                <div class="section-label-industrial l2-priority">SITE_ACTIONS</div>
+                <div class="action-grid-v2">
+                    <button class="action-btn-v2" @click="$emit('openSandbox')"
+                        @mouseenter="tooltipStore.show($event, { title: 'DEPLOYMENT', content: 'Configure and provision new hardware assets.', hint: 'Requires available rack space.' })"
+                        @mouseleave="tooltipStore.hide()">
+                        <span class="action-icon">⧊</span>
+                        <span>DEPLOYMENT</span>
                     </button>
-                    <button class="action-btn glass-panel" @click="$emit('openSpecialization')"
-                        v-tooltip="'Wähle dein Unternehmens-Spezialisierung (z.B. Security oder Hosting).'">
-                        <span class="action-icon">◧</span>
-                        <span>STRATEGY</span>
-                    </button>
-                    <button class="action-btn glass-panel" @click="$emit('openAnalytics')"
-                        v-tooltip="'Detaillierte Graphen zu Umsatz, Traffic und Hardware-Zustand.'">
-                        <span class="action-icon">📊</span>
-                        <span>INTEL</span>
-                    </button>
-                    <button class="action-btn glass-panel" @click="$emit('openMarket')"
-                        v-tooltip="'Der Broker-Desk für Energie-Arbitrage und Hardware-Börse.'">
-                        <span class="action-icon">📈</span>
-                        <span>EXCHANGE</span>
-                    </button>
-                    <button class="action-btn glass-panel" @click="$emit('openMarketing')"
-                        v-tooltip="'Starte Kampagnen um neue Kunden anzulocken.'">
-                        <span class="action-icon">📣</span>
-                        <span>MARKETING</span>
-                    </button>
-                    <button class="action-btn glass-panel" @click="$emit('openCustomers')"
-                        v-tooltip="'Verwalte deine Kundenbeziehungen und prüfe die Zufriedenheit.'">
-                        <span class="action-icon">CRM</span>
-                        <span>CUSTOMERS</span>
-                    </button>
-                    <button class="action-btn glass-panel" @click="$emit('openSandbox')"
-                        v-tooltip="'Experimentier-Zentrum für Server-Konfigurationen.'">
-                        <span class="action-icon">🧪</span>
-                        <span>HW_LAB</span>
+                    <button class="action-btn-v2" @click="$emit('openLab')"
+                        @mouseenter="tooltipStore.show($event, { title: 'STRESS_TEST', content: 'Execute performance diagnostics to verify asset stability.', hint: 'High power draw during testing.' })"
+                        @mouseleave="tooltipStore.hide()">
+                        <span class="action-icon">⧓</span>
+                        <span>STRESS_TEST</span>
                     </button>
                 </div>
             </div>
 
             <!-- Pending Orders -->
             <div class="panel-section">
-                <div class="section-label-industrial">
-                    QUEUE_INGRESS
-                    <span v-if="orders?.urgentCount > 0" class="urgent-id">[{{ orders.urgentCount }}]</span>
+                <div class="section-label-industrial l2-priority">
+                    PENDING_CONTRACTS // [INBOUND]
+                    <span v-if="orders?.urgentCount > 0" class="urgent-id">[{{ orders.urgentCount }}] // URGENT_SIG</span>
                 </div>
 
-                <div class="order-list">
+                <div class="order-list-v2">
                     <div v-for="order in orders?.pending?.slice(0, 5) || []" :key="order?.id || Math.random()"
-                        v-if="order" @click="gameStore.selectOrder(order)" class="order-item" :class="{
-                            'urgent': (order.patience?.progress || 0) > 70,
-                            'enterprise': order.sla && order.sla.tier === 'enterprise',
-                            'whale': order.sla && order.sla.tier === 'whale'
+                        v-if="order" @click="gameStore.selectOrder(order)" class="order-item-v2" :class="{
+                            'is-urgent': (order.patience?.progress || 0) > 70,
+                            'is-enterprise': order.sla && order.sla.tier === 'enterprise',
+                            'is-whale': order.sla && order.sla.tier === 'whale'
                         }">
-                        <div class="order-id-mark"></div>
+                        <div class="order-id-bracket"></div>
                         <div class="order-body">
-                            <div class="order-customer">{{ order.customerName?.toUpperCase() || 'UNKNOWN' }}</div>
-                            <div class="order-type">{{ order.productType }}</div>
+                            <div class="order-customer l1-priority">{{ order.customerName?.toUpperCase() || 'UNKNOWN' }}</div>
+                            <div class="order-type l3-priority">{{ order.productType }}</div>
                         </div>
                         <div class="order-meta">
-                            <span class="time">{{ formatTime(order.patience?.remainingSeconds || 0) }}</span>
-                            <div class="patience-track">
-                                <div class="p-fill data-fill" :style="{ width: (order.patience?.progress || 0) + '%' }"></div>
+                            <span class="time l2-priority">{{ formatTime(order.patience?.remainingSeconds || 0) }}</span>
+                            <div class="patience-track-v2">
+                                <div class="p-fill-v2" :style="{ width: (order.patience?.progress || 0) + '%' }"></div>
                             </div>
                         </div>
                     </div>
 
-                    <div v-if="!orders?.pending?.length" class="empty-orders">
-                        <div class="empty-icon-static">∅</div>
-                        <span class="text">LIST_EMPTY</span>
+                    <div v-if="!orders?.pending?.length" class="empty-orders-v2 glass-v2" @click="$emit('openMarketing')">
+                        <div class="empty-icon-static animate-flicker">⧓</div>
+                        <span class="text l2-priority">NETWORK_SCAN_ACTIVE...</span>
+                        <span class="sub-text l3-priority">NO_PENDING_CONTRACTS_FOUND</span>
+                        <button class="cta-link-v2 l1-priority">EXPAND_MARKET_REACH</button>
                     </div>
                 </div>
             </div>
 
-            <!-- NEW: Energy & Battery Status -->
+            <!-- Energy & Battery Status -->
             <div class="panel-section" v-if="energyMarket.storage?.battery_count > 0">
-                <div class="section-label-industrial">
+                <div class="section-label-industrial l3-priority">
                     ENERGY_RESERVES
                     <span class="vpp-indicator" v-if="energyMarket.storage?.is_vpp_active">VPP_ACTIVE</span>
                 </div>
-                <div class="energy-mini-card glass-panel" @click="$emit('openMarket')">
-                    <div class="energy-header">
+                <div class="energy-mini-card-v2 glass-v2" @click="$emit('openMarket')">
+                    <div class="energy-header l2-priority">
                         <span class="capacity-text">{{ (energyMarket.storage?.current_level || 0).toFixed(1) }} / {{
                             (energyMarket.storage?.total_capacity || 0).toFixed(0) }} kWh</span>
                         <span class="health-text" :class="healthClass">{{
                             (energyMarket.storage?.average_health || 100).toFixed(0) }}% SOH</span>
                     </div>
-                    <div class="energy-progress-track">
-                        <div class="energy-progress-fill" :style="{ width: storagePercent + '%' }"
+                    <div class="energy-progress-track-v2">
+                        <div class="energy-progress-fill-v2" :style="{ width: storagePercent + '%' }"
                             :class="storageClass"></div>
                     </div>
-                    <div class="energy-footer">
-                        <span class="grid-status">
-                            <span class="pulse-dot" v-if="isDischarging || energyMarket.storage?.is_vpp_active"></span>
+                    <div class="energy-footer l3-priority">
+                        <span class="grid-status-v2">
+                            <span class="pulse-dot-v2" v-if="isDischarging || energyMarket.storage?.is_vpp_active"></span>
                             {{ gridStatusText }}
                         </span>
                         <span class="unit-count">{{ energyMarket.storage?.battery_count || 0 }} UNITS</span>
@@ -167,19 +152,19 @@
 <script setup>
 import { computed } from 'vue';
 import { useGameStore } from '../../stores/game';
+import { useTooltipStore } from '../../stores/tooltip';
 import DatacenterMinimap from './DatacenterMinimap.vue';
-import { storeToRefs } from 'pinia';
 
-const emit = defineEmits(['openUpgrades', 'openResearch', 'openSpecialization', 'openSandbox', 'openMarket', 'openMarketing', 'openAnalytics', 'openCustomers']);
+const emit = defineEmits(['openSandbox', 'openLab', 'openMarketing', 'openMarket']);
 
 const gameStore = useGameStore();
+const tooltipStore = useTooltipStore();
 
 const selectedRoom = computed(() => gameStore.selectedRoom);
 const stats = computed(() => gameStore.stats || {});
 const orders = computed(() => gameStore.orders || { pending: [] });
-const player = computed(() => gameStore.player || {});
-
 const energyMarket = computed(() => gameStore.energyMarket || {});
+
 const storagePercent = computed(() => {
     if (!energyMarket.value.storage?.total_capacity) return 0;
     return (energyMarket.value.storage.current_level / energyMarket.value.storage.total_capacity) * 100;
@@ -187,9 +172,9 @@ const storagePercent = computed(() => {
 
 const healthClass = computed(() => {
     const h = energyMarket.value.storage?.average_health || 100;
-    if (h > 80) return 'text-success';
+    if (h > 80) return 'text-nominal';
     if (h > 50) return 'text-warning';
-    return 'text-danger';
+    return 'text-critical';
 });
 
 const storageClass = computed(() => {
@@ -199,7 +184,7 @@ const storageClass = computed(() => {
 });
 
 const isDischarging = computed(() => {
-    return energyMarket.value.spotPrice > 0.18; // Logic from EnergyService
+    return energyMarket.value.spotPrice > 0.18;
 });
 
 const gridStatusText = computed(() => {
@@ -208,12 +193,6 @@ const gridStatusText = computed(() => {
     if (energyMarket.value.spotPrice < 0.12) return 'CHARGING';
     return 'STABILIZED';
 });
-
-function formatMoney(value) {
-    if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
-    if (value >= 1000) return (value / 1000).toFixed(0) + 'K';
-    return value.toFixed(0);
-}
 
 function formatTime(seconds) {
     if (seconds <= 0) return 'EXPIRED';
@@ -224,411 +203,177 @@ function formatTime(seconds) {
 </script>
 
 <style scoped>
-.left-panel {
-    width: var(--sidebar-width);
-    background: var(--v3-bg-base);
-    border-right: var(--v3-border-heavy);
+.v2-left-panel {
+    width: 320px;
+    background: var(--ds-bg-elevated);
+    border-right: 1px solid var(--ds-border-color);
     display: flex;
     flex-direction: column;
     height: 100%;
-    z-index: 10;
+    z-index: 100;
+    position: relative;
 }
 
 .panel-header {
-    padding: 16px 20px;
-    border-bottom: var(--v3-border-soft);
+    padding: 20px;
+    border-bottom: 1px solid var(--ds-border-color);
 }
 
 .sys-label {
-    font-size: 0.45rem;
-    font-weight: 900;
-    color: var(--v3-text-ghost);
-    letter-spacing: 0.25em;
-    margin-bottom: 2px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--ds-text-ghost);
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+    text-transform: uppercase;
 }
 
 .panel-header__title {
-    font-size: 0.75rem;
-    font-weight: 900;
-    color: #fff;
-    letter-spacing: 0.1em;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ds-text-primary);
 }
 
 .panel-content {
     flex: 1;
     overflow-y: auto;
-    padding: 24px 20px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 32px;
+    gap: 24px;
 }
 
 .section-label-industrial {
-    font-size: 0.55rem;
-    font-weight: 900;
-    color: var(--v3-text-secondary);
-    letter-spacing: 0.2em;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--ds-text-muted);
+    letter-spacing: 0.04em;
     margin-bottom: 12px;
     display: flex;
     align-items: center;
     gap: 8px;
+    text-transform: uppercase;
 }
 
 .section-label-industrial::before {
     content: '';
-    width: 2px;
-    height: 8px;
-    background: var(--v3-accent);
+    width: 3px;
+    height: 12px;
+    background: var(--ds-accent);
+    border-radius: 2px;
 }
 
-/* Node Telemetry Card */
+/* ── CARDS ────────────────────────────────── */
+.glass-v2 {
+    background: var(--ds-bg-elevated);
+    border: 1px solid var(--ds-border-color);
+    border-radius: var(--ds-radius-lg);
+    transition: all 0.2s ease;
+    box-shadow: var(--ds-shadow-card);
+}
+
 .node-summary {
     padding: 16px;
-    background: var(--v3-bg-surface);
-    border: var(--v3-border-soft);
-    position: relative;
-    border-radius: var(--v3-radius);
-    transition: all var(--v3-transition-base);
+    border-radius: var(--ds-radius-lg);
+    border: 1px solid var(--ds-border-color);
+    background: var(--ds-bg-elevated);
+    box-shadow: var(--ds-shadow-card);
+}
+
+.node-summary:hover {
+    border-color: var(--ds-accent);
+    transform: translateY(-1px);
+    box-shadow: var(--ds-shadow-md);
 }
 
 .node-meta-top {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
 
-.node-type-label {
-    font-size: 0.55rem;
-    font-weight: 900;
-    color: var(--v3-accent);
-    letter-spacing: 0.15em;
-}
+.node-type-label { font-size: 0.6875rem; font-weight: 600; color: var(--ds-accent); }
+.status-badge { font-size: 0.6875rem; font-family: var(--ds-font-mono); color: var(--ds-text-ghost); }
+.status-badge.is-active { color: var(--ds-nominal); }
 
-.node-indicators {
-    display: flex;
-    gap: 6px;
-}
+.node-name-main { font-size: 1.125rem; font-weight: 700; color: var(--ds-text-primary); line-height: 1.2; }
+.node-sub-meta { font-size: 0.6875rem; font-weight: 500; color: var(--ds-text-ghost); margin-top: 6px; }
 
-.ind {
-    width: 14px;
-    height: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-family-mono);
-    font-size: 0.6rem;
-    font-weight: 900;
-    border-radius: 2px;
-    opacity: 0.8;
-}
-
-.ind.danger {
-    background: var(--v3-danger);
-    color: #fff;
-    animation: v3-pulse-state 1.2s infinite ease-in-out;
-}
-
-.node-name-main {
-    font-size: 0.9rem;
-    font-weight: 800;
-    color: #fff;
-    letter-spacing: 0.05em;
-}
-
-/* Quick Stats Grid */
-.quick-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-}
-
+/* ── QUICK STATS ────────────────────────────── */
+.quick-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .quick-stat {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border: var(--v3-border-soft);
-    border-radius: var(--v3-radius);
+    display: flex; flex-direction: column; gap: 4px; padding: 14px;
+    background: var(--ds-bg-subtle); border-radius: var(--ds-radius-md);
+    border: 1px solid var(--ds-border-color);
+}
+.quick-stat.wide { grid-column: span 2; }
+.quick-stat__label { font-size: 0.6875rem; font-weight: 600; color: var(--ds-text-ghost); text-transform: uppercase; }
+.quick-stat__value { font-size: 1.125rem; font-weight: 700; font-family: var(--ds-font-mono); color: var(--ds-text-primary); }
+
+.mini-bar-bg-v2 { height: 4px; background: var(--ds-bg-hover); margin: 6px 0; overflow: hidden; border-radius: var(--ds-radius-full); }
+.mini-bar { height: 100%; background: var(--ds-nominal); transition: width 1s ease-out; border-radius: var(--ds-radius-full); }
+.mini-bar.warning { background: var(--ds-warning); }
+
+.text-nominal { color: var(--ds-nominal); }
+.text-warning { color: var(--ds-warning); }
+.text-critical { color: var(--ds-critical); }
+
+/* ── ACTIONS ───────────────────────────────── */
+.action-grid-v2 { display: grid; gap: 8px; }
+.action-btn-v2 {
+    display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+    background: var(--ds-bg-elevated); border: 1px solid var(--ds-border-color);
+    color: var(--ds-text-secondary); font-size: 0.8125rem; font-weight: 600; cursor: pointer;
+    border-radius: var(--ds-radius-md); transition: all 0.15s;
+}
+.action-btn-v2:hover { background: var(--ds-accent); color: #fff; border-color: var(--ds-accent); }
+.action-icon { font-size: 1rem; }
+
+/* ── ORDERS ────────────────────────────────── */
+.order-list-v2 { display: flex; flex-direction: column; gap: 8px; }
+.order-item-v2 {
+    padding: 14px; background: var(--ds-bg-elevated); border: 1px solid var(--ds-border-color);
+    cursor: pointer; position: relative; transition: all 0.15s;
+    border-radius: var(--ds-radius-md); box-shadow: var(--ds-shadow-sm);
+}
+.order-item-v2:hover { border-color: #CBD5E1; box-shadow: var(--ds-shadow-md); }
+.order-id-bracket { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--ds-border-color); border-radius: 3px 0 0 3px; }
+
+.is-urgent .order-id-bracket { background: var(--ds-critical); }
+.is-enterprise .order-id-bracket { background: var(--ds-accent); }
+.is-whale .order-id-bracket { background: #F59E0B; }
+
+.order-customer { font-size: 0.8125rem; font-weight: 600; color: var(--ds-text-primary); margin-bottom: 2px; }
+.order-type { font-size: 0.75rem; font-weight: 500; color: var(--ds-text-ghost); }
+.order-meta { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.time { font-size: 0.75rem; font-family: var(--ds-font-mono); color: var(--ds-text-muted); width: 40px; }
+.patience-track-v2 { flex: 1; height: 3px; background: var(--ds-bg-hover); border-radius: var(--ds-radius-full); }
+.p-fill-v2 { height: 100%; background: var(--ds-nominal); transition: width 1s linear; border-radius: var(--ds-radius-full); }
+.is-urgent .p-fill-v2 { background: var(--ds-critical); }
+
+/* ── ENERGY ─────────────────────────────────── */
+.energy-mini-card-v2 { padding: 14px; cursor: pointer; border: 1px solid var(--ds-border-color); border-radius: var(--ds-radius-md); background: var(--ds-bg-elevated); }
+.energy-mini-card-v2:hover { border-color: var(--ds-accent); }
+.energy-header { display: flex; justify-content: space-between; font-size: 0.8125rem; font-weight: 600; color: var(--ds-text-primary); margin-bottom: 10px; }
+.energy-progress-track-v2 { height: 4px; background: var(--ds-bg-hover); border-radius: var(--ds-radius-full); overflow: hidden; margin-bottom: 10px; }
+.energy-progress-fill-v2 { height: 100%; background: var(--ds-accent); border-radius: var(--ds-radius-full); }
+.energy-progress-fill-v2.is-high { background: var(--ds-nominal); }
+.energy-progress-fill-v2.is-low { background: var(--ds-critical); }
+
+.grid-status-v2 { font-size: 0.75rem; font-weight: 500; color: var(--ds-text-ghost); display: flex; align-items: center; gap: 6px; }
+.pulse-dot-v2 { width: 6px; height: 6px; background: var(--ds-nominal); border-radius: 50%; }
+
+.empty-orders-v2 {
+    display: flex; flex-direction: column; align-items: center; padding: 32px 16px; text-align: center; gap: 8px;
+    border: 2px dashed var(--ds-border-color); cursor: pointer; border-radius: var(--ds-radius-lg); background: var(--ds-bg-subtle);
+}
+.empty-icon-static { font-size: 1.5rem; color: var(--ds-accent); margin-bottom: 8px; }
+.empty-orders-v2 .text { font-size: 0.875rem; font-weight: 600; color: var(--ds-text-primary); }
+.empty-orders-v2 .sub-text { font-size: 0.75rem; color: var(--ds-text-ghost); }
+.cta-link-v2 {
+    background: var(--ds-accent); color: #fff; border: none; font-size: 0.8125rem; font-weight: 600;
+    padding: 8px 16px; margin-top: 12px; cursor: pointer; border-radius: var(--ds-radius-md);
 }
 
-.quick-stat.wide {
-    grid-column: span 2;
-}
-
-.quick-stat__label {
-    font-size: 0.45rem;
-    font-weight: 900;
-    color: var(--v3-text-ghost);
-    letter-spacing: 0.1em;
-}
-
-.quick-stat__value {
-    font-size: 0.8rem;
-    font-family: var(--font-family-mono);
-    font-weight: 700;
-    color: var(--v3-text-primary);
-}
-
-.mini-bar-bg {
-    height: 2px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 1px;
-    margin: 4px 0;
-    overflow: hidden;
-}
-
-.mini-bar {
-    height: 100%;
-    background: var(--v3-success);
-    transition: width var(--v3-transition-slow);
-}
-
-.mini-bar.warning {
-    background: var(--v3-warning);
-}
-
-/* Action Grid */
-.action-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 4px;
-}
-
-.action-btn {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 10px 16px;
-    background: transparent;
-    border: none;
-    font-size: 0.65rem;
-    font-weight: 700;
-    color: var(--v3-text-secondary);
-    transition: all var(--v3-transition-fast);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    cursor: pointer;
-    border-radius: var(--v3-radius);
-}
-
-.action-btn:hover {
-    color: #fff;
-    background: var(--v3-bg-accent);
-}
-
-.action-icon {
-    font-size: 1rem;
-    color: var(--v3-accent);
-    opacity: 0.8;
-}
-
-/* Ingress Queue */
-.order-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.order-item {
-    padding: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border: var(--v3-border-soft);
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    position: relative;
-    border-left: 2px solid transparent;
-    transition: all var(--v3-transition-fast);
-    border-radius: var(--v3-radius);
-}
-
-.order-item:hover {
-    background: var(--v3-bg-surface);
-    border-left-color: var(--v3-accent);
-}
-
-.order-item.urgent {
-    border-left-color: var(--v3-danger);
-    background: rgba(255, 77, 79, 0.03);
-}
-
-.order-item.enterprise {
-    border-left-color: #3b82f6;
-    background: rgba(59, 130, 246, 0.05);
-}
-
-.order-item.whale {
-    border-left-color: #fbbf24;
-    background: rgba(251, 191, 36, 0.1);
-}
-
-.order-customer {
-    font-size: 0.65rem;
-    font-weight: 800;
-    color: #fff;
-    letter-spacing: 0.05em;
-}
-
-.order-type {
-    font-size: 0.55rem;
-    color: var(--v3-text-ghost);
-}
-
-.order-meta {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.time {
-    font-size: 0.6rem;
-    font-family: var(--font-family-mono);
-    color: var(--v3-text-secondary);
-    font-weight: 700;
-    width: 42px;
-}
-
-.patience-track {
-    flex: 1;
-    height: 2px;
-    background: rgba(255, 255, 255, 0.03);
-    position: relative;
-    overflow: hidden;
-}
-
-.p-fill {
-    height: 100%;
-    background: var(--v3-accent);
-    transition: width 1s linear;
-}
-
-.urgent .p-fill {
-    background: var(--v3-danger);
-}
-
-.urgent-id {
-    color: var(--v3-danger);
-    font-family: var(--font-family-mono);
-    font-weight: 900;
-}
-
-/* Energy Mini Card */
-.vpp-indicator {
-    margin-left: auto;
-    background: rgba(88, 166, 255, 0.15);
-    color: #58a6ff;
-    padding: 1px 6px;
-    border-radius: 2px;
-    font-size: 0.45rem;
-    animation: anchor-pulse 1.5s infinite;
-}
-
-.energy-mini-card {
-    padding: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border: var(--v3-border-soft);
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.energy-mini-card:hover {
-    background: var(--v3-bg-surface);
-    border-color: var(--v3-accent);
-}
-
-.energy-header {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.65rem;
-    font-weight: 800;
-    color: #fff;
-    margin-bottom: 8px;
-}
-
-.health-text {
-    font-size: 0.55rem;
-}
-
-.energy-progress-track {
-    height: 4px;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 2px;
-    overflow: hidden;
-    margin-bottom: 8px;
-}
-
-.energy-progress-fill {
-    height: 100%;
-    background: #58a6ff;
-    transition: width 0.5s ease-out;
-}
-
-.energy-progress-fill.is-high {
-    background: #3fb950;
-}
-
-.energy-progress-fill.is-low {
-    background: #f85149;
-}
-
-.energy-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.grid-status {
-    font-size: 0.55rem;
-    font-weight: 900;
-    color: var(--v3-text-ghost);
-    letter-spacing: 0.1em;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.unit-count {
-    font-size: 0.5rem;
-    color: var(--v3-text-ghost);
-}
-
-.pulse-dot {
-    width: 4px;
-    height: 4px;
-    background: #58a6ff;
-    border-radius: 50%;
-    animation: anchor-pulse 1s infinite;
-}
-
-@keyframes anchor-pulse {
-    0% {
-        opacity: 0.3;
-        transform: scale(0.8);
-    }
-
-    50% {
-        opacity: 1;
-        transform: scale(1.2);
-    }
-
-    100% {
-        opacity: 0.3;
-        transform: scale(0.8);
-    }
-}
-
-.text-success {
-    color: #3fb950;
-}
-
-.text-warning {
-    color: #e3b341;
-}
-
-.text-danger {
-    color: #f85149;
-}
+@keyframes ds-pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
 </style>

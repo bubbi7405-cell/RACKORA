@@ -1,14 +1,24 @@
 <template>
-    <div class="overlay-backdrop" @click.self="$emit('close')">
-        <div class="ledger-modal glass-panel animation-slide-up">
+    <div :class="{ 'overlay-backdrop': !inline }" @click.self="$emit('close')">
+        <div class="ledger-modal glass-panel animation-slide-up" :class="{ 'inline-panel': inline }">
             <div class="modal-header">
                 <div class="header-title">
                     <span class="icon">📊</span>
-                    <h2>Financial Ledger <small>Capital Management</small></h2>
+                    <h2 class="l1-priority">
+                        CAPITAL_DOMINANCE_CONTROLLER // [FIN_SEC]
+                        <span class="v3-info-trigger"
+                            @mouseenter="tooltipStore.show($event, { title: 'FINANCIAL_LEDGER', content: 'Detailed record of all transactions, hardware costs, and service revenue.', hint: 'Use filters to analyze specific cost centers.' })"
+                            @mouseleave="tooltipStore.hide()">ⓘ</span>
+                        <small class="l3-priority">CAPITAL_ASSET_ALLOCATION // [PROFIT_MATRIX]</small>
+                    </h2>
                 </div>
                 <div class="header-tabs">
-                    <button class="tab-btn" :class="{ active: activeTab === 'ledger' }" @click="activeTab = 'ledger'">Ledger</button>
-                    <button class="tab-btn" :class="{ active: activeTab === 'stocks' }" @click="activeTab = 'stocks'">Insider Trading</button>
+                    <button class="tab-btn l2-priority" :class="{ active: activeTab === 'ledger' }"
+                        @click="activeTab = 'ledger'">TRANSACTION_LOG</button>
+                    <button class="tab-btn l2-priority" :class="{ active: activeTab === 'stocks' }"
+                        @click="activeTab = 'stocks'"
+                        @mouseenter="tooltipStore.show($event, { title: 'CAPITAL_SPECULATION', content: 'Speculate on your own stock price. High risk of SEC audit.', hint: 'Profitable during outages or major events.' })"
+                        @mouseleave="tooltipStore.hide()">MARKET_DEVIATION_SPECULATION</button>
                 </div>
                 <button class="close-btn" @click="$emit('close')">&times;</button>
             </div>
@@ -16,27 +26,38 @@
             <div v-if="activeTab === 'stocks'" class="stocks-container">
                 <div class="market-overview">
                     <div class="stock-ticker shadow-glow">
-                        <div class="ticker-info">
-                            <span class="symbol">$PONY</span>
-                            <span class="name">CodePony Inc.</span>
+                        <div class="ticker-info"
+                            @mouseenter="tooltipStore.show($event, { title: 'PONY_INDEX', content: 'Your company\'s market valuation based on reputation, revenue, and stability.', hint: 'Fluctuates every game tick.' })"
+                            @mouseleave="tooltipStore.hide()">
+                            <span class="symbol l1-priority">$PONY</span>
+                            <span class="name l3-priority">CODEPONY_CORP // NASDAQ_EXCH</span>
                         </div>
                         <div class="ticker-price">
-                            <span class="price">${{ stockMarket.stockPrice.toFixed(2) }}</span>
-                            <span class="trend" :class="stockMarket.stockPrice >= 10 ? 'up' : 'down'">
+                            <span class="price l1-priority">${{ stockMarket.stockPrice.toFixed(2) }}</span>
+                            <span class="trend l2-priority" :class="stockMarket.stockPrice >= 10 ? 'up' : 'down'">
                                 <span class="arrow">{{ stockMarket.stockPrice >= 10 ? '▲' : '▼' }}</span>
                                 {{ Math.abs(((stockMarket.stockPrice - 10) / 10) * 100).toFixed(1) }}%
                             </span>
                         </div>
-                        <div v-if="stockMarket.isFrozen" class="freeze-alert">
+                        <div v-if="stockMarket.isFrozen" class="freeze-alert"
+                            @mouseenter="tooltipStore.show($event, { title: 'ASSETS_FROZEN', content: 'The SEC has halted all trading due to suspicious activity (Short-Selling).', hint: 'You cannot open or close positions until this expires.' })"
+                            @mouseleave="tooltipStore.hide()">
                             <span class="alert-icon">⚖️</span>
-                            <span class="alert-text">ASSETS FROZEN BY SEC (until {{ formatTime(stockMarket.freezeEndsAt) }})</span>
+                            <span class="alert-text">ASSETS FROZEN BY SEC (until {{ formatTime(stockMarket.freezeEndsAt)
+                                }})</span>
                         </div>
                     </div>
 
                     <div class="trading-box glass-panel--accent">
-                        <h3>Short-Sell Initiative</h3>
-                        <p class="hint">Borrow shares and sell them immediately. Profit if the price drops (e.g. during an outage). Careful: 30% Audit Risk.</p>
-                        
+                        <h3 class="l1-priority">
+                            SHORT_SELL_INITIATIVE // [LIQUIDITY_CHECK]
+                            <span class="v3-info-trigger"
+                                @mouseenter="tooltipStore.show($event, { title: 'SHORT_SELLING', content: 'Borrow shares now to sell at current price. Return them later at (hopefully) lower price to profit.', hint: 'High risk of audit (30%) if you short during an incident.' })"
+                                @mouseleave="tooltipStore.hide()">ⓘ</span>
+                        </h3>
+                        <p class="hint l3-priority">Borrow shares and sell them immediately. Profit if the price drops.
+                            30% Audit Risk.</p>
+
                         <div class="input-row">
                             <div class="input-group">
                                 <label>Shares to Short</label>
@@ -45,31 +66,41 @@
                             <div class="order-preview">
                                 <div class="preview-item">
                                     <span class="label">Est. Collateral (40%)</span>
-                                    <span class="value">${{ formatMoney(orderShares * stockMarket.stockPrice * 0.4) }}</span>
+                                    <span class="value">${{ formatMoney(orderShares * stockMarket.stockPrice * 0.4)
+                                        }}</span>
                                 </div>
                             </div>
-                            <button class="btn-order shadow-danger" :disabled="stockMarket.isFrozen || orderShares < 10 || loading" @click="handleShort">
-                                EXECUTE SHORT
+                            <button class="btn-order shadow-danger l2-priority"
+                                :disabled="stockMarket.isFrozen || orderShares < 10 || loading" @click="handleShort">
+                                EXECUTE_SHORT_POSITION
                             </button>
                         </div>
                     </div>
                 </div>
 
                 <div class="positions-list">
-                    <div class="section-title">Active Short Positions</div>
+                    <div class="section-title l2-priority">
+                        ACTIVE_LIABILITY_POSITIONS
+                        <span class="v3-info-trigger"
+                            @mouseenter="tooltipStore.show($event, { title: 'ACTIVE_POSITIONS', content: 'Track your current liabilities. You must eventually close these by buying back shares.', hint: 'If price rises significantly, you will lose money on repayment.' })"
+                            @mouseleave="tooltipStore.hide()">ⓘ</span>
+                    </div>
                     <div class="positions-grid">
-                        <div v-for="pos in stockMarket.shortPositions" :key="pos.id" class="position-card shadow-glow--dim">
+                        <div v-for="pos in stockMarket.shortPositions" :key="pos.id"
+                            class="position-card shadow-glow--dim">
                             <div class="pos-main">
                                 <div class="pos-info">
                                     <span class="shares">{{ pos.shares }} Shares</span>
                                     <span class="entry">Entry: ${{ pos.entry_price.toFixed(2) }}</span>
                                 </div>
                                 <div class="pos-profit" :class="calculateProfit(pos) >= 0 ? 'up' : 'down'">
-                                    <span class="val">{{ calculateProfit(pos) >= 0 ? '+' : '' }}${{ formatMoney(calculateProfit(pos)) }}</span>
+                                    <span class="val">{{ calculateProfit(pos) >= 0 ? '+' : '' }}${{
+                                        formatMoney(calculateProfit(pos)) }}</span>
                                     <span class="label">P/L REAL-TIME</span>
                                 </div>
                             </div>
-                            <button class="btn-close-pos" :disabled="stockMarket.isFrozen || loading" @click="handleClose(pos.id)">
+                            <button class="btn-close-pos" :disabled="stockMarket.isFrozen || loading"
+                                @click="handleClose(pos.id)">
                                 CLOSE & REPAY
                             </button>
                         </div>
@@ -82,17 +113,25 @@
 
             <template v-else>
                 <div class="modal-summary">
-                    <div class="summary-card income">
-                        <span class="label">Total Income (Last Period)</span>
-                        <span class="value">+${{ formatMoney(summary.totalIncome) }}</span>
+                    <div class="summary-card income"
+                        @mouseenter="tooltipStore.show($event, { title: 'TOTAL_INCOME', content: 'Sum of all revenue from customer orders and node operations.', hint: 'Measured over the last period.' })"
+                        @mouseleave="tooltipStore.hide()">
+                        <span class="label l3-priority">TOTAL_INCOME // [LAST_PERIOD]</span>
+                        <span class="value l1-priority">+${{ formatMoney(summary.totalIncome) }}</span>
                     </div>
-                    <div class="summary-card expenses">
-                        <span class="label">Total Expenses (Last Period)</span>
-                        <span class="value">-${{ formatMoney(summary.totalExpenses) }}</span>
+                    <div class="summary-card expenses"
+                        @mouseenter="tooltipStore.show($event, { title: 'TOTAL_EXPENSES', content: 'Sum of all hardware maintenance, electricity, payroll, and SLA penalties.', hint: 'High hardware density increases maintenance costs.' })"
+                        @mouseleave="tooltipStore.hide()">
+                        <span class="label l3-priority">TOTAL_EXPENSES // [LAST_PERIOD]</span>
+                        <span class="value l1-priority">-${{ formatMoney(summary.totalExpenses) }}</span>
                     </div>
-                    <div class="summary-card net" :class="{ positive: summary.netProfit >= 0, negative: summary.netProfit < 0 }">
-                        <span class="label">Net Performance</span>
-                        <span class="value">{{ summary.netProfit >= 0 ? '+' : '' }}${{ formatMoney(summary.netProfit) }}</span>
+                    <div class="summary-card net"
+                        :class="{ positive: summary.netProfit >= 0, negative: summary.netProfit < 0 }"
+                        @mouseenter="tooltipStore.show($event, { title: 'NET_PERFORMANCE', content: 'Your total profitability. If negative, you are burning capital.', hint: 'Green means growth.' })"
+                        @mouseleave="tooltipStore.hide()">
+                        <span class="label l3-priority">AGGREGATE_CAPITAL_FLOW // [ACTIVE]</span>
+                        <span class="value l1-priority">{{ summary.netProfit >= 0 ? '+' : '' }}${{
+                            formatMoney(summary.netProfit) }}</span>
                     </div>
                 </div>
 
@@ -102,7 +141,8 @@
                             <label>Category</label>
                             <select v-model="filters.category" @change="fetchTransactions(1)">
                                 <option value="">All Categories</option>
-                                <option v-for="cat in categories" :key="cat" :value="cat">{{ formatLabel(cat) }}</option>
+                                <option v-for="cat in categories" :key="cat" :value="cat">{{ formatLabel(cat) }}
+                                </option>
                             </select>
                         </div>
                         <div class="filter-select">
@@ -123,7 +163,9 @@
                             </select>
                         </div>
                     </div>
-                    <button class="btn-refresh" @click="fetchTransactions(1)" :disabled="loading">
+                    <button class="btn-refresh" @click="fetchTransactions(1)" :disabled="loading"
+                        @mouseenter="tooltipStore.show($event, { title: 'SYNC_LEDGER', content: 'Synchronizes your local records with the central banking authority.', hint: 'Use if data feels stale.' })"
+                        @mouseleave="tooltipStore.hide()">
                         {{ loading ? 'Updating...' : 'Refresh Ledger' }}
                     </button>
                 </div>
@@ -135,12 +177,14 @@
                         <span class="col-desc">Description</span>
                         <span class="col-amount">Amount</span>
                     </div>
-                    
+
                     <div class="ledger-list" v-if="!loading">
                         <div v-for="tx in transactions" :key="tx.id" class="ledger-row" :class="tx.type">
                             <span class="col-time">{{ formatTime(tx.created_at) }}</span>
                             <span class="col-cat">
-                                <span class="cat-badge" :style="{ '--cat-color': getCategoryColor(tx.category) }">
+                                <span class="cat-badge" :style="{ '--cat-color': getCategoryColor(tx.category) }"
+                                    @mouseenter="tooltipStore.show($event, { title: formatLabel(tx.category), content: 'Financial type: ' + tx.type, hint: 'Category ID: ' + tx.category })"
+                                    @mouseleave="tooltipStore.hide()">
                                     {{ tx.category }}
                                 </span>
                             </span>
@@ -177,11 +221,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { useEconomyStore } from '../../stores/economy';
+import { useTooltipStore } from '../../stores/tooltip';
+
+const props = defineProps({
+    inline: { type: Boolean, default: false }
+});
 
 const emit = defineEmits(['close']);
 const economyStore = useEconomyStore();
+const tooltipStore = useTooltipStore();
 
 const activeTab = ref('ledger');
 const orderShares = ref(100);
@@ -216,7 +266,7 @@ const fetchTransactions = async (newPage = 1) => {
             page.value = res.transactions.current_page;
             lastPage.value = res.transactions.last_page;
             totalItems.value = res.transactions.total;
-            
+
             summary.totalIncome = res.summary.totalIncome;
             summary.totalExpenses = res.summary.totalExpenses;
             summary.netProfit = res.summary.netProfit;
@@ -299,7 +349,46 @@ const getCategoryColor = (cat) => {
     flex-direction: column;
     overflow: hidden;
     border-radius: var(--v3-radius);
-    box-shadow: 0 50px 100px rgba(0,0,0,0.6);
+    box-shadow: 0 50px 100px rgba(0, 0, 0, 0.6);
+}
+
+.ledger-modal.inline-panel {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.overlay-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: var(--v3-text-ghost);
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 8px;
+    transition: all 0.2s;
+}
+
+.close-btn:hover {
+    color: #fff;
+    transform: rotate(90deg);
 }
 
 .modal-header {
@@ -311,13 +400,20 @@ const getCategoryColor = (cat) => {
 }
 
 .header-title h2 {
-    margin: 0; font-size: 0.85rem; font-weight: 900; letter-spacing: 0.1em;
-    color: #fff; text-transform: uppercase;
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    color: #fff;
+    text-transform: uppercase;
 }
 
 .header-title small {
-    display: block; font-size: 0.6rem; color: var(--v3-text-ghost);
-    margin-top: 4px; letter-spacing: 0.05em;
+    display: block;
+    font-size: 0.6rem;
+    color: var(--v3-text-ghost);
+    margin-top: 4px;
+    letter-spacing: 0.05em;
 }
 
 .modal-summary {
@@ -337,44 +433,88 @@ const getCategoryColor = (cat) => {
 }
 
 .summary-card .label {
-    font-size: 0.55rem; font-weight: 900; color: var(--v3-text-ghost);
-    text-transform: uppercase; letter-spacing: 0.1em;
+    font-size: 0.55rem;
+    font-weight: 900;
+    color: var(--v3-text-ghost);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
 }
 
 .summary-card .value {
-    font-size: 1.25rem; font-weight: 900; font-family: var(--font-family-mono);
+    font-size: 1.25rem;
+    font-weight: 900;
+    font-family: var(--font-family-mono);
 }
 
-.summary-card.income .value { color: var(--v3-success); }
-.summary-card.expenses .value { color: var(--v3-danger); }
-.summary-card.positive .value { color: var(--v3-success); }
-.summary-card.negative .value { color: var(--v3-danger); }
+.summary-card.income .value {
+    color: var(--v3-success);
+}
+
+.summary-card.expenses .value {
+    color: var(--v3-danger);
+}
+
+.summary-card.positive .value {
+    color: var(--v3-success);
+}
+
+.summary-card.negative .value {
+    color: var(--v3-danger);
+}
 
 .modal-controls {
     padding: 16px 32px;
-    background: rgba(0,0,0,0.1);
+    background: rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
     border-bottom: var(--v3-border-soft);
 }
 
-.filter-group { display: flex; gap: 24px; }
-.filter-select { display: flex; flex-direction: column; gap: 6px; }
-.filter-select label { font-size: 0.5rem; font-weight: 900; color: var(--v3-text-ghost); text-transform: uppercase; }
+.filter-group {
+    display: flex;
+    gap: 24px;
+}
+
+.filter-select {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filter-select label {
+    font-size: 0.5rem;
+    font-weight: 900;
+    color: var(--v3-text-ghost);
+    text-transform: uppercase;
+}
 
 .filter-select select {
-    background: #000; color: #fff; border: 1px solid #333; padding: 6px 12px;
-    font-size: 0.65rem; font-weight: 800; border-radius: 2px;
+    background: #000;
+    color: #fff;
+    border: 1px solid #333;
+    padding: 6px 12px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    border-radius: 2px;
 }
 
 .btn-refresh {
-    background: transparent; color: var(--v3-text-secondary); border: 1px solid #333;
-    padding: 8px 20px; font-size: 0.6rem; font-weight: 900; text-transform: uppercase;
-    cursor: pointer; transition: all 0.2s;
+    background: transparent;
+    color: var(--v3-text-secondary);
+    border: 1px solid #333;
+    padding: 8px 20px;
+    font-size: 0.6rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
-.btn-refresh:hover { border-color: var(--v3-accent); color: #fff; }
+.btn-refresh:hover {
+    border-color: var(--v3-accent);
+    color: #fff;
+}
 
 .modal-body {
     flex: 1;
@@ -387,13 +527,19 @@ const getCategoryColor = (cat) => {
     display: grid;
     grid-template-columns: 140px 140px 1fr 140px;
     padding: 12px 32px;
-    background: rgba(255,255,255,0.02);
+    background: rgba(255, 255, 255, 0.02);
     border-bottom: var(--v3-border-soft);
-    font-size: 0.55rem; font-weight: 900; color: var(--v3-text-ghost);
-    text-transform: uppercase; letter-spacing: 0.1em;
+    font-size: 0.55rem;
+    font-weight: 900;
+    color: var(--v3-text-ghost);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
 }
 
-.ledger-list { flex: 1; overflow-y: auto; }
+.ledger-list {
+    flex: 1;
+    overflow-y: auto;
+}
 
 .ledger-row {
     display: grid;
@@ -404,19 +550,45 @@ const getCategoryColor = (cat) => {
     transition: background 0.1s;
 }
 
-.ledger-row:hover { background: rgba(255,255,255,0.015); }
+.ledger-row:hover {
+    background: rgba(255, 255, 255, 0.015);
+}
 
-.col-time { font-family: var(--font-family-mono); font-size: 0.6rem; color: var(--v3-text-ghost); }
+.col-time {
+    font-family: var(--font-family-mono);
+    font-size: 0.6rem;
+    color: var(--v3-text-ghost);
+}
+
 .col-cat .cat-badge {
-    font-size: 0.5rem; font-weight: 900; text-transform: uppercase;
-    padding: 2px 6px; border: 1px solid var(--cat-color); color: var(--cat-color);
+    font-size: 0.5rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border: 1px solid var(--cat-color);
+    color: var(--cat-color);
     border-radius: 2px;
 }
 
-.col-desc { font-size: 0.72rem; color: var(--v3-text-secondary); }
-.col-amount { font-size: 0.75rem; font-weight: 900; text-align: right; font-family: var(--font-family-mono); }
-.col-amount.income { color: var(--v3-success); }
-.col-amount.expense { color: var(--v3-danger); }
+.col-desc {
+    font-size: 0.72rem;
+    color: var(--v3-text-secondary);
+}
+
+.col-amount {
+    font-size: 0.75rem;
+    font-weight: 900;
+    text-align: right;
+    font-family: var(--font-family-mono);
+}
+
+.col-amount.income {
+    color: var(--v3-success);
+}
+
+.col-amount.expense {
+    color: var(--v3-danger);
+}
 
 .modal-footer {
     padding: 16px 32px;
@@ -424,114 +596,393 @@ const getCategoryColor = (cat) => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(0,0,0,0.1);
+    background: rgba(0, 0, 0, 0.1);
 }
 
-.pagination { display: flex; align-items: center; gap: 16px; font-size: 0.6rem; font-weight: 800; color: var(--v3-text-ghost); }
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: var(--v3-text-ghost);
+}
+
 .pagination button {
-    background: #000; border: 1px solid #333; color: #fff;
-    padding: 4px 12px; font-size: 0.55rem; font-weight: 900; cursor: pointer;
+    background: #000;
+    border: 1px solid #333;
+    color: #fff;
+    padding: 4px 12px;
+    font-size: 0.55rem;
+    font-weight: 900;
+    cursor: pointer;
 }
-.pagination button:disabled { opacity: 0.3; cursor: not-allowed; }
 
-.total-count { font-size: 0.55rem; font-weight: 900; color: var(--v3-text-ghost); letter-spacing: 0.1em; }
+.pagination button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.total-count {
+    font-size: 0.55rem;
+    font-weight: 900;
+    color: var(--v3-text-ghost);
+    letter-spacing: 0.1em;
+}
 
 .loading-state {
-    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 16px; color: var(--v3-text-ghost); font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    color: var(--v3-text-ghost);
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
 }
 
 .loader {
-    width: 24px; height: 24px; border: 2px solid #333; border-top-color: var(--v3-accent);
-    border-radius: 50%; animation: v3-spin 1s linear infinite;
+    width: 24px;
+    height: 24px;
+    border: 2px solid #333;
+    border-top-color: var(--v3-accent);
+    border-radius: 50%;
+    animation: v3-spin 1s linear infinite;
 }
 
-@keyframes v3-spin { to { transform: rotate(360deg); } }
+@keyframes v3-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
 
-.no-data { padding: 60px; text-align: center; color: var(--v3-text-ghost); font-size: 0.7rem; letter-spacing: 0.1em; }
+.no-data {
+    padding: 60px;
+    text-align: center;
+    color: var(--v3-text-ghost);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+}
 
 /* Stock Market Styles */
-.header-tabs { display: flex; gap: 8px; margin-left: 40px; }
-.tab-btn {
-    background: transparent; border: 1px solid #333; color: var(--v3-text-ghost);
-    padding: 6px 16px; font-size: 0.65rem; font-weight: 900; text-transform: uppercase;
-    cursor: pointer; transition: all 0.2s;
+.header-tabs {
+    display: flex;
+    gap: 8px;
+    margin-left: 40px;
 }
-.tab-btn.active { background: var(--v3-accent); color: #000; border-color: var(--v3-accent); }
 
-.stocks-container { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 32px; gap: 32px; }
+.tab-btn {
+    background: transparent;
+    border: 1px solid #333;
+    color: var(--v3-text-ghost);
+    padding: 6px 16px;
+    font-size: 0.65rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+}
 
-.market-overview { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.tab-btn.active {
+    background: var(--v3-accent);
+    color: #000;
+    border-color: var(--v3-accent);
+}
+
+.stocks-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 32px;
+    gap: 32px;
+}
+
+.market-overview {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
 
 .stock-ticker {
-    background: #000; border: var(--v3-border-heavy); padding: 24px;
-    display: flex; flex-direction: column; gap: 12px; position: relative;
+    background: #000;
+    border: var(--v3-border-heavy);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
 }
 
-.ticker-info { display: flex; flex-direction: column; }
-.symbol { font-size: 1.5rem; font-weight: 900; color: var(--v3-accent); }
-.name { font-size: 0.6rem; font-weight: 800; color: var(--v3-text-ghost); text-transform: uppercase; }
+.ticker-info {
+    display: flex;
+    flex-direction: column;
+}
 
-.ticker-price { display: flex; align-items: baseline; gap: 16px; }
-.price { font-size: 2rem; font-weight: 900; font-family: var(--font-family-mono); }
-.trend { font-size: 0.8rem; font-weight: 900; }
-.trend.up { color: var(--v3-success); }
-.trend.down { color: var(--v3-danger); }
+.symbol {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--v3-accent);
+}
+
+.name {
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: var(--v3-text-ghost);
+    text-transform: uppercase;
+}
+
+.ticker-price {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+}
+
+.price {
+    font-size: 2rem;
+    font-weight: 900;
+    font-family: var(--font-family-mono);
+}
+
+.trend {
+    font-size: 0.8rem;
+    font-weight: 900;
+}
+
+.trend.up {
+    color: var(--v3-success);
+}
+
+.trend.down {
+    color: var(--v3-danger);
+}
 
 .freeze-alert {
-    margin-top: 12px; padding: 8px; background: rgba(248, 113, 113, 0.1);
-    border: 1px solid var(--v3-danger); color: var(--v3-danger);
-    font-size: 0.6rem; font-weight: 900; display: flex; align-items: center; gap: 8px;
+    margin-top: 12px;
+    padding: 8px;
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid var(--v3-danger);
+    color: var(--v3-danger);
+    font-size: 0.6rem;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.trading-box { padding: 24px; }
-.trading-box h3 { margin: 0 0 8px 0; font-size: 0.9rem; font-weight: 900; text-transform: uppercase; color: var(--v3-accent); }
-.hint { font-size: 0.65rem; color: var(--v3-text-ghost); margin-bottom: 24px; line-height: 1.4; }
+.trading-box {
+    padding: 24px;
+}
 
-.input-row { display: flex; align-items: flex-end; gap: 24px; }
-.input-group { display: flex; flex-direction: column; gap: 8px; }
-.input-group label { font-size: 0.6rem; font-weight: 900; color: var(--v3-text-ghost); text-transform: uppercase; }
+.trading-box h3 {
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: var(--v3-accent);
+}
+
+.hint {
+    font-size: 0.65rem;
+    color: var(--v3-text-ghost);
+    margin-bottom: 24px;
+    line-height: 1.4;
+}
+
+.input-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 24px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.input-group label {
+    font-size: 0.6rem;
+    font-weight: 900;
+    color: var(--v3-text-ghost);
+    text-transform: uppercase;
+}
+
 .input-group input {
-    background: #000; border: 1px solid #333; color: #fff; padding: 10px;
-    font-family: var(--font-family-mono); font-weight: 900; width: 120px;
+    background: #000;
+    border: 1px solid #333;
+    color: #fff;
+    padding: 10px;
+    font-family: var(--font-family-mono);
+    font-weight: 900;
+    width: 120px;
 }
 
-.order-preview { flex: 1; }
-.preview-item { display: flex; flex-direction: column; }
-.preview-item .label { font-size: 0.55rem; font-weight: 900; color: var(--v3-text-ghost); text-transform: uppercase; }
-.preview-item .value { font-size: 0.9rem; font-weight: 900; font-family: var(--font-family-mono); color: #fff; }
+.order-preview {
+    flex: 1;
+}
+
+.preview-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.preview-item .label {
+    font-size: 0.55rem;
+    font-weight: 900;
+    color: var(--v3-text-ghost);
+    text-transform: uppercase;
+}
+
+.preview-item .value {
+    font-size: 0.9rem;
+    font-weight: 900;
+    font-family: var(--font-family-mono);
+    color: #fff;
+}
 
 .btn-order {
-    background: var(--v3-danger); color: #fff; border: none; padding: 12px 24px;
-    font-weight: 900; text-transform: uppercase; cursor: pointer; border-radius: 2px;
+    background: var(--v3-danger);
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    font-weight: 900;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
 }
-.btn-order:disabled { opacity: 0.3; cursor: not-allowed; }
 
-.positions-list { display: flex; flex-direction: column; gap: 16px; }
-.section-title { font-size: 0.7rem; font-weight: 900; color: var(--v3-text-ghost); text-transform: uppercase; letter-spacing: 0.1em; }
+.btn-order:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
 
-.positions-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.positions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.section-title {
+    font-size: 0.7rem;
+    font-weight: 900;
+    color: var(--v3-text-ghost);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.positions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
 .position-card {
-    background: rgba(255,255,255,0.03); border: var(--v3-border-soft); padding: 20px;
-    display: flex; flex-direction: column; gap: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: var(--v3-border-soft);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
-.pos-main { display: flex; justify-content: space-between; align-items: center; }
-.pos-info { display: flex; flex-direction: column; }
-.shares { font-size: 0.9rem; font-weight: 900; color: #fff; }
-.entry { font-size: 0.6rem; color: var(--v3-text-ghost); font-family: var(--font-family-mono); }
+.pos-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 
-.pos-profit { display: flex; flex-direction: column; align-items: flex-end; }
-.pos-profit .val { font-size: 1.1rem; font-weight: 900; font-family: var(--font-family-mono); }
-.pos-profit.up .val { color: var(--v3-success); }
-.pos-profit.down .val { color: var(--v3-danger); }
-.pos-profit .label { font-size: 0.5rem; font-weight: 900; color: var(--v3-text-ghost); }
+.pos-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.shares {
+    font-size: 0.9rem;
+    font-weight: 900;
+    color: #fff;
+}
+
+.entry {
+    font-size: 0.6rem;
+    color: var(--v3-text-ghost);
+    font-family: var(--font-family-mono);
+}
+
+.pos-profit {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.pos-profit .val {
+    font-size: 1.1rem;
+    font-weight: 900;
+    font-family: var(--font-family-mono);
+}
+
+.pos-profit.up .val {
+    color: var(--v3-success);
+}
+
+.pos-profit.down .val {
+    color: var(--v3-danger);
+}
+
+.pos-profit .label {
+    font-size: 0.5rem;
+    font-weight: 900;
+    color: var(--v3-text-ghost);
+}
 
 .btn-close-pos {
-    background: transparent; border: 1px solid #333; color: #fff; padding: 8px;
-    font-size: 0.65rem; font-weight: 900; text-transform: uppercase; cursor: pointer;
+    background: transparent;
+    border: 1px solid #333;
+    color: #fff;
+    padding: 8px;
+    font-size: 0.65rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    cursor: pointer;
 }
-.btn-close-pos:hover:not(:disabled) { border-color: var(--v3-accent); color: var(--v3-accent); }
 
-.no-positions { padding: 20px; color: var(--v3-text-ghost); font-size: 0.7rem; text-align: center; border: 1px dashed #333; grid-column: span 2; }
+.btn-close-pos:hover:not(:disabled) {
+    border-color: var(--v3-accent);
+    color: var(--v3-accent);
+}
+
+.no-positions {
+    padding: 20px;
+    color: var(--v3-text-ghost);
+    font-size: 0.7rem;
+    text-align: center;
+    border: 1px dashed #333;
+    grid-column: span 2;
+}
+
+.v3-info-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(88, 166, 255, 0.15);
+    color: #58a6ff;
+    font-size: 10px;
+    font-weight: 800;
+    cursor: help;
+    margin-left: 6px;
+    vertical-align: middle;
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    transition: all 0.2s;
+}
+
+.v3-info-trigger:hover {
+    background: #58a6ff;
+    color: #05070a;
+    box-shadow: 0 0 10px rgba(88, 166, 255, 0.4);
+}
 </style>

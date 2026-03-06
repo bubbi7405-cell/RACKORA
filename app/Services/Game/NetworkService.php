@@ -23,7 +23,7 @@ class NetworkService
             'name' => 'Generic Transit',
             'tier' => 'tier3',
             'base_latency_ms' => 40,
-            'reliability' => 0.95,
+            'reliability' => 0.96, // 4% chance of micro-outage per tick
             'bandwidth_options' => [
                 ['mbps' => 1000,  'monthly' => 50,   'commit' => 'monthly'],
                 ['mbps' => 2000,  'monthly' => 90,   'commit' => 'monthly'],
@@ -36,7 +36,7 @@ class NetworkService
             'name' => 'RegionalConnect',
             'tier' => 'tier2',
             'base_latency_ms' => 25,
-            'reliability' => 0.98,
+            'reliability' => 0.985, // 1.5% chance
             'bandwidth_options' => [
                 ['mbps' => 5000,  'monthly' => 180,  'commit' => 'monthly'],
                 ['mbps' => 10000, 'monthly' => 320,  'commit' => 'annual'],
@@ -185,7 +185,7 @@ class NetworkService
         $latency = $this->calculateDynamicLatency($user, $network, $saturation, $peeringLatencyBonus ?? 1.0);
 
         // Packet Loss
-        $packetLoss = $this->calculatePacketLoss($saturation);
+        $packetLoss = $this->calculatePacketLoss($user, $saturation);
 
         // SLA Compliance
         $sla = 100.0 - ($packetLoss * 500) - (max(0, $latency - 50) / 10);
@@ -352,23 +352,50 @@ class NetworkService
             $latency -= $latencyFlat;
         }
 
-        $jitterReduction = $empService->getAggregatedBonus($user, 'jitter_reduction');
-        if ($jitterReduction > 0) {
-            $latency *= (1.0 - min(0.9, $jitterReduction));
+        $jitterBonus = $empService->getAggregatedBonus($user, 'jitter_reduction');
+        if ($jitterBonus > 0) {
+            $latency *= (1.0 - min(0.9, $jitterBonus));
+        }
+
+        // --- FEATURE 58: ORBITAL REDUNDANCY (Satellite Failover) ---
+        $isOrbitalActive = $this->isOrbitalFailoverActive($user);
+        if ($isOrbitalActive) {
+            // Satellite is high latency, but better than being completely down (e.g. 500ms ms vs infinite)
+            $latency = max(400, $latency + 350); 
+        }
+
+        // ISP Micro-Outage Impact
+        $hasMicroOutage = \App\Models\GameEvent::where('user_id', $user->id)
+            ->where('title', 'LIKE', '%ISP_MICRO_OUTAGE%')
+            ->where('status', 'active')
+            ->exists();
+        if ($hasMicroOutage) {
+            $latency += 15.0; // Flat +15ms jitter/latency
         }
 
         return max(1.0, $latency);
     }
 
     /**
-     * Calculate packet loss based on saturation.
+     * Calculate packet loss based on saturation and active events.
      */
-    private function calculatePacketLoss(float $saturation): float
+    private function calculatePacketLoss(User $user, float $saturation): float
     {
-        if ($saturation <= 0.9) return 0.0;
+        $loss = 0.0;
+        
+        // ISP Micro-Outage Impact
+        $hasMicroOutage = \App\Models\GameEvent::where('user_id', $user->id)
+            ->where('title', 'LIKE', '%ISP_MICRO_OUTAGE%')
+            ->where('status', 'active')
+            ->exists();
+        if ($hasMicroOutage) {
+            $loss += 0.015; // 1.5% base loss
+        }
+
+        if ($saturation <= 0.9) return $loss;
 
         // Linear increase: 1% per 10% saturation above 90%
-        $loss = ($saturation - 0.9) * 0.1;
+        $loss += ($saturation - 0.9) * 0.1;
 
         // Exponential increase above 120% saturation
         if ($saturation > 1.2) {
@@ -725,6 +752,9 @@ class NetworkService
         // 4. DDoS risk evaluation
         $this->evaluateDdosRisk($user, $network, $saturation);
 
+        // 4b. ISP Reliability / Micro-Outages
+        $this->evaluateIspReliability($user, $network);
+
         // 5. Peering score progression
         if ($state['metrics']['packetLoss'] == 0 && $network->peering_score < 100) {
             $network->peering_score = min(100, $network->peering_score + 0.05);
@@ -761,6 +791,18 @@ class NetworkService
 
         // 8. Reputation drift
         $this->processReputationDrift($user, $network, $state);
+
+        // --- FEATURE 58: Orbital Redundancy Billing ---
+        if ($this->isOrbitalFailoverActive($user)) {
+             $totalGb = ($traffic['total'] * 60) / 8; // Assuming 60s per tick
+             $costPerGb = 5.00; // $5 per GB (Orbit is expensive!)
+             $totalCost = $totalGb * $costPerGb;
+             
+             if ($totalCost > 1) {
+                  $user->economy->debit($totalCost, "Satellite Uplink usage: " . round($totalGb, 2) . " GB", 'network');
+                  GameLog::log($user, "ORBITAL: Failover active. Bypassing network outages via satellite (" . round($totalGb, 1) . " GB consumed).", 'warning', 'network');
+             }
+        }
 
         $network->save();
     }
@@ -1047,5 +1089,63 @@ class NetworkService
             // Fast decay
             $network->network_reputation = max(0, $network->network_reputation - 0.5);
         }
+    }
+
+    /**
+     * Evaluate ISP reliability and trigger micro-outages if roll fails.
+     */
+    private function evaluateIspReliability(User $user, PlayerNetwork $network): void
+    {
+        $ispConfig = self::ISP_CATALOG[$network->isp_provider] ?? self::ISP_CATALOG['generic_transit'];
+        $reliability = $ispConfig['reliability'] ?? 0.95;
+
+        // Roll for micro-outage (flapping/packet loss spike)
+        // 1.0 - reliability = failure chance
+        if (rand(1, 1000) > ($reliability * 1000)) {
+            $durationMinutes = rand(1, 3);
+            
+            // Don't duplicate if already active
+            $existing = \App\Models\GameEvent::where('user_id', $user->id)
+                ->where('title', 'LIKE', '%ISP_MICRO_OUTAGE%')
+                ->where('status', 'active')
+                ->exists();
+
+            if (!$existing) {
+                \App\Models\GameEvent::create([
+                    'user_id' => $user->id,
+                    'title' => '📡 ISP_MICRO_OUTAGE',
+                    'description' => "Minor connectivity flapping detected with {$ispConfig['name']}. Packet loss is spiking.",
+                    'type' => EventType::NETWORK_FAILURE,
+                    'status' => 'active',
+                    'severity' => 'info',
+                    'expires_at' => now()->addMinutes($durationMinutes),
+                ]);
+
+                \App\Models\GameLog::log($user, "ISP flapping: Small packet loss spike on {$ispConfig['name']}.", 'warning', 'network');
+                
+                // Immediate impact
+                $network->avg_packet_loss += 0.02; // 2% spike
+                $user->economy->adjustReputation(-0.5);
+            }
+        }
+    }
+
+    /**
+     * Check if orbital failover is currently rescuing the network.
+     */
+    public function isOrbitalFailoverActive(User $user): bool
+    {
+        // 1. Requirement: Unlocked via Research
+        if (!$this->researchService->isUnlocked($user, 'orbital_redundancy')) {
+            return false;
+        }
+
+        // 2. Condition: Active Critical Network Failure
+        $hasCriticalEvent = GameEvent::where('user_id', $user->id)
+            ->whereIn('type', [EventType::FIBER_CUT, EventType::BGP_HIJACKING, EventType::ISP_BANNING])
+            ->whereIn('status', [\App\Enums\EventStatus::ACTIVE, \App\Enums\EventStatus::ESCALATED])
+            ->exists();
+
+        return $hasCriticalEvent;
     }
 }

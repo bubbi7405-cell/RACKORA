@@ -1,131 +1,162 @@
 <template>
     <div class="v2-main-viewport infrastructure-v2" :class="`theme-${currentRoom?.theme || 'classic'}`">
         <header class="v2-content-header">
-            <div class="v2-breadcrumb">
-                <span class="v2-path">INFRASTRUCTURE</span>
-                <span class="v2-sep">//</span>
-                <span class="v2-node">{{ currentRoom?.name?.toUpperCase() }}</span>
+            <div class="v2-breadcrumb l3-priority">
+                <span class="v2-path">NETWORK_TOPOLOGY</span>
+                <span class="v2-sep">≫</span>
+                <span class="v2-asset-site">{{ currentRoom?.name?.toUpperCase() }}</span>
             </div>
-            
+
             <div class="v2-room-tabs">
-                <button 
-                    v-for="room in Object.values(rooms || {})" 
-                    :key="room.id"
-                    class="v2-room-tab"
-                    :class="{ 'is-active': selectedRoomId === room.id }"
-                    @click="gameStore.selectRoom(room.id)"
-                >
+                <button v-for="room in Object.values(rooms || {})" :key="room.id" class="v2-room-tab"
+                    :class="{ 'is-active': selectedRoomId === room.id, 'l1-priority': selectedRoomId === room.id, 'l3-priority': selectedRoomId !== room.id }"
+                    @click="gameStore.selectRoom(room.id)">
                     {{ room.name }}
                 </button>
             </div>
 
-            <button class="v2-action-btn secondary" @click="showHeatmap = !showHeatmap" :class="{ 'active': showHeatmap }" style="margin-right: 12px;">
-                <span class="v2-icon">🌡️</span>
-                {{ showHeatmap ? 'HEATMAP_ON' : 'HEATMAP_OFF' }}
-            </button>
-            <button class="v2-action-btn secondary" @click="$emit('openMarket')" style="margin-right: 12px;">
-                <span class="v2-icon">⚡</span>
-                ENERGY_GRID
-            </button>
-            <button class="v2-action-btn" @click="$emit('openShop')">
-                <span class="v2-icon">⊞</span>
-                PROVISION_HARDWARE
-            </button>
+            <div class="v2-command-actions">
+                <button class="v2-cmd-btn secondary l2-priority" @click="showHeatmap = !showHeatmap"
+                    :class="{ 'active': showHeatmap }">
+                    <span class="v2-icon">⧗</span>
+                    {{ showHeatmap ? 'THERMAL_OVERLAY: ON' : 'THERMAL_OVERLAY: OFF' }}
+                </button>
+                <button class="v2-cmd-btn secondary l2-priority" @click="$emit('openMarket')">
+                    <span class="v2-icon">⚡</span>
+                    POWER_GRID
+                </button>
+                <button class="v2-cmd-btn secondary l2-priority" @click="showSpecialization = true">
+                    <span class="v2-icon">✵</span>
+                    SPECIALIZE_NODE
+                </button>
+                <button class="v2-cmd-btn l1-priority" @click="$emit('openShop')">
+                    <span class="v2-icon">⊞</span>
+                    DEPLOY_SERVER
+                </button>
+                <button class="v2-cmd-btn l1-priority" @click="$emit('openRackPurchase')">
+                    <span class="v2-icon">+</span>
+                    PROVISION_RACK
+                </button>
+                <button class="v2-close-btn" @click="gameStore.selectView('overview')">&times;</button>
+            </div>
         </header>
 
         <div class="v2-content-scroll">
-            <div class="v2-telemetry-grid">
+            <div class="v2-telemetry-cluster">
                 <!-- Power Card -->
-                <div class="v2-card telemetry-v2" :class="{ 'is-danger': powerUsageRatio >= 1 }">
-                    <div class="v2-title">
-                        <span class="v2-label">POWER_ARRAY</span>
-                        <div class="v2-badge" :class="{ 'is-danger': powerUsageRatio > 0.95 }">
-                            {{ powerUsageRatio > 0.95 ? 'CRITICAL' : 'STABLE' }}
-                        </div>
+                <div class="v2-tel-card" :class="{ 'is-critical': powerUsageRatio >= 0.9 }">
+                    <div class="tel-scanline"></div>
+                    <div class="tel-header">
+                        <span class="tel-label l3-priority"
+                              @mouseenter="tooltipStore.show($event, 'server')"
+                              @mouseleave="tooltipStore.hide()">NODE_LOAD</span>
+                        <div class="tel-badge l1-priority">{{ powerUsageRatio > 0.9 ? 'CRITICAL' : 'STABLE' }}</div>
+                        <div v-if="currentRoom?.specialization" class="spec-active-pill">{{ currentRoom.specialization.toUpperCase() }}</div>
                     </div>
-                    <div class="v2-stat-row">
-                        <div class="v2-stat-value large">{{ currentRoom?.stats?.powerUsage || 0 }}<small>kW</small></div>
-                        <div class="v2-gauge-wrapper">
-                            <div class="v2-gauge">
-                                <div class="v2-gauge-fill" :style="{ width: Math.min(100, powerUsageRatio * 100) + '%' }"></div>
+                    <div class="tel-main">
+                        <div class="tel-value l1-priority">{{ currentRoom?.stats?.powerUsage || 0 }}<small>kW</small>
+                        </div>
+                        <div class="tel-gauge-cluster">
+                            <div class="tel-gauge-bg">
+                                <div class="tel-gauge-fill pwr"
+                                    :style="{ width: Math.min(100, powerUsageRatio * 100) + '%' }"></div>
+                            </div>
+                            <div class="tel-meta l3-priority">LIMIT: {{ currentRoom?.stats?.powerCapacity || 100 }} KW
                             </div>
                         </div>
-                    </div>
-                    <div class="v2-card-footer">
-                        <span>CAPACITY: {{ currentRoom?.stats?.powerCapacity || 100 }} kW</span>
                     </div>
                 </div>
 
-                <!-- Cooling Card -->
-                <div class="v2-card telemetry-v2" :class="{ 'is-danger': currentRoom?.temperature > 50 }">
-                    <div class="v2-title">
-                        <span class="v2-label">THERMAL_CONTEXT</span>
-                        <div class="v2-badge" :class="{ 'is-danger': currentRoom?.temperature > 40 }">
-                            {{ currentRoom?.temperature > 40 ? 'HIGH_TEMP' : 'OPTIMAL' }}
+                <!-- Thermal Card -->
+                <div class="v2-tel-card" :class="{ 'is-critical': currentRoom?.temperature > 45 }">
+                    <div class="tel-scanline"></div>
+                    <div class="tel-header">
+                        <span class="tel-label l3-priority"
+                              @mouseenter="tooltipStore.show($event, 'cooling')"
+                              @mouseleave="tooltipStore.hide()">THERMAL_STATE</span>
+                        <div class="tel-badge l1-priority">{{ currentRoom?.temperature > 40 ? 'HEAT_WARN' : 'NOMINAL' }}
                         </div>
                     </div>
-                    <div class="v2-stat-row">
-                        <div class="v2-stat-value large">{{ Math.round(currentRoom?.temperature || 20) }}<small>°C</small></div>
-                        <div class="v2-gauge-wrapper">
-                            <div class="v2-gauge">
-                                <div class="v2-gauge-fill is-thermal" :style="{ width: (currentRoom?.temperature / 60 * 100) + '%' }"></div>
+                    <div class="tel-main">
+                        <div class="tel-value l1-priority">{{ Math.round(currentRoom?.temperature || 20)
+                            }}<small>°C</small></div>
+                        <div class="tel-gauge-cluster">
+                            <div class="tel-gauge-bg">
+                                <div class="tel-gauge-fill tmp"
+                                    :style="{ width: (currentRoom?.temperature / 60 * 100) + '%' }"></div>
                             </div>
+                            <div class="tel-meta l3-priority">PEAK: 55°C</div>
                         </div>
-                    </div>
-                    <div class="v2-card-footer">
-                        <span>AMBIENT: 22°C</span>
                     </div>
                 </div>
 
                 <!-- Network Card -->
-                <div class="v2-card telemetry-v2">
-                    <div class="v2-title">
-                        <span class="v2-label">NETWORK_PIPE</span>
-                        <div class="v2-badge">STABLE</div>
+                <div class="v2-tel-card">
+                    <div class="tel-scanline"></div>
+                    <div class="tel-header">
+                        <span class="tel-label l3-priority"
+                              @mouseenter="tooltipStore.show($event, 'network')"
+                              @mouseleave="tooltipStore.hide()">NETWORK_THROUGHPUT</span>
+                        <div class="tel-badge l1-priority">STABLE</div>
                     </div>
-                    <div class="v2-stat-row">
-                        <div class="v2-stat-value large">{{ currentRoom?.stats?.bandwidthUsage || 0 }}<small>Gbps</small></div>
-                        <div class="v2-gauge-wrapper">
-                            <div class="v2-gauge">
-                                <div class="v2-gauge-fill is-network" :style="{ width: (bandwidthUsageRatio * 100) + '%' }"></div>
+                    <div class="tel-main">
+                        <div class="tel-value l1-priority">{{ currentRoom?.stats?.bandwidthUsage || 0
+                            }}<small>Gbps</small></div>
+                        <div class="tel-gauge-cluster">
+                            <div class="tel-gauge-bg">
+                                <div class="tel-gauge-fill sig" :style="{ width: (bandwidthUsageRatio * 100) + '%' }">
+                                </div>
+                            </div>
+                            <div class="tel-meta l3-priority">CAP: {{ currentRoom?.stats?.bandwidthCapacity || 1 }} GBPS
                             </div>
                         </div>
-                    </div>
-                    <div class="v2-card-footer">
-                        <span>CAPACITY: {{ currentRoom?.stats?.bandwidthCapacity || 1 }} Gbps</span>
                     </div>
                 </div>
             </div>
 
-            <div class="v2-section">
-                <div class="v2-title">PHYSICAL_ASSET_LAYOUT</div>
-                
+            <div class="v2-section grid-section">
+                <div class="v2-section-header l2-priority">
+                    SITE_INVENTORY // [PHYSICAL_ASSETS]
+                </div>
+
                 <div class="v2-visual-grid">
-                    <RackComponent 
-                        v-for="rack in currentRoomRacks" 
-                        :key="rack.id"
-                        :rack="rack"
-                        :isSelected="selectedRackId === rack.id"
-                        :show-heatmap="showHeatmap"
-                        @select="gameStore.selectRack(rack.id)"
-                        @selectServer="(id) => $emit('open-server-details', id)"
-                    />
-                    
+                    <RackComponent v-for="rack in currentRoomRacks" :key="rack.id" :rack="rack"
+                        :isSelected="selectedRackId === rack.id" :show-heatmap="showHeatmap"
+                        @select="gameStore.selectRack(rack.id)" @selectServer="(id) => $emit('open-server-details', id)"
+                        @openInventory="(id) => $emit('openInventory', id)" />
+
                     <div v-if="currentRoomRacks.length === 0" class="v2-empty-state">
-                        NO_UNITS_PROVISIONED_ON_THIS_NODE
+                        <p>NO_UNITS_PROVISIONED_ON_THIS_COORD</p>
+                        <button class="v2-cmd-btn l1-priority" style="margin-top: 20px" @click="$emit('openRackPurchase')">
+                            <span class="v2-icon">+</span> PROVISION_RACK
+                        </button>
                     </div>
                 </div>
             </div>
 
             <div v-if="selectedRack" class="v2-section animate-fade-in-right">
-                <div class="v2-title">RACK_OPERATIONS: {{ selectedRack.name }}</div>
+                <div class="v2-title">
+                    RACK_MANAGEMENT: {{ selectedRack.name }}
+                    <span class="v2-info-trigger"
+                        @mouseenter="tooltipStore.show($event, { title: 'RACK_MANAGEMENT', content: 'Operational control for the selected hardware rack. Maintain system integrity and clear thermal barriers.', hint: 'Visual indicators reflect current asset status.' })"
+                        @mouseleave="tooltipStore.hide()">ⓘ</span>
+                </div>
                 <div class="v2-rack-ops">
                     <!-- Lighting Control -->
                     <div class="v2-op-group">
-                        <label>RGB_ENVIRONMENT</label>
+                        <label>
+                            RACK_LIGHTING
+                            <span class="v2-info-trigger"
+                                @mouseenter="tooltipStore.show($event, { title: 'LIGHTING_SETTINGS', content: 'Adjust the visual status indicators of the hardware rack.', hint: 'Atmospheric variance for operational clarity.' })"
+                                @mouseleave="tooltipStore.hide()">ⓘ</span>
+                        </label>
                         <div class="v2-op-row">
-                            <input type="color" v-model="ledColor" @change="updateLighting" class="v2-color-input">
-                            <select v-model="ledMode" @change="updateLighting" class="v2-select-sm">
+                            <input type="color" v-model="ledColor" @change="updateLighting" class="v2-color-input"
+                                @mouseenter="tooltipStore.show($event, { title: 'COLOR_SELECTION', content: 'Define the color signature of the rack indicators.', hint: 'Sync with active asset status.' })"
+                                @mouseleave="tooltipStore.hide()">
+                            <select v-model="ledMode" @change="updateLighting" class="v2-select-sm"
+                                @mouseenter="tooltipStore.show($event, { title: 'LIGHTING_MODE', content: 'Choose a lighting pattern for the rack indicators.', hint: 'Visual feedback for system integrity.' })"
+                                @mouseleave="tooltipStore.hide()">
                                 <option value="static">STATIC</option>
                                 <option value="pulse">PULSE</option>
                                 <option value="rainbow">RAINBOW</option>
@@ -135,64 +166,82 @@
 
                     <!-- Maintenance -->
                     <div class="v2-op-group">
-                        <label>MAINTENANCE</label>
-                        <button 
-                            class="v2-btn-sm" 
-                            :disabled="selectedRack.dustLevel < 0.1 || processing"
+                        <label>
+                            SYSTEM_MAINTENANCE
+                            <span class="v2-info-trigger"
+                                @mouseenter="tooltipStore.show($event, { title: 'SYSTEM_MAINTENANCE', content: 'Direct protocols to ensure long-term hardware reliability.', hint: 'Particulate buildup increases thermal resistance.' })"
+                                @mouseleave="tooltipStore.hide()">ⓘ</span>
+                        </label>
+                        <button class="v2-btn-sm" :disabled="selectedRack.dustLevel < 0.1 || processing"
                             @click="handleCleanRack"
-                        >
-                            CLEAN_DUST ({{ Math.round(selectedRack.dustLevel * 100) }}%)
+                            @mouseenter="tooltipStore.show($event, { title: 'CLEAN_HARDWARE', content: 'Authorize a pressurized cleaning cycle on the hardware assets.', hint: 'Maintenance directly optimizes rack efficiency.' })"
+                            @mouseleave="tooltipStore.hide()">
+                            CLEAN_HARDWARE ({{ Math.round(selectedRack.dustLevel * 100) }}%)
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div class="v2-section">
-                <div class="v2-title">ACTIVE_ASSET_INVENTORY</div>
-                
-                <div class="v2-table">
-                    <div class="v2-table-header">
-                        <span class="v2-th">UNIT_ID</span>
-                        <span class="v2-th">THERMAL_STATE</span>
-                        <span class="v2-th">U-UTILIZATION</span>
+            <div class="v2-section log-section">
+                <div class="v2-section-header l2-priority">
+                    ASSET_LOG // [STATUS: NOMINAL]
+                </div>
+
+                <div class="v2-table-wrapper">
+                    <div class="v2-table-header l3-priority">
+                        <span class="v2-th">ASSET_ID</span>
+                        <span class="v2-th">TEMPERATURE</span>
+                        <span class="v2-th">UTILIZATION</span>
                     </div>
                     <div v-for="rack in currentRoomRacks" :key="rack.id" class="v2-table-row">
-                        <span class="v2-td text-mono">RACK-{{ rack.id.toString().slice(-4).toUpperCase() }}</span>
-                        <span class="v2-td">
+                        <span class="v2-td text-mono l1-priority">ASSET-{{ rack.id.toString().slice(-4).toUpperCase()
+                            }}</span>
+                        <span class="v2-td l2-priority">
                             <span class="v2-status-dot" :class="{ 'is-online': !rack.isOverheating }"></span>
                             {{ rack.temperature }}°C
                         </span>
-                        <span class="v2-td">{{ rack.units.used }}/{{ rack.units.total }}U</span>
+                        <span class="v2-td l3-priority">{{ rack.units.used }} / {{ rack.units.total }}U</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Thermal Legend Overlay -->
+        <!-- Thermal Scale Overlay -->
         <div v-if="showHeatmap" class="thermal-legend animate-fade-in-up">
             <div class="legend-title">THERMAL_SCALE_KEY</div>
             <div class="legend-items">
-                <div class="legend-item"><span class="scale-dot ambient"></span> <25°C AMBIENT</div>
-                <div class="legend-item"><span class="scale-dot warm"></span> 35°C WARM</div>
-                <div class="legend-item"><span class="scale-dot hot"></span> 45°C HOT</div>
-                <div class="legend-item"><span class="scale-dot critical"></span> >50°C CRITICAL</div>
+                <div class="legend-item"><span class="scale-dot ambient"></span>
+                    <25°C AMBIENT</div>
+                        <div class="legend-item"><span class="scale-dot warm"></span> 35°C WARM</div>
+                        <div class="legend-item"><span class="scale-dot hot"></span> 45°C HOT</div>
+                        <div class="legend-item"><span class="scale-dot critical"></span> >50°C CRITICAL</div>
+                </div>
             </div>
         </div>
-    </div>
+
+        <SpecializationOverlay 
+            v-if="showSpecialization" 
+            :room="currentRoom"
+            @close="showSpecialization = false"
+        />
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useGameStore } from '../../stores/game';
 import { useInfrastructureStore } from '../../stores/infrastructure';
+import { useTooltipStore } from '../../stores/tooltip';
 import RackComponent from '../Rack/RackComponent.vue';
+import SpecializationOverlay from '../Overlay/SpecializationOverlay.vue';
 
 const gameStore = useGameStore();
 const infraStore = useInfrastructureStore();
+const tooltipStore = useTooltipStore();
 
-defineEmits(['openShop', 'open-server-details', 'openMarket']);
+defineEmits(['openShop', 'openRackPurchase', 'open-server-details', 'openMarket', 'openLab', 'openInventory']);
 const showHeatmap = ref(false);
 const processing = ref(false);
+const showSpecialization = ref(false);
 
 const ledColor = ref('#00ff00');
 const ledMode = ref('static');
@@ -203,7 +252,7 @@ const selectedRackId = computed(() => gameStore.selectedRackId);
 
 const selectedRack = computed(() => {
     if (!selectedRackId.value) return null;
-    return currentRoomRacks.value.find(r => r.id === selectedRackId.value);
+    return currentRoomRacks.value?.find(r => r.id === selectedRackId.value);
 });
 
 // Sync LED values when rack changes
@@ -246,231 +295,322 @@ const bandwidthUsageRatio = computed(() => {
 </script>
 
 <style scoped>
-.infrastructure-view {
+.infrastructure-v2 {
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--color-surface);
+    background: var(--ds-bg-void);
+    color: #fff;
+    overflow: hidden;
 }
 
-.view-header {
-    padding: var(--space-xl) var(--space-2xl);
-    border-bottom: var(--border-ui);
+/* ── HEADER ────────────────────────────────── */
+.v2-content-header {
+    height: 80px;
+    padding: 0 32px;
+    background: rgba(13, 17, 23, 0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
 }
 
-.breadcrumb {
+.v2-breadcrumb {
+    font-size: 0.6rem;
+    font-weight: 950;
+    letter-spacing: 0.15em;
     display: flex;
     gap: 12px;
-    font-size: 0.65rem;
-    font-weight: 800;
-    font-family: var(--font-mono);
-    margin-bottom: 12px;
 }
 
-.breadcrumb .root { color: var(--color-muted); }
-.breadcrumb .sep { color: var(--color-muted); opacity: 0.3; }
-.breadcrumb .active { color: var(--color-accent); }
+.v2-sep {
+    opacity: 0.3;
+    color: var(--ds-accent);
+}
 
-.room-selector {
+.v2-asset-site {
+    color: #fff;
+}
+
+.v2-room-tabs {
     display: flex;
-    gap: 20px;
+    gap: 24px;
 }
 
-.room-tab {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--color-muted);
-    padding: var(--space-xs) 0;
+.v2-room-tab {
+    font-size: 0.75rem;
+    font-weight: 950;
+    letter-spacing: 0.1em;
+    padding: 12px 0;
     position: relative;
-    transition: color 0.2s;
+    transition: all 0.2s;
 }
 
-.room-tab:hover { color: #fff; }
-.room-tab.active { color: #fff; }
-.room-tab.active::after {
+.v2-room-tab.is-active::after {
     content: '';
     position: absolute;
-    bottom: -4px;
+    bottom: 0;
     left: 0;
     right: 0;
     height: 2px;
-    background: var(--color-accent);
+    background: var(--ds-accent);
+    box-shadow: 0 0 10px var(--ds-accent-glow);
 }
 
-.industrial-btn {
-    background: transparent;
-    border: var(--border-highlight);
-    color: #fff;
-    padding: 8px 16px;
-    font-size: 0.7rem;
-    font-weight: 800;
-    font-family: var(--font-mono);
-    letter-spacing: 0.1em;
-    transition: all 0.2s;
-    border-radius: 2px;
+.v2-command-actions {
+    display: flex;
+    gap: 16px;
 }
 
-.industrial-btn:hover {
-    background: #fff;
+.v2-cmd-btn {
+    padding: 10px 20px;
+    background: var(--ds-accent);
     color: #000;
-    box-shadow: 0 0 20px rgba(255,255,255,0.1);
+    font-size: 0.65rem;
+    font-weight: 950;
+    letter-spacing: 0.1em;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s;
 }
 
-.view-content {
-    padding: var(--space-2xl);
-    flex: 1;
+.v2-cmd-btn.secondary {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.telemetry-grid {
+.v2-cmd-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.v2-cmd-btn.secondary.active {
+    border-color: var(--ds-nominal);
+    color: var(--ds-nominal);
+    background: rgba(35, 134, 54, 0.1);
+}
+
+/* ── TELEMETRY ─────────────────────────────── */
+.v2-telemetry-cluster {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-xl);
-    margin-bottom: var(--space-2xl);
+    gap: 24px;
+    padding: 32px;
 }
 
-.tel-card {
-    background: var(--color-elevated);
-    border: var(--border-dim);
-    padding: var(--space-lg);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
+.v2-tel-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+}
+
+.v2-tel-card:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.v2-tel-card.is-critical {
+    border-color: var(--ds-critical);
+    background: rgba(248, 81, 73, 0.05);
+}
+
+.tel-scanline {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(255, 255, 255, 0.02) 50%);
+    background-size: 100% 2px;
+    pointer-events: none;
 }
 
 .tel-header {
     display: flex;
     justify-content: space-between;
-    font-size: 0.6rem;
-    font-weight: 800;
-    letter-spacing: 0.05em;
-    font-family: var(--font-mono);
+    margin-bottom: 24px;
 }
 
-.tel-label { color: var(--color-muted); }
-.tel-status { color: var(--color-success); }
+.tel-label {
+    font-size: 0.55rem;
+    font-weight: 950;
+    letter-spacing: 0.15em;
+    color: var(--ds-text-ghost);
+}
 
-.tel-body { display: flex; align-items: baseline; gap: var(--space-lg); }
-.tel-value { font-size: 2rem; font-weight: 800; color: #fff; }
-.tel-value small { font-size: 0.8rem; color: var(--color-muted); margin-left: 4px; }
+.tel-badge {
+    font-size: 0.55rem;
+    font-weight: 950;
+    color: var(--ds-nominal);
+}
 
-.tel-gauge { flex: 1; height: 6px; background: rgba(255,255,255,0.05); position: relative; border-radius: 3px; overflow: hidden; }
-.gauge-bar { height: 100%; background: var(--color-accent); width: 0%; transition: width 0.5s ease; }
+.is-critical .tel-badge {
+    color: var(--ds-critical);
+    text-shadow: 0 0 10px var(--ds-critical);
+}
 
-.tel-footer {
+.tel-main {
     display: flex;
-    justify-content: space-between;
-    font-size: 0.6rem;
-    font-family: var(--font-mono);
-    color: var(--color-muted);
+    align-items: flex-end;
+    gap: 32px;
 }
 
-.warning .tel-status { color: var(--color-warning); }
-.danger .tel-status { color: var(--color-danger); }
-.danger .gauge-bar { background: var(--color-danger); }
-
-.asset-section { margin-top: var(--space-2xl); }
-
-.section-header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-lg);
-    margin-bottom: var(--space-xl);
+.tel-value {
+    font-size: 2.2rem;
+    font-weight: 950;
+    font-family: var(--ds-font-mono);
 }
 
-.section-title { font-size: 0.7rem; font-weight: 800; color: var(--color-muted); letter-spacing: 0.15em; white-space: nowrap; }
-.section-line { flex: 1; height: 1px; background: var(--border-dim); }
-
-.asset-table { display: flex; flex-direction: column; }
-
-.table-header {
-    display: grid;
-    grid-template-columns: 2fr 1.5fr 1fr 1.5fr;
-    padding: var(--space-md) var(--space-lg);
-    background: rgba(255,255,255,0.02);
-    font-size: 0.6rem;
-    font-weight: 800;
-    color: var(--color-muted);
-    font-family: var(--font-mono);
-    border-bottom: var(--border-ui);
-}
-
-.table-row {
-    display: grid;
-    grid-template-columns: 2fr 1.5fr 1fr 1.5fr;
-    padding: var(--space-lg);
-    border-bottom: var(--border-dim);
+.tel-value small {
     font-size: 0.8rem;
-    font-family: var(--font-mono);
-    transition: background 0.15s;
+    margin-left: 8px;
+    opacity: 0.5;
 }
 
-.table-row:hover { background: rgba(255,255,255,0.01); }
-
-.visual-racks {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 24px;
-    padding: 12px 0;
-}
-
-.empty-assets {
+.tel-gauge-cluster {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    padding: 60px 0;
-    border: 1px dashed var(--border-dim);
-    color: var(--color-muted);
+    gap: 8px;
+    padding-bottom: 8px;
 }
 
-.empty-icon { font-size: 2rem; margin-bottom: 12px; opacity: 0.3; }
-.empty-text { font-size: 0.6rem; font-weight: 800; letter-spacing: 0.2em; }
+.tel-gauge-bg {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+    overflow: hidden;
+}
 
-.status-pip { width: 6px; height: 6px; border-radius: 50%; display: inline-block; background: var(--color-danger); margin-right: 8px; }
-.status-pip.online { background: var(--color-success); box-shadow: 0 0 6px var(--color-success); }
+.tel-gauge-fill {
+    height: 100%;
+    transition: width 1.5s var(--ds-ease-spring);
+}
 
-/* THERMAL LEGEND */
+.tel-gauge-fill.pwr {
+    background: var(--ds-nominal);
+}
+
+.tel-gauge-fill.tmp {
+    background: var(--ds-warning);
+}
+
+.tel-gauge-fill.sig {
+    background: var(--ds-accent);
+}
+
+.is-critical .tel-gauge-fill {
+    background: var(--ds-critical) !important;
+    box-shadow: 0 0 10px var(--ds-critical);
+}
+
+.tel-meta {
+    font-size: 0.5rem;
+    font-weight: 950;
+    letter-spacing: 0.1em;
+}
+
+/* ── GRID SECTION ──────────────────────────── */
+.v2-section {
+    padding: 0 32px 48px;
+}
+
+.v2-section-header {
+    font-size: 0.65rem;
+    font-weight: 950;
+    letter-spacing: 0.2em;
+    margin-bottom: 24px;
+    border-left: 3px solid var(--ds-accent);
+    padding-left: 16px;
+    opacity: 0.8;
+}
+
+.v2-visual-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 32px;
+}
+
+.v2-content-scroll {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.v2-table-header {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1fr;
+    padding: 16px 24px;
+    background: rgba(255, 255, 255, 0.02);
+    font-size: 0.55rem;
+    font-weight: 950;
+    letter-spacing: 0.15em;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.v2-table-row {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1fr;
+    padding: 16px 24px;
+    font-size: 0.7rem;
+    font-weight: 900;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    transition: all 0.2s;
+}
+
+.v2-table-row:hover {
+    background: rgba(255, 255, 255, 0.01);
+}
+
+.v2-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ds-critical);
+    display: inline-block;
+    margin-right: 12px;
+}
+
+.v2-status-dot.is-online {
+    background: var(--ds-nominal);
+    box-shadow: 0 0 8px var(--ds-nominal);
+}
+
 .thermal-legend {
     position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(10px);
-    border: 1px solid var(--v3-border-soft);
-    padding: 16px;
-    border-radius: 8px;
+    bottom: 100px;
+    left: 280px;
+    background: rgba(5, 7, 10, 0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px 24px;
     display: flex;
     flex-direction: column;
     gap: 12px;
     z-index: 1000;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    pointer-events: none;
 }
 
 .legend-title {
-    font-size: 0.6rem;
-    font-weight: 800;
-    color: var(--v3-text-ghost);
-    letter-spacing: 0.1em;
-    font-family: var(--font-family-mono);
+    font-size: 0.5rem;
+    font-weight: 950;
+    letter-spacing: 0.15em;
+    color: var(--ds-text-ghost);
 }
 
 .legend-items {
     display: flex;
-    gap: 20px;
+    gap: 24px;
 }
 
 .legend-item {
+    font-size: 0.6rem;
+    font-weight: 900;
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 0.65rem;
-    font-weight: 700;
-    color: var(--v3-text-secondary);
+    gap: 10px;
 }
 
 .scale-dot {
@@ -479,98 +619,54 @@ const bandwidthUsageRatio = computed(() => {
     border-radius: 2px;
 }
 
-.scale-dot.ambient { background: rgba(0, 150, 255, 0.6); box-shadow: 0 0 8px rgba(0, 150, 255, 0.4); }
-.scale-dot.warm { background: rgba(255, 200, 0, 0.6); box-shadow: 0 0 8px rgba(255, 200, 0, 0.4); }
-.scale-dot.hot { background: rgba(255, 90, 50, 0.6); box-shadow: 0 0 8px rgba(255, 90, 50, 0.4); }
-.scale-dot.critical { background: rgba(255, 0, 0, 0.8); box-shadow: 0 0 10px rgba(255, 0, 0, 0.6); animation: v3-crit-blink 1s infinite; }
-
-@keyframes v3-crit-blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+.scale-dot.ambient {
+    background: rgba(0, 150, 255, 0.6);
 }
 
-.animate-fade-in-up {
-    animation: fadeInUp 0.3s ease-out;
+.scale-dot.warm {
+    background: rgba(255, 200, 0, 0.6);
 }
 
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-.v2-rack-ops {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
-    padding: var(--space-md);
-    background: rgba(255, 255, 255, 0.02);
-    border: var(--border-ui);
-    border-radius: var(--radius-md);
+.scale-dot.hot {
+    background: rgba(255, 90, 50, 0.6);
 }
 
-.v2-op-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.scale-dot.critical {
+    background: rgba(255, 0, 0, 0.8);
+    animation: ds-blink 1s infinite;
 }
 
-.v2-op-group label {
-    font-size: 0.65rem;
-    font-weight: 800;
-    color: var(--color-text-muted);
+@keyframes ds-blink {
+    50% {
+        opacity: 0.4;
+    }
 }
 
-.v2-op-row {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-}
-
-.v2-color-input {
-    width: 40px;
-    height: 30px;
-    padding: 0;
-    border: var(--border-ui);
-    background: transparent;
+.v2-close-btn {
+    background: none;
+    border: none;
+    color: var(--ds-text-ghost);
+    font-size: 1.5rem;
     cursor: pointer;
-}
-
-.v2-select-sm {
-    flex: 1;
-    background: rgba(0, 0, 0, 0.3);
-    color: #fff;
-    border: var(--border-ui);
-    padding: 4px 8px;
-    font-size: 0.75rem;
-}
-
-.v2-btn-sm {
-    background: var(--color-primary-dim);
-    color: var(--color-primary);
-    border: 1px solid var(--color-primary);
-    padding: 8px 16px;
-    font-size: 0.75rem;
-    font-weight: 800;
-    cursor: pointer;
+    line-height: 1;
+    padding: 8px;
     transition: all 0.2s;
+    margin-left: 16px;
 }
 
-.v2-btn-sm:hover:not(:disabled) {
-    background: var(--color-primary);
-    color: #000;
+.v2-close-btn:hover {
+    color: #fff;
+    transform: rotate(90deg);
 }
-
-.v2-btn-sm:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-@keyframes fade-in-right {
-    from { opacity: 0; transform: translateX(20px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-.animate-fade-in-right {
-    animation: fade-in-right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+.spec-active-pill {
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: var(--color-accent);
+    background: rgba(58, 134, 255, 0.1);
+    border: 1px solid var(--color-accent);
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    margin-left: 8px;
 }
 </style>
-

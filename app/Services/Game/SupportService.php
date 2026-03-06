@@ -31,6 +31,25 @@ class SupportService
             ->exists();
             
         if ($exists) return;
+        
+        // FEATURE 85: HA-Cluster (Server Redundancy)
+        // If the customer has orders on a server with an active, healthy failover, don't generate a ticket.
+        $hasActiveFailover = false;
+        foreach ($customer->activeOrders as $order) {
+            $mainServer = $order->assignedServer;
+            if ($mainServer && $mainServer->failover_server_id) {
+                $failoverServer = \App\Models\Server::find($mainServer->failover_server_id);
+                if ($failoverServer && $failoverServer->status === \App\Enums\ServerStatus::ONLINE && $failoverServer->health > 50) {
+                    $hasActiveFailover = true;
+                    break; 
+                }
+            }
+        }
+        
+        if ($hasActiveFailover) {
+            GameLog::log($user, "HA-Cluster: Incident at {$customer->company_name} mitigated by failover server.", 'success', 'support');
+            return;
+        }
 
         SupportTicket::create([
             'user_id' => $user->id,

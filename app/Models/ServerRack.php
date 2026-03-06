@@ -30,6 +30,8 @@ class ServerRack extends Model
         'colocation_units',
         'led_color',
         'led_mode',
+        'max_weight_kg',
+        'metadata',
     ];
 
     protected $casts = [
@@ -45,6 +47,8 @@ class ServerRack extends Model
         'purchase_cost' => 'decimal:2',
         'is_colocation_mode' => 'boolean',
         'colocation_units' => 'integer',
+        'max_weight_kg' => 'decimal:2',
+        'metadata' => 'json',
     ];
 
     public function room(): BelongsTo
@@ -176,6 +180,16 @@ class ServerRack extends Model
         return $this->max_power_kw - $this->current_power_kw;
     }
 
+    public function getCurrentWeight(): float
+    {
+        return (float) $this->servers->sum('weight_kg');
+    }
+
+    public function isOverloadedByWeight(): bool
+    {
+        return $this->getCurrentWeight() > $this->max_weight_kg;
+    }
+
     public function isOverheating(): bool
     {
         return $this->temperature > 35;
@@ -204,6 +218,11 @@ class ServerRack extends Model
                 'available' => $this->getAvailablePowerKw(),
             ],
             'heat' => (float) $this->current_heat_kw,
+            'weight' => [
+                'current' => $this->getCurrentWeight(),
+                'max' => (float) $this->max_weight_kg,
+                'percent' => $this->max_weight_kg > 0 ? ($this->getCurrentWeight() / $this->max_weight_kg) * 100 : 0,
+            ],
             'temperature' => (float) $this->temperature,
             'thermalMap' => $this->thermal_map ?? [],
             'powerMap' => $this->power_load_map ?? [],
@@ -214,6 +233,7 @@ class ServerRack extends Model
             'warnings' => [
                 'overheating' => $this->isOverheating(),
                 'critical' => $this->isCriticalTemperature(),
+                'weightOverload' => $this->isOverloadedByWeight(),
             ],
             'isColocationMode' => (bool) $this->is_colocation_mode,
             'colocationUnits' => (int) $this->colocation_units,

@@ -108,6 +108,15 @@ class ResearchService
             'effect' => ['type' => 'unlock_customer_tier', 'value' => 'enterprise'],
             'prerequisites' => ['brand_awareness'],
         ],
+        'financial_engineering' => [
+            'name' => 'Financial Engineering',
+            'description' => 'Unlocks access to Energy Futures and Derivatives. Hedge against price spikes and speculate on market trends.',
+            'cost' => 15000,
+            'duration' => 900,
+            'category' => 'marketing',
+            'effect' => ['type' => 'unlock', 'value' => 'energy_futures'],
+            'prerequisites' => ['brand_awareness'],
+        ],
 
         // ─── SECURITY ───
         'security_shield' => [
@@ -273,6 +282,24 @@ class ResearchService
             'effect' => ['type' => 'bandwidth_capacity_bonus', 'value' => 0.20],
             'prerequisites' => ['ipv6_transition'],
         ],
+        'orbital_redundancy' => [
+            'name' => 'Orbital Redundancy (Star-Link)',
+            'description' => 'Unlocks an emergency satellite uplink. Prevents total connectivity loss during Fiber Cuts or BGP Hijacks at a high cost-per-GB.',
+            'cost' => 35000,
+            'duration' => 1800,
+            'category' => 'networking',
+            'effect' => ['type' => 'unlock', 'value' => 'orbital_redundancy'],
+            'prerequisites' => ['redundant_backbone'],
+        ],
+        'cloud_bursting' => [
+            'name' => 'Hybrid Cloud Bursting',
+            'description' => 'Rent temporary external capacity from Global Cloud Providers. Prevents SLA breach when racks are full, but costs 5x normal OPEX.',
+            'cost' => 25000,
+            'duration' => 1500,
+            'category' => 'software',
+            'effect' => ['type' => 'unlock', 'value' => 'cloud_bursting'],
+            'prerequisites' => ['orbital_redundancy'],
+        ],
 
         // ─── SPECIALIZED DOCTRINE TECHS (LEVEL 20+) ───
         'emp_hardening' => [
@@ -362,6 +389,15 @@ class ResearchService
             'category' => 'experimental',
             'prerequisites' => ['hypervisor_v1'],
             'effect' => ['type' => 'unlock', 'value' => 'os_dev'],
+        ],
+        'modernization_protocols' => [
+            'name' => 'Legacy Modernization Protocols',
+            'description' => 'Unlocks Modernization Missions. Revitalize aged racks and servers by assigning a specialized team. Resets technical debt and efficiency penalties.',
+            'cost' => 40000,
+            'duration' => 2400,
+            'category' => 'software',
+            'effect' => ['type' => 'unlock', 'value' => 'modernization_missions'],
+            'prerequisites' => ['hypervisor_v1'],
         ],
         'proprietary_os_v1' => [
             'name' => 'PonyOS v1.0 (Alpha)',

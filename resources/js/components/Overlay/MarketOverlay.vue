@@ -414,19 +414,19 @@ async function fetchMarketData() {
 }
 
 const isEligible = (id) => {
-    const p = peeringPartners.value.find(p => p.id === id);
+    const p = peeringPartners.value?.find(p => p.id === id);
     return p ? p.isEligible : false;
 };
 
 const getPeeringLabel = (id) => {
-    const p = peeringPartners.value.find(p => p.id === id);
+    const p = peeringPartners.value?.find(p => p.id === id);
     if (!p) return 'CHECKING...';
     if (!p.isEligible) return 'NOT ELIGIBLE';
     return 'REQUEST PEERING';
 };
 
 const openPeeringNegotiation = (competitor) => {
-    const p = peeringPartners.value.find(p => p.id === competitor.id);
+    const p = peeringPartners.value?.find(p => p.id === competitor.id);
     if (p) {
         selectedPartner.value = { ...p, color: competitor.color };
     }

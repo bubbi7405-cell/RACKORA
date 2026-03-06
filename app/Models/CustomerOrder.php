@@ -32,6 +32,9 @@ class CustomerOrder extends Model
         'total_ticks',
         'current_latency_ms',
         'metrics_history',
+        'metadata',
+        'provisioning_started_at',
+        'provisioning_completes_at',
     ];
 
     protected $casts = [
@@ -46,6 +49,7 @@ class CustomerOrder extends Model
         'uptime_percent' => 'decimal:2',
         'metrics_history' => 'array',
         'current_latency_ms' => 'float',
+        'metadata' => 'array',
     ];
 
     public function isProvisioningComplete(): bool
@@ -93,7 +97,7 @@ class CustomerOrder extends Model
 
     public function getPatienceRemainingSeconds(): int
     {
-        if (!$this->patience_expires_at || !$this->isPending()) {
+        if (!$this->patience_expires_at) {
             return 0;
         }
         
