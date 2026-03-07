@@ -1,59 +1,87 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🖥️ Rackora
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Willkommen bei **Rackora**, dem hochdetaillierten Browser-basierten Infrastruktur- und Datacenter-Management-Spiel. Baue dein eigenes Hosting-Imperium auf, verwalte Server-Hardware, optimiere den Stromverbrauch und stelle dich globalen Krisen!
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🚀 Installation & Setup
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Rackora basiert auf **Laravel 11**, **Vue.js 3** (via Inertia.js) und benötigt eine aktuelle PHP- und Node-Umgebung.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Systemvoraussetzungen
+- PHP 8.2 oder höher
+- Composer
+- Node.js (v18+) & NPM/Yarn/PNPM
+- MySQL 8.0+ oder PostgreSQL
+- Redis (für Queues & Caching empfohlen)
 
-## Learning Laravel
+### Schritt-für-Schritt Anleitung
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+1. **Repository klonen**
+   ```bash
+   git clone https://github.com/codepony/rackora.git
+   cd rackora
+   ```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+2. **Abhängigkeiten installieren**
+   ```bash
+   # PHP / Laravel Dependencies
+   composer install
 
-## Laravel Sponsors
+   # Node.js / Frontend Dependencies
+   npm install
+   ```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+3. **Umgebung konfigurieren**
+   Kopiere die `.env.example` zu `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+   Passe anschließend in der `.env`-Datei die Datenbankzugangsdaten (`DB_*`) an dein System an.
 
-### Premium Partners
+4. **Applikations-Schlüssel generieren**
+   ```bash
+   php artisan key:generate
+   ```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+5. **Datenbank migrieren und Seed-Daten laden**
+   ```bash
+   php artisan migrate --seed
+   ```
 
-## Contributing
+6. **Frontend kompilieren / Dev-Server starten**
+   ```bash
+   npm run dev
+   ```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+7. **Backend / PHP-Server starten**
+   In einem neuen Terminal-Fenster:
+   ```bash
+   php artisan serve
+   ```
+   Die Applikation ist nun standardmäßig unter `http://localhost:8000` erreichbar.
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## ❓ FAQ (Häufig gestellte Fragen)
 
-## Security Vulnerabilities
+**Frage: Brauche ich einen speziellen Game-Server-Daemon?**  
+Nein. Rackora nutzt Laravels Scheduler und Queues (`php artisan queue:work` und `php artisan schedule:work`), um Spiel-Ticks, Einkommen und Events asynchron abzuarbeiten.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+**Frage: Wie komme ich ins Admin-Panel?**  
+Setze in der Datenbank bei deinem Benutzer den Wert `is_admin = 1` oder nutze initial ein Seed-Skript, welches einen Admin-Account erstellt. Anschließend wird dir das Admin-Dashboard (Simulation Lab etc.) freigeschaltet.
 
-## License
+**Frage: Wie funktioniert das Mega QA System?**  
+Rackora bietet ein integriertes automatisiertes QA-System zur Prüfung der Spielbalance und zur Erkennung von Exploits. Nutze dazu das Admin-Panel oder den Artisan-Command:
+`php artisan qa:mega --bots=10 --ticks=20 --clean`
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+**Frage: Gibt es einen Multiplayer?**  
+Ja! Das Spiel ist als hybrides Singleplayer/Multiplayer-Erlebnis konzipiert. Globale Events und der Black Market beeinflussen alle Spieler auf dem Server gleichzeitig.
+
+---
+
+## 📄 Lizenz
+
+Dieses Projekt ist lizenziert unter der **MIT License**. Siehe die beiliegende [LICENSE](LICENSE) Datei für detaillierte Informationen.
+
+Copyright (c) 2026 codepony.de
